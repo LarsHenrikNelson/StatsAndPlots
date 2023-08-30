@@ -296,3 +296,5 @@ def biplot(X, loadings, y, components=None, labels=None):
 if __name__ == "__main__":
     plot_two_way()
     plot_one_way()
+    biplot()
+    plot_multi_two_way()
