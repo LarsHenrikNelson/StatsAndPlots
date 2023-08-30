@@ -1,0 +1,298 @@
+from typing import Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from seaborn import axes_style
+import seaborn.objects as so
+
+
+def pval_ycoord(y, ax, spacing=0.06):
+    tp = ax.transLimits.transform((0.5, y))
+    bar = ax.transLimits.inverted().transform((tp[0], tp[1] + spacing))[1]
+    symbol = ax.transLimits.inverted().transform((tp[0], tp[1] + spacing + 0.04))[1]
+    return bar, symbol
+
+
+def pval_xcoord(p_value, coord):
+    if p_value <= 0.05 and p_value > 0.01:
+        p_coor_x = [coord]
+    elif p_value <= 0.01 and p_value > 0.005:
+        p_coor_x = [coord - 0.025, coord + 0.025]
+    elif p_value <= 0.005 and p_value > 0.001:
+        p_coor_x = [coord - 0.045, coord, coord + 0.045]
+    elif p_value <= 0.001:
+        p_coor_x = [coord - 0.075, coord - 0.025, coord + 0.025, coord + 0.075]
+    return p_coor_x
+
+
+def plot_multi_two_way(
+    df: pd.DataFrame,
+    x: str,
+    color: str,
+    col_list: list[str],
+    y_label: list[str],
+    path=None,
+    filetype="svg",
+):
+    for i, j in zip(col_list, y_label):
+        plot_two_way(df, x, i, color, j, path=path, filetype=filetype)
+
+
+def plot_two_way(
+    df: pd.DataFrame,
+    group: str,
+    subgroup: str,
+    y: str,
+    order: list,
+    hue_order: list,
+    y_label: str,
+    title: str = "",
+    x_pval: float = 0.1,
+    color: Union[dict, None] = None,
+    alpha: int = 0.5,
+    color_pval: float = 0.1,
+    legend=False,
+    y_lim: list = [None, None],
+    aspect=1,
+    y_scale="linear",
+    steps=5,
+    decimals=1,
+    path=None,
+    filetype="svg",
+):
+    # plt.rcParams["axes.autolimit_mode"] = "round_numbers"
+    plt.rcParams["legend.frameon"] = False
+    plt.rcParams["xtick.labelsize"] = 20
+    plt.rcParams["ytick.labelsize"] = 20
+    plt.rcParams["font.size"] = 20
+    plt.rcParams["figure.autolayout"] = True
+    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect))
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["left"].set_linewidth(2)
+    ax.spines["bottom"].set_linewidth(2)
+    ax.tick_params(width=2)
+    df["group_1"] = df[group].replace({i: ind for ind, i in enumerate(order)})
+    df["group_2"] = df[subgroup].replace({i: ind for ind, i in enumerate(hue_order)})
+    df.sort_values(["group_1", "group_2"], inplace=True)
+    df.drop(labels=["group_1", "group_2"], axis=1, inplace=True)
+    p = (
+        so.Plot(df, x=group, y=y, color=subgroup)
+        # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
+        .add(
+            so.Dots(artist_kws={"edgecolor": "none"}, pointsize=8, fillalpha=alpha),
+            so.Jitter(seed=42),
+            so.Dodge(gap=-1),
+            legend=legend,
+        )
+        .add(
+            so.Dot(pointsize=40, stroke=2, marker="_", color="Black"),
+            so.Agg(),
+            so.Dodge(gap=-1),
+            legend=False,
+        )
+        .add(
+            so.Range(artist_kws={"capstyle": "round"}, linewidth=2, color="Black"),
+            so.Est(errorbar="se"),
+            so.Dodge(gap=-1),
+            legend=False,
+        )
+        .label(
+            x="",
+            y=y_label,
+            title=title,
+            frameon=False,
+        )
+    )
+    if color is not None:
+        p = p.scale(color=color)
+    p.on(ax).plot()
+    if y_scale is not None:
+        ax.set_yscale(y_scale)
+    pos = []
+    if color_pval <= 0.05:
+        maxes = df.groupby(group)[y].max().to_numpy()
+        x_coords = [[i - 0.19, i + 0.21] for i, _ in enumerate(maxes)]
+        for i, j, k in zip(maxes, x_coords, [0, 1]):
+            bar, mark = pval_ycoord(i, ax)
+            pos.append(mark)
+            pval_x = pval_xcoord(color_pval, k)
+            pval_y = [mark for i in pval_x]
+            ax.plot(j, [bar, bar], color="black")
+            ax.plot(pval_x, pval_y, marker=(5, 2), markersize=8, c="black", lw=0)
+    if x_pval <= 0.05:
+        if len(pos) > 0:
+            bar, mark = pval_ycoord(max(pos), ax)
+        else:
+            coord = df[y].max()
+            bar, mark = pval_ycoord(coord, ax)
+        pval_x = pval_xcoord(x_pval, 0.5)
+        pval_y = [mark for i in pval_x]
+        ax.plot([0, 1], [bar, bar], color="black")
+        ax.plot(pval_x, pval_y, marker=(5, 2), markersize=8, c="black", lw=0)
+    if "/" in y:
+        y = y.replace("/", "_")
+    if y_scale not in ["log", "symlog"]:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+        ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=decimals)
+        ax.set_yticks(ticks)
+    else:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+    if path is not None:
+        plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
+    return fig, ax
+
+
+def plot_one_way(
+    df: pd.DataFrame,
+    group: str,
+    y: str,
+    order: list,
+    y_label: str,
+    title: str = "",
+    x_pval: float = 0.1,
+    color: Union[dict, None] = None,
+    alpha: int = 0.5,
+    color_pval: float = 0.1,
+    legend=False,
+    y_lim: list = [None, None],
+    aspect=1,
+    y_scale="linear",
+    steps=5,
+    path=None,
+    filetype="svg",
+):
+    # plt.rcParams["axes.autolimit_mode"] = "round_numbers"
+    plt.rcParams["xtick.labelsize"] = 20
+    plt.rcParams["ytick.labelsize"] = 20
+    plt.rcParams["font.size"] = 20
+    plt.rcParams["figure.autolayout"] = True
+    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect))
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["left"].set_linewidth(2)
+    ax.spines["bottom"].set_linewidth(2)
+    ax.tick_params(width=2)
+    df["group"] = df[group].replace({i: ind for ind, i in enumerate(order)})
+    df.sort_values(["group"], inplace=True)
+    df.drop(labels=["group"], axis=1, inplace=True)
+    p = (
+        so.Plot(df, x=group, y=y, color=group)
+        # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
+        .add(
+            so.Dots(artist_kws={"edgecolor": "none"}, pointsize=8, fillalpha=alpha),
+            so.Jitter(seed=42, width=0.5),
+            legend=legend,
+        )
+        .add(
+            so.Dot(pointsize=40, stroke=2, marker="_", color="Black"),
+            so.Agg(),
+            legend=False,
+        )
+        .add(
+            so.Range(artist_kws={"capstyle": "round"}, linewidth=2, color="Black"),
+            so.Est(errorbar="se"),
+            legend=False,
+        )
+        .label(x="", y=y_label, title=title, frameon=False)
+        .theme({**axes_style("ticks")})
+    )
+    if color is not None:
+        p = p.scale(color=color)
+    p.on(ax).plot()
+    pos = []
+    if color_pval <= 0.05:
+        maxes = df.groupby(group)[y].max().to_numpy()
+        x_coords = [[i - 0.19, i + 0.21] for i, _ in enumerate(maxes)]
+        for i, j, k in zip(maxes, x_coords, [0, 1]):
+            bar, mark = pval_ycoord(i, ax)
+            pos.append(mark)
+            pval_x = pval_xcoord(color_pval, k)
+            pval_y = [mark for i in pval_x]
+            ax.plot(j, [bar, bar], color="black")
+            ax.plot(pval_x, pval_y, marker=(5, 2), markersize=8, c="black", lw=0)
+    if x_pval <= 0.05:
+        if len(pos) > 0:
+            bar, mark = pval_ycoord(max(pos), ax)
+        else:
+            coord = df[y].max()
+            bar, mark = pval_ycoord(coord, ax)
+        pval_x = pval_xcoord(x_pval, 0.5)
+        pval_y = [mark for i in pval_x]
+        ax.plot([0, 1], [bar, bar], color="black")
+        ax.plot(pval_x, pval_y, marker=(5, 2), markersize=8, c="black", lw=0)
+    if "/" in y:
+        y = y.replace("/", "_")
+    if y_scale not in ["log", "symlog"]:
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=1)
+        ax.set_yticks(ticks)
+    if path is not None:
+        plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
+    return fig, ax
+
+
+def biplot(X, loadings, y, components=None, labels=None):
+    if components is None:
+        components = [0, 1]
+    xs = X[:, components[0]]
+    ys = X[:, components[1]]
+    n = loadings.shape[0]
+    scalex = 1.0 / (xs.max() - xs.min())
+    scaley = 1.0 / (ys.max() - ys.min())
+    fig, ax = plt.subplots()
+    ax.scatter(xs * scalex, ys * scaley, c=y)
+    for i in range(n):
+        ax.arrow(
+            0,
+            0,
+            loadings[i, 0],
+            loadings[i, 1],
+            color="r",
+            alpha=0.5,
+        )
+        if labels is None:
+            ax.text(
+                loadings[i, 0] * 1.15,
+                loadings[i, 1] * 1.15,
+                "Var" + str(i + 1),
+                color="g",
+                ha="center",
+                va="center",
+            )
+        else:
+            ax.text(
+                loadings[i, 0] * 1.15,
+                loadings[i, 1] * 1.15,
+                labels[i],
+                color="g",
+                ha="center",
+                va="center",
+            )
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.set_xlabel(f"PC{components[0]}")
+    ax.set_ylabel(f"PC{components[1]}")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+
+if __name__ == "__main__":
+    plot_two_way()
+    plot_one_way()
