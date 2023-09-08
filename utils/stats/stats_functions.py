@@ -8,6 +8,18 @@ from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from statsmodels.stats.multicomp import MultiComparison
 
+__all__ = [
+    "bootstrap_test",
+    "bootstrap_two_sample",
+    "two_way_anova",
+    "unpaired_t_test",
+    "BAc_confidence_intervals",
+    "boostrap",
+    "permutation_test",
+    "three_way_anova",
+    "two_way_ci",
+]
+
 
 def eta_squared(aov):
     aov["eta_sq"] = "NaN"
@@ -228,20 +240,57 @@ def permutation_test(
     return descriptive_stats, p_value, mean_diff
 
 
-@njit(parallel=True)
+@njit()
 def numba_bootstrap_loop(
     sample_1, sample_2, rng, iterations, base_stat_func: str = "mean"
 ):
-    bs_replicates = np.empty(iterations)
-    if base_stat_func == "mean":
-        stat_func = np.mean
-    elif base_stat_func == "median":
-        stat_func = np.median
-    for i in prange(iterations):
-        sample_1_bs = rng.choice(sample_1, len(sample_1))
-        sample_2_bs = rng.choice(sample_2, len(sample_2))
-        bs_replicates[i] = stat_func(sample_1_bs) - stat_func(sample_2_bs)
+    sample_1_bs = np.zeros(len(sample_1))
+    sample_2_bs = np.zeros(len(sample_2))
+    bs_replicates = np.zeros(iterations)
+    size_1 = np.int(sample_1_bs.size)
+    size_2 = np.int(sample_1_bs.size)
+    for i in range(iterations):
+        for i in range(sample_1_bs.size):
+            sample_1_bs[i] = sample_1[rng.integers(0, high=size_1)]
+            sample_2_bs[i] = sample_2[rng.integers(0, high=size_2)]
+        # sample_1_bs = rng.choice(sample_1, len(sample_1))
+        # sample_2_bs = rng.choice(sample_2, len(sample_2))
+        if base_stat_func == "mean":
+            bs_replicates[i] = np.mean(sample_1_bs) - np.mean(sample_2_bs)
+        else:
+            bs_replicates[i] = np.median(sample_1_bs) - np.median(sample_2_bs)
     return bs_replicates
+
+
+@njit(parallel=True)
+def bac_inner_loop(bs_replicates: np.ndarray):
+    partial_estimates = np.zeros(bs_replicates.size)
+    for i in prange(bs_replicates.size):
+        mean = 0.0
+        for j in range(bs_replicates.size):
+            if j != i:
+                mean += bs_replicates[j]
+            else:
+                mean += 0.0
+        partial_estimates[i] = mean / (bs_replicates.size - 1)
+    return partial_estimates
+
+
+def BAc_confidence_intervals(bs_replicates: np.ndarray, observed_mean: float):
+    bias = norm.ppf((1 - stats.percentileofscore(bs_replicates, observed_mean) / 100))
+    partial_estimates = bac_inner_loop(bs_replicates)
+    partial_mean = np.mean(partial_estimates)
+    numerator = np.sum(np.power((partial_mean - partial_estimates), 3))
+    denominator = np.sum(np.power((partial_mean - partial_estimates), 2))
+    acceleration_factor = numerator / np.power((np.sqrt(6 * denominator)), 3)
+    ci_l = (-1.96 - bias) / (1 - acceleration_factor * (-1.96 - bias)) - bias
+    ci_u = (1.96 - bias) / (1 - acceleration_factor * (1.96 - bias)) - bias
+    p_ci_l = norm.cdf(ci_l)
+    p_ci_u = norm.cdf(ci_u)
+    ci_lower = np.percentile(bs_replicates, p_ci_l * 100)
+    ci_upper = np.percentile(bs_replicates, p_ci_u * 100)
+    bs_confidence_intervals = [ci_lower, ci_upper]
+    return bs_confidence_intervals
 
 
 def bootstrap_test(
@@ -288,13 +337,18 @@ def bootstrap_test(
 
     rng = default_rng(42)
 
-    bs_replicates = numba_bootstrap_loop(
-        sample_1, sample_2, rng, iterations, base_stat_func
-    )
-    # for i in range(iterations):
-    #     sample_1_bs = rng.choice(sample_1, len(sample_1))
-    #     sample_2_bs = rng.choice(sample_2, len(sample_2))
-    #     bs_replicates += [base_stat_funct(sample_1_bs) - base_stat_funct(sample_2_bs)]
+    # bs_replicates = numba_bootstrap_loop(
+    #     sample_1, sample_2, rng, iterations, base_stat_func
+    # )
+    if base_stat_func == "mean":
+        base_stat_func = np.mean
+    else:
+        base_stat_func = np.median
+    bs_replicates = np.zeros(iterations)
+    for i in range(iterations):
+        sample_1_bs = rng.choice(sample_1, len(sample_1))
+        sample_2_bs = rng.choice(sample_2, len(sample_2))
+        bs_replicates[i] = base_stat_func(sample_1_bs) - base_stat_func(sample_2_bs)
 
     bs_mean_diff = np.mean(bs_replicates)
     bs_replicates_shifted = bs_replicates - bs_mean_diff - 0
@@ -316,10 +370,10 @@ def bootstrap_test(
     return descriptive_stats, statistics, bs_replicates
 
 
-def boostrap_two_sample(
-    df, column_for_group, column_for_analysis, iterations, base_stat_funct
+def bootstrap_two_sample(
+    df, column_for_group, column_for_analysis, iterations, base_stat_func: str
 ):
-    """_summary_
+    """Alternative bootstrap test, the confidence intervals don't work.
 
     Args:
         df (pd.DataFrame): _description_
@@ -354,12 +408,17 @@ def boostrap_two_sample(
 
     sample_2_shifted = sample_2 - np.mean(sample_2) + pooled_mean
 
-    bs_diff = []
+    if base_stat_func == "mean":
+        base_stat_func = np.mean
+    else:
+        base_stat_func = np.median
+
+    bs_diff = np.zeros(iterations)
     rng = default_rng(0)
     for i in range(iterations):
         sample_1_bs = rng.choice(sample_1_shifted, len(sample_1))
         sample_2_bs = rng.choice(sample_2_shifted, len(sample_2))
-        bs_diff += [base_stat_funct(sample_1_bs) - base_stat_funct(sample_2_bs)]
+        bs_diff[i] = base_stat_func(sample_1_bs) - base_stat_func(sample_2_bs)
 
     # bs_diff = sample_1_bs - sample_2_bs
 
@@ -377,39 +436,6 @@ def boostrap_two_sample(
         }
     )
     return descriptive_stats, statistics, bs_diff
-
-
-@njit(parallel=True)
-def bac_inner_loop(bs_replicates: np.ndarray):
-    partial_estimates = np.zeros(bs_replicates.size)
-    for i in prange(bs_replicates.size):
-        mean = 0
-        count = 0
-        for i in range(bs_replicates):
-            if i != count:
-                mean += bs_replicates[i]
-            else:
-                mean += 0
-            count += 1
-        partial_estimates[i] = mean / (bs_replicates.size - 1)
-    return partial_estimates
-
-
-def BAc_confidence_intervals(bs_replicates: np.ndarray, observed_mean: float):
-    bias = norm.ppf((1 - stats.percentileofscore(bs_replicates, observed_mean) / 100))
-    partial_estimates = bac_inner_loop(bs_replicates)
-    partial_mean = np.mean(partial_estimates)
-    numerator = np.sum(np.power((partial_mean - partial_estimates), 3))
-    denominator = np.sum(np.power((partial_mean - partial_estimates), 2))
-    acceleration_factor = numerator / np.power((np.sqrt(6 * denominator)), 3)
-    ci_l = (-1.96 - bias) / (1 - acceleration_factor * (-1.96 - bias)) - bias
-    ci_u = (1.96 - bias) / (1 - acceleration_factor * (1.96 - bias)) - bias
-    p_ci_l = norm.cdf(ci_l)
-    p_ci_u = norm.cdf(ci_u)
-    ci_lower = np.percentile(bs_replicates, p_ci_l * 100)
-    ci_upper = np.percentile(bs_replicates, p_ci_u * 100)
-    bs_confidence_intervals = [ci_lower, ci_upper]
-    return bs_confidence_intervals
 
 
 def boostrap(
@@ -529,12 +555,12 @@ def unpaired_t_test(df, column_for_group, column_for_data):
 #     return explained_variance
 
 
-if __name__ == "__main__":
-    bootstrap_test()
-    two_way_anova()
-    unpaired_t_test()
-    BAc_confidence_intervals()
-    boostrap()
-    permutation_test()
-    three_way_anova()
-    two_way_ci()
+# if __name__ == "__main__":
+#     bootstrap_test()
+#     two_way_anova()
+#     unpaired_t_test()
+#     BAc_confidence_intervals()
+#     boostrap()
+#     permutation_test()
+#     three_way_anova()
+#     two_way_ci()

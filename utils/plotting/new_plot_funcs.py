@@ -1,10 +1,19 @@
-from typing import Union
+from pathlib import Path
+from typing import Union, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from seaborn import axes_style
 import seaborn.objects as so
+
+__all__ = [
+    "plot_multi_two_way",
+    "plot_two_way",
+    "plot_one_way",
+    "multiline_plot",
+    "biplot",
+]
 
 
 def pval_ycoord(y, ax, spacing=0.06):
@@ -28,15 +37,14 @@ def pval_xcoord(p_value, coord):
 
 def plot_multi_two_way(
     df: pd.DataFrame,
-    x: str,
-    color: str,
+    group: str,
+    subgroup: str,
     col_list: list[str],
     y_label: list[str],
-    path=None,
-    filetype="svg",
+    **kwargs,
 ):
     for i, j in zip(col_list, y_label):
-        plot_two_way(df, x, i, color, j, path=path, filetype=filetype)
+        plot_two_way(df=df, group=group, subgroup=subgroup, y=i, y_label=j, **kwargs)
 
 
 def plot_two_way(
@@ -49,19 +57,23 @@ def plot_two_way(
     y_label: str,
     title: str = "",
     x_pval: float = 0.1,
-    color: Union[dict, None] = None,
+    color: Union[list, None] = None,
     alpha: int = 0.5,
     color_pval: float = 0.1,
     legend=False,
-    y_lim: list = [None, None],
-    aspect=1,
-    y_scale="linear",
-    steps=5,
-    decimals=1,
-    path=None,
-    filetype="svg",
+    y_lim: Union[list, None] = None,
+    aspect: Union[int, float] = 1,
+    y_scale: Literal["linear", "log", "symlog"] = "linear",
+    steps: int = 5,
+    edgecolor: str = "none",
+    pointsize: int = 8,
+    decimals: int = 1,
+    path: Union[None, str, Path] = None,
+    filetype: str = "svg",
 ):
     # plt.rcParams["axes.autolimit_mode"] = "round_numbers"
+    if y_lim is None:
+        y_lim = [None, None]
     plt.rcParams["legend.frameon"] = False
     plt.rcParams["xtick.labelsize"] = 20
     plt.rcParams["ytick.labelsize"] = 20
@@ -81,11 +93,16 @@ def plot_two_way(
         so.Plot(df, x=group, y=y, color=subgroup)
         # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
         .add(
-            so.Dots(artist_kws={"edgecolor": "none"}, pointsize=8, fillalpha=alpha),
+            so.Dots(
+                artist_kws={"edgecolor": edgecolor},
+                pointsize=pointsize,
+                fillalpha=alpha,
+            ),
             so.Jitter(seed=42),
             so.Dodge(gap=-1),
             legend=legend,
         )
+        .scale(fillcolor=color)
         .add(
             so.Dot(pointsize=40, stroke=2, marker="_", color="Black"),
             so.Agg(),
@@ -108,8 +125,6 @@ def plot_two_way(
     if color is not None:
         p = p.scale(color=color)
     p.on(ax).plot()
-    if y_scale is not None:
-        ax.set_yscale(y_scale)
     pos = []
     if color_pval <= 0.05:
         maxes = df.groupby(group)[y].max().to_numpy()
@@ -162,18 +177,24 @@ def plot_one_way(
     y_label: str,
     title: str = "",
     x_pval: float = 0.1,
-    color: Union[dict, None] = None,
+    color: Union[list, None] = None,
     alpha: int = 0.5,
     color_pval: float = 0.1,
     legend=False,
-    y_lim: list = [None, None],
-    aspect=1,
-    y_scale="linear",
-    steps=5,
-    path=None,
-    filetype="svg",
+    y_lim: Union[list, None] = None,
+    aspect: Union[float, int] = 1,
+    y_scale: Literal["linear", "log", "symlog"] = "linear",
+    steps: int = 5,
+    edgecolor: str = "none",
+    pointsize: int = 8,
+    decimals: int = 1,
+    path: Union[None, str, Path] = None,
+    filetype: str = "svg",
 ):
     # plt.rcParams["axes.autolimit_mode"] = "round_numbers"
+    if y_lim is None:
+        y_lim = [None, None]
+    plt.rcParams["legend.frameon"] = False
     plt.rcParams["xtick.labelsize"] = 20
     plt.rcParams["ytick.labelsize"] = 20
     plt.rcParams["font.size"] = 20
@@ -191,7 +212,11 @@ def plot_one_way(
         so.Plot(df, x=group, y=y, color=group)
         # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
         .add(
-            so.Dots(artist_kws={"edgecolor": "none"}, pointsize=8, fillalpha=alpha),
+            so.Dots(
+                artist_kws={"edgecolor": edgecolor},
+                pointsize=pointsize,
+                fillalpha=alpha,
+            ),
             so.Jitter(seed=42, width=0.5),
             legend=legend,
         )
@@ -235,14 +260,124 @@ def plot_one_way(
     if "/" in y:
         y = y.replace("/", "_")
     if y_scale not in ["log", "symlog"]:
-        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
         ticks = ax.get_yticks()
         if y_lim[0] is None:
             y_lim[0] = ticks[0]
         if y_lim[1] is None:
             y_lim[1] = ticks[-1]
-        ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=1)
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+        ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=decimals)
         ax.set_yticks(ticks)
+    else:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+    if path is not None:
+        plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
+    return fig, ax
+
+
+def multiline_plot(
+    df: pd.DataFrame,
+    x: str,
+    y: str,
+    color: str,
+    linestyle: str,
+    colors: Union[None, list] = None,
+    x_label: str = "",
+    y_label: str = "",
+    y_lim: Union[None, list] = None,
+    y_scale: Literal["linear", "log", "symlog"] = "linear",
+    y_steps: int = 5,
+    y_decimals: int = 1,
+    x_lim: Union[None, list] = None,
+    x_scale: Literal["linear", "log", "symlog"] = "linear",
+    x_steps: int = 5,
+    x_decimals: int = 1,
+    aspect: float = 1.0,
+    path: Union[str, None] = None,
+    filetype: str = "svg",
+):
+    if y_lim is None:
+        y_lim = [None, None]
+    if x_lim is None:
+        x_lim = [None, None]
+    plt.rcParams["legend.frameon"] = False
+    plt.rcParams["xtick.labelsize"] = 20
+    plt.rcParams["ytick.labelsize"] = 20
+    plt.rcParams["font.size"] = 20
+    plt.rcParams["figure.autolayout"] = True
+    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect))
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["left"].set_linewidth(2)
+    ax.spines["bottom"].set_linewidth(2)
+    ax.tick_params(width=2)
+    p = (
+        so.Plot(
+            df,
+            x=x,
+            y=y,
+            color=color,
+            linestyle=linestyle,
+        )
+        .add(so.Line(), so.Agg(), legend=False)
+        .add(so.Band(), so.Est(errorbar="se"), group=linestyle, legend=False)
+        .label(x=x_label, y=y_label, textsize=20)
+        .theme(
+            {
+                **axes_style("ticks"),
+                "axes.facecolor": "w",
+                "axes.edgecolor": "k",
+                "axes.spines.top": False,
+                "axes.spines.right": False,
+                "axes.autolimit_mode": "round_numbers",
+                "axes.labelsize": 22,
+                "xtick.labelsize": 20,
+                "ytick.labelsize": 20,
+            }
+        )
+    )
+    if colors is not None:
+        p = p.scale(color=colors)
+    p.on(ax).plot()
+    if y_scale is not None:
+        ax.set_yscale(y_scale)
+    if y_scale not in ["log", "symlog"]:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+        ticks = np.round(np.linspace(y_lim[0], y_lim[1], y_steps), decimals=y_decimals)
+        ax.set_yticks(ticks)
+    else:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+    if x_scale not in ["log", "sxmlog"]:
+        ticks = ax.get_xticks()
+        if x_lim[0] is None:
+            x_lim[0] = ticks[0]
+        if x_lim[1] is None:
+            x_lim[1] = ticks[-1]
+        ax.set_xlim(left=x_lim[0], right=x_lim[1])
+        ticks = np.round(np.linspace(x_lim[0], x_lim[1], x_steps), decimals=x_decimals)
+        ax.set_xticks(ticks)
+    else:
+        ticks = ax.get_xticks()
+        if x_lim[0] is None:
+            x_lim[0] = ticks[0]
+        if x_lim[1] is None:
+            x_lim[1] = ticks[-1]
+        ax.set_xlim(left=x_lim[0], right=x_lim[1])
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
     return fig, ax
