@@ -563,14 +563,3 @@ def unpaired_t_test(df, column_for_group, column_for_data):
 #         style=split,
 #     )
 #     return explained_variance
-
-
-# if __name__ == "__main__":
-#     bootstrap_test()
-#     two_way_anova()
-#     unpaired_t_test()
-#     BAc_confidence_intervals()
-#     boostrap()
-#     permutation_test()
-#     three_way_anova()
-#     two_way_ci()

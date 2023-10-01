@@ -63,7 +63,7 @@ def plot_two_way(
     group: str,
     subgroup: str,
     y: str,
-    order: list,
+    order: Union[list, None],
     hue_order: list,
     y_label: str,
     title: str = "",
@@ -106,10 +106,13 @@ def plot_two_way(
     ax.spines["left"].set_linewidth(2)
     ax.spines["bottom"].set_linewidth(2)
     ax.tick_params(width=2)
-    df["group_1"] = df[group].replace({i: ind for ind, i in enumerate(order)})
-    df["group_2"] = df[subgroup].replace({i: ind for ind, i in enumerate(hue_order)})
-    df.sort_values(["group_1", "group_2"], inplace=True)
-    df.drop(labels=["group_1", "group_2"], axis=1, inplace=True)
+    if order is not None:
+        df["group_1"] = df[group].replace({i: ind for ind, i in enumerate(order)})
+        df["group_2"] = df[subgroup].replace(
+            {i: ind for ind, i in enumerate(hue_order)}
+        )
+        df.sort_values(["group_1", "group_2"], inplace=True)
+        df.drop(labels=["group_1", "group_2"], axis=1, inplace=True)
     if isinstance(marker, str):
         p = so.Plot(df, x=group, y=y, color=subgroup)
         p = p.add(
@@ -204,14 +207,14 @@ def plot_two_way(
     ax.margins(margins)
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
-    return fig, ax, p
+    return fig, ax
 
 
 def plot_one_way(
     df: pd.DataFrame,
     group: str,
     y: str,
-    order: list,
+    order: Union[list, list],
     y_label: str,
     title: str = "",
     x_pval: float = 0.1,
@@ -248,9 +251,10 @@ def plot_one_way(
     ax.spines["left"].set_linewidth(2)
     ax.spines["bottom"].set_linewidth(2)
     # ax.tick_params(width=2)
-    df["group"] = df[group].replace({i: ind for ind, i in enumerate(order)})
-    df.sort_values(["group"], inplace=True)
-    df.drop(labels=["group"], axis=1, inplace=True)
+    if order is not None:
+        df["group"] = df[group].replace({i: ind for ind, i in enumerate(order)})
+        df.sort_values(["group"], inplace=True)
+        df.drop(labels=["group"], axis=1, inplace=True)
     p = (
         so.Plot(df, x=group, y=y, color=group)
         # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
@@ -332,6 +336,7 @@ def multiline_plot(
     y: str,
     color: str,
     linestyle: str,
+    order: Union[list, None],
     colors: Union[None, list] = None,
     x_label: str = "",
     y_label: str = "",
@@ -362,6 +367,10 @@ def multiline_plot(
     ax.spines["left"].set_linewidth(2)
     ax.spines["bottom"].set_linewidth(2)
     ax.tick_params(width=2)
+    if order is not None:
+        df["group"] = df[linestyle].replace({i: ind for ind, i in enumerate(order)})
+        df.sort_values(["group"], inplace=True)
+        df.drop(labels=["group"], axis=1, inplace=True)
     p = (
         so.Plot(
             df,

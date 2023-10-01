@@ -1,9 +1,7 @@
-from typing import Union
-
-from numba import njit
 import numpy as np
 from numpy.random import default_rng
 import pandas as pd
+
 
 # Could potentially speed this up with numba however,
 # numba does not seem to support the new numpy random
@@ -57,9 +55,7 @@ def sample_from_dfs(
 ) -> dict[str, pd.DataFrame]:
     sampled_dfs = {}
     for key, df in dfs.items():
-        # i.dropna(axis=1, inplace=True)
         array = rand_samp_column(df.to_numpy(), repititions, size, axis=1)
-        # df = y.transpose()
         sampled_dfs[key] = pd.DataFrame(array)
     return sampled_dfs
 
