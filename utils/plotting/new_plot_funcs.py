@@ -1,3 +1,4 @@
+from typing import NamedTuple
 from pathlib import Path
 from typing import Union, Literal
 
@@ -13,7 +14,17 @@ __all__ = [
     "plot_one_way",
     "multiline_plot",
     "biplot",
+    "Group",
+    "Subgroup",
 ]
+
+
+class Group(NamedTuple):
+    mapping: dict
+
+
+class Subgroup(NamedTuple):
+    mapping: dict
 
 
 def pval_ycoord(y, ax, spacing=0.06):
@@ -63,23 +74,33 @@ def plot_two_way(
     legend=False,
     y_lim: Union[list, None] = None,
     aspect: Union[int, float] = 1,
+    figsize: Union[None, tuple[int, int]] = None,
     y_scale: Literal["linear", "log", "symlog"] = "linear",
     steps: int = 5,
     edgecolor: str = "none",
     pointsize: int = 8,
+    meansize: int = 40,
+    marker: Union[Group, Subgroup, str] = "o",
     decimals: int = 1,
+    jitter: Union[tuple[int, float], None] = None,
+    margins: float = 0.05,
+    gap: int = 0,
     path: Union[None, str, Path] = None,
+    labelsize: int = 20,
     filetype: str = "svg",
 ):
+    # if isinstance(marker, dict):
+    if jitter is None:
+        jitter = (42, 0)
     # plt.rcParams["axes.autolimit_mode"] = "round_numbers"
     if y_lim is None:
         y_lim = [None, None]
     plt.rcParams["legend.frameon"] = False
-    plt.rcParams["xtick.labelsize"] = 20
-    plt.rcParams["ytick.labelsize"] = 20
-    plt.rcParams["font.size"] = 20
+    plt.rcParams["xtick.labelsize"] = labelsize
+    plt.rcParams["ytick.labelsize"] = labelsize
+    plt.rcParams["font.size"] = labelsize
     plt.rcParams["figure.autolayout"] = True
-    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect))
+    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
     ax.spines["left"].set_linewidth(2)
@@ -89,30 +110,46 @@ def plot_two_way(
     df["group_2"] = df[subgroup].replace({i: ind for ind, i in enumerate(hue_order)})
     df.sort_values(["group_1", "group_2"], inplace=True)
     df.drop(labels=["group_1", "group_2"], axis=1, inplace=True)
-    p = (
-        so.Plot(df, x=group, y=y, color=subgroup)
-        # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
-        .add(
+    if isinstance(marker, str):
+        p = so.Plot(df, x=group, y=y, color=subgroup)
+        p = p.add(
+            so.Dots(
+                artist_kws={"edgecolor": edgecolor},
+                pointsize=pointsize,
+                fillalpha=alpha,
+                marker=marker,
+            ),
+            so.Jitter(seed=jitter[0], width=jitter[1]),
+            so.Dodge(gap=gap),
+            legend=legend,
+        ).scale(fillcolor=color)
+    else:
+        if isinstance(marker, Group):
+            marker_group = group
+        else:
+            marker_group = subgroup
+        p = so.Plot(df, x=group, y=y, color=subgroup, marker=marker_group)
+        p = p.add(
             so.Dots(
                 artist_kws={"edgecolor": edgecolor},
                 pointsize=pointsize,
                 fillalpha=alpha,
             ),
-            so.Jitter(seed=42),
-            so.Dodge(gap=-1),
+            so.Jitter(seed=jitter[0], width=jitter[1]),
+            so.Dodge(gap=gap),
             legend=legend,
-        )
-        .scale(fillcolor=color)
-        .add(
-            so.Dot(pointsize=40, stroke=2, marker="_", color="Black"),
+        ).scale(fillcolor=color, marker=marker.mapping)
+    p = (
+        p.add(
+            so.Dot(pointsize=meansize, stroke=2, marker="_", color="Black"),
             so.Agg(),
-            so.Dodge(gap=-1),
+            so.Dodge(gap=gap),
             legend=False,
         )
         .add(
             so.Range(artist_kws={"capstyle": "round"}, linewidth=2, color="Black"),
             so.Est(errorbar="se"),
-            so.Dodge(gap=-1),
+            so.Dodge(gap=gap),
             legend=False,
         )
         .label(
@@ -164,9 +201,10 @@ def plot_two_way(
         if y_lim[1] is None:
             y_lim[1] = ticks[-1]
         ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+    ax.margins(margins)
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
-    return fig, ax
+    return fig, ax, p
 
 
 def plot_one_way(
@@ -183,28 +221,33 @@ def plot_one_way(
     legend=False,
     y_lim: Union[list, None] = None,
     aspect: Union[float, int] = 1,
+    figsize: Union[None, tuple] = None,
     y_scale: Literal["linear", "log", "symlog"] = "linear",
     steps: int = 5,
     edgecolor: str = "none",
     pointsize: int = 8,
+    marker: str = "o",
+    jitter: Union[tuple[int, float], None] = None,
     decimals: int = 1,
     path: Union[None, str, Path] = None,
     filetype: str = "svg",
 ):
+    if jitter is None:
+        jitter = (42, 0)
     # plt.rcParams["axes.autolimit_mode"] = "round_numbers"
     if y_lim is None:
         y_lim = [None, None]
     plt.rcParams["legend.frameon"] = False
-    plt.rcParams["xtick.labelsize"] = 20
-    plt.rcParams["ytick.labelsize"] = 20
+    # plt.rcParams["xtick.labelsize"] = 20
+    # plt.rcParams["ytick.labelsize"] = 20
     plt.rcParams["font.size"] = 20
     plt.rcParams["figure.autolayout"] = True
-    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect))
+    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
     ax.spines["left"].set_linewidth(2)
     ax.spines["bottom"].set_linewidth(2)
-    ax.tick_params(width=2)
+    # ax.tick_params(width=2)
     df["group"] = df[group].replace({i: ind for ind, i in enumerate(order)})
     df.sort_values(["group"], inplace=True)
     df.drop(labels=["group"], axis=1, inplace=True)
@@ -215,9 +258,10 @@ def plot_one_way(
             so.Dots(
                 artist_kws={"edgecolor": edgecolor},
                 pointsize=pointsize,
+                marker=marker,
                 fillalpha=alpha,
             ),
-            so.Jitter(seed=42, width=0.5),
+            so.Jitter(seed=jitter[0], width=jitter[1]),
             legend=legend,
         )
         .add(
@@ -225,6 +269,7 @@ def plot_one_way(
             so.Agg(),
             legend=False,
         )
+        # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
         .add(
             so.Range(artist_kws={"capstyle": "round"}, linewidth=2, color="Black"),
             so.Est(errorbar="se"),
@@ -275,6 +320,7 @@ def plot_one_way(
         if y_lim[1] is None:
             y_lim[1] = ticks[-1]
         ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+    ax.tick_params(axis="both", which="major", labelsize=20, width=2)
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
     return fig, ax

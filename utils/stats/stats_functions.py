@@ -1,3 +1,5 @@
+from io import StringIO
+
 import numpy as np
 import pandas as pd
 from numba import njit, prange
@@ -28,7 +30,7 @@ def eta_squared(aov):
 
 
 def omega_squared(aov):
-    mse = aov["sum_sq"][-1] / aov["df"][-1]
+    mse = aov["sum_sq"].iloc[-1] / aov["df"].iloc[-1]
     aov["omega_sq"] = "NaN"
     aov["omega_sq"] = (aov[:-1]["sum_sq"] - (aov[:-1]["df"] * mse)) / (
         sum(aov["sum_sq"]) + mse
@@ -42,16 +44,24 @@ def two_way_ci(aov, group_by_table):
     # group_by_table = df.groupby(
     #     [column_group_1, column_group_2])[column_for_analysis].agg(
     #         ['count','mean'])
-    mean_one_two_1 = np.average((group_by_table["mean"][0], group_by_table["mean"][1]))
-    mean_one_two_2 = np.average((group_by_table["mean"][2], group_by_table["mean"][3]))
+    mean_one_two_1 = np.average(
+        (group_by_table["mean"].iloc[0], group_by_table["mean"].iloc[1])
+    )
+    mean_one_two_2 = np.average(
+        (group_by_table["mean"].iloc[2], group_by_table["mean"].iloc[3])
+    )
     group_1_difference = mean_one_two_1 - mean_one_two_2
 
-    mean_two_one_1 = np.average((group_by_table["mean"][0], group_by_table["mean"][2]))
-    mean_two_one_2 = np.average((group_by_table["mean"][1], group_by_table["mean"][3]))
+    mean_two_one_1 = np.average(
+        (group_by_table["mean"].iloc[0], group_by_table["mean"].iloc[2])
+    )
+    mean_two_one_2 = np.average(
+        (group_by_table["mean"].iloc[1], group_by_table["mean"].iloc[3])
+    )
     group_2_difference = mean_two_one_1 - mean_two_one_2
 
-    mean_diff_1 = group_by_table["mean"][0] - group_by_table["mean"][2]
-    mean_diff_2 = group_by_table["mean"][1] - group_by_table["mean"][3]
+    mean_diff_1 = group_by_table["mean"].iloc[0] - group_by_table["mean"].iloc[2]
+    mean_diff_2 = group_by_table["mean"].iloc[1] - group_by_table["mean"].iloc[3]
     interaction_diff = mean_diff_1 - mean_diff_2
 
     group_se = (
@@ -127,7 +137,7 @@ def two_way_anova(
     if post_hoc_test == "bonferroni":
         post_hoc, a1, a2 = comp.allpairtest(stats.ttest_ind, method="bonf")
         post_hoc_html = post_hoc.as_html()
-        post_hoc_df = pd.read_html(post_hoc_html, header=0)[0]
+        post_hoc_df = pd.read_html(StringIO(post_hoc_html), header=0)[0]
     elif post_hoc_test == "tukey":
         post_hoc = comp.tukeyhsd()
         post_hoc_df = pd.DataFrame(
