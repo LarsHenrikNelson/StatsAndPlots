@@ -1,17 +1,18 @@
-from typing import NamedTuple
 from pathlib import Path
-from typing import Union, Literal
+from typing import Literal, NamedTuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from seaborn import axes_style
+import seaborn as sns
 import seaborn.objects as so
+from seaborn import axes_style
 
 __all__ = [
     "plot_multi_two_way",
     "plot_two_way",
     "plot_one_way",
+    "plot_two_way_violin",
     "multiline_plot",
     "biplot",
     "Group",
@@ -96,8 +97,6 @@ def plot_two_way(
     if y_lim is None:
         y_lim = [None, None]
     plt.rcParams["legend.frameon"] = False
-    plt.rcParams["xtick.labelsize"] = labelsize
-    plt.rcParams["ytick.labelsize"] = labelsize
     plt.rcParams["font.size"] = labelsize
     plt.rcParams["figure.autolayout"] = True
     fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
@@ -105,7 +104,6 @@ def plot_two_way(
     ax.spines["top"].set_visible(False)
     ax.spines["left"].set_linewidth(2)
     ax.spines["bottom"].set_linewidth(2)
-    ax.tick_params(width=2)
     if order is not None:
         df["group_1"] = df[group].replace({i: ind for ind, i in enumerate(order)})
         df["group_2"] = df[subgroup].replace(
@@ -205,6 +203,7 @@ def plot_two_way(
             y_lim[1] = ticks[-1]
         ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
     ax.margins(margins)
+    ax.tick_params(axis="both", which="major", labelsize=20, width=2)
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
     return fig, ax
@@ -229,9 +228,10 @@ def plot_one_way(
     steps: int = 5,
     edgecolor: str = "none",
     pointsize: int = 8,
-    marker: str = "o",
+    marker: Union[Group, str] = "o",
     jitter: Union[tuple[int, float], None] = None,
     decimals: int = 1,
+    gap: float = 0.1,
     path: Union[None, str, Path] = None,
     filetype: str = "svg",
 ):
@@ -255,32 +255,42 @@ def plot_one_way(
         df["group"] = df[group].replace({i: ind for ind, i in enumerate(order)})
         df.sort_values(["group"], inplace=True)
         df.drop(labels=["group"], axis=1, inplace=True)
-    p = (
-        so.Plot(df, x=group, y=y, color=group)
-        # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
-        .add(
+    if isinstance(marker, str):
+        p = so.Plot(df, x=group, y=y, color=group)
+        p = p.add(
             so.Dots(
                 artist_kws={"edgecolor": edgecolor},
                 pointsize=pointsize,
-                marker=marker,
                 fillalpha=alpha,
+                marker=marker,
             ),
             so.Jitter(seed=jitter[0], width=jitter[1]),
             legend=legend,
-        )
-        .add(
+        ).scale(fillcolor=color)
+    else:
+        p = so.Plot(df, x=group, y=y, color=group, marker=marker)
+        p = p.add(
+            so.Dots(
+                artist_kws={"edgecolor": edgecolor},
+                pointsize=pointsize,
+                fillalpha=alpha,
+            ),
+            so.Jitter(seed=jitter[0], width=jitter[1]),
+            so.Dodge(gap=gap),
+            legend=legend,
+        ).scale(fillcolor=color, marker=marker.mapping)
+    p = (
+        p.add(
             so.Dot(pointsize=40, stroke=2, marker="_", color="Black"),
             so.Agg(),
             legend=False,
         )
-        # .add(so.Dash(linewidth=2, color="Black"), so.Agg(), so.Dodge(), legend=False)
         .add(
             so.Range(artist_kws={"capstyle": "round"}, linewidth=2, color="Black"),
             so.Est(errorbar="se"),
             legend=False,
         )
         .label(x="", y=y_label, title=title, frameon=False)
-        .theme({**axes_style("ticks")})
     )
     if color is not None:
         p = p.scale(color=color)
@@ -330,6 +340,81 @@ def plot_one_way(
     return fig, ax
 
 
+def plot_two_way_violin(
+    df: pd.DataFrame,
+    group: str,
+    subgroup: str,
+    y: str,
+    order: Union[list, list],
+    hue_order: list,
+    y_label: str,
+    title: str = "",
+    color: Union[list, None] = None,
+    inner: str = "quart",
+    alpha: int = 1,
+    legend=False,
+    y_lim: Union[list, None] = None,
+    aspect: Union[float, int] = 1,
+    figsize: Union[None, tuple] = None,
+    y_scale: Literal["linear", "log", "symlog"] = "linear",
+    steps: int = 5,
+    decimals: int = 1,
+    margins: float = 0.05,
+    gap: float = 0.1,
+    path: Union[None, str, Path] = None,
+    filetype: str = "svg",
+):
+    if y_lim is None:
+        y_lim = [None, None]
+    plt.rcParams["font.size"] = 20
+    plt.rcParams["figure.autolayout"] = True
+    fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
+    ax.tick_params(axis="both", which="major", labelsize=20, width=2)
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["left"].set_linewidth(2)
+    ax.spines["bottom"].set_linewidth(2)
+    sns.violinplot(
+        df,
+        y=y,
+        x=group,
+        order=order,
+        hue_order=hue_order,
+        hue=subgroup,
+        palette=color,
+        split=True,
+        inner=inner,
+        alpha=alpha,
+        gap=gap,
+        legend=legend,
+    )
+    if "/" in y:
+        y = y.replace("/", "_")
+    if y_scale not in ["log", "symlog"]:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+        ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=decimals)
+        ax.set_yticks(ticks)
+    else:
+        ticks = ax.get_yticks()
+        if y_lim[0] is None:
+            y_lim[0] = ticks[0]
+        if y_lim[1] is None:
+            y_lim[1] = ticks[-1]
+        ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
+    ax.margins(margins)
+    ax.set_xlabel("")
+    ax.set_ylabel(y_label, fontsize=20, fontweight="bold")
+    ax.set_title(title)
+    if path is not None:
+        plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
+    return fig, ax
+
+
 def multiline_plot(
     df: pd.DataFrame,
     x: str,
@@ -357,8 +442,8 @@ def multiline_plot(
     if x_lim is None:
         x_lim = [None, None]
     plt.rcParams["legend.frameon"] = False
-    plt.rcParams["xtick.labelsize"] = 20
-    plt.rcParams["ytick.labelsize"] = 20
+    # plt.rcParams["xtick.labelsize"] = 20
+    # plt.rcParams["ytick.labelsize"] = 20
     plt.rcParams["font.size"] = 20
     plt.rcParams["figure.autolayout"] = True
     fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect))
@@ -366,7 +451,7 @@ def multiline_plot(
     ax.spines["top"].set_visible(False)
     ax.spines["left"].set_linewidth(2)
     ax.spines["bottom"].set_linewidth(2)
-    ax.tick_params(width=2)
+    # ax.tick_params(width=2)
     if order is not None:
         df["group"] = df[linestyle].replace({i: ind for ind, i in enumerate(order)})
         df.sort_values(["group"], inplace=True)
@@ -433,6 +518,8 @@ def multiline_plot(
         if x_lim[1] is None:
             x_lim[1] = ticks[-1]
         ax.set_xlim(left=x_lim[0], right=x_lim[1])
+    ax.tick_params(axis="both", which="major", labelsize=20, width=2)
+    plt.show()
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
     return fig, ax
