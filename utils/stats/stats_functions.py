@@ -1,4 +1,5 @@
 from io import StringIO
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -20,7 +21,82 @@ __all__ = [
     "permutation_test",
     "three_way_anova",
     "two_way_ci",
+    "find_counts",
 ]
+
+
+def _find_counts(data: dict[str, np.ndarray], column: str, indexes: list[str]):
+    unique_ids = set()
+    counts = {}
+    for i in range(data[column].shape[0]):
+        if data[column][i] not in unique_ids:
+            unique_ids.add(data[column][i])
+            temp = counts
+            for j in range(len(indexes)):
+                if j != len(indexes) - 1:
+                    if data[indexes[j]][i] not in temp:
+                        temp[data[indexes[j]][i]] = {}
+                        temp = temp[data[indexes[j]][i]]
+                    else:
+                        temp = temp[data[indexes[j]][i]]
+                else:
+                    if data[indexes[j]][i] in temp:
+                        temp[data[indexes[j]][i]] += 1
+                    else:
+                        temp[data[indexes[j]][i]] = 1
+    return counts
+
+
+def find_counts(
+    data: Union[pd.DataFrame, np.ndarray],
+    column: Union[str, int],
+    indexes: list[Union[str, int]],
+) -> dict:
+    """Provides the n per group in a set of data.
+
+    Parameters
+    ----------
+    data : pd.DataFrame, np.ndarray, dict or list
+        Data for determining the number of counts per group
+    column : str or int
+        The index/name of data that contains the unique id of each element.
+        Can map to sample, subject etc and works with nested data.
+    indexes : list-like containing stings or integers
+       The indexes/names of the column, index of data that contains the group
+       assignments.
+
+    Returns
+    -------
+    dict
+        A nested dictionary containing the group counts.
+
+    Raises
+    ------
+    ValueError
+        If the data is not a pandas DataFrame, Numpy ndarray, dictionary, or list
+    """
+    data_dict = {}
+    if isinstance(data, pd.DataFrame):
+        data_dict[str(column)] = data[column].to_numpy()
+        for i in indexes:
+            data_dict[str(i)] = data[i].to_numpy()
+    elif isinstance(data, np.ndarray):
+        data_dict[str(column)] = data[:, column]
+        for i in indexes:
+            data_dict[str(i)] = data[:, i]
+    elif isinstance(data, dict):
+        data_dict = data
+    elif isinstance(data, list):
+        data_dict[str(column)] = data[column]
+        for i in indexes:
+            data_dict[str(i)] = data[i]
+    else:
+        raise ValueError(
+            "data must be Pandas DataFrame, Numpy ndarray, dictionary, list"
+        )
+    indexes = [str(i) for i in indexes]
+    counts = _find_counts(data_dict, column, indexes)
+    return counts
 
 
 def eta_squared(aov):
