@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "utils"
 description = "Package for analyzing data."
 authors = [{ name = "Lars Henrik Nelson", email = "larshnelson@protonmail.com" }]
-dynamic = ["version"]
+version = "2023.10.06"
 keywords = ["analysis"]
 dependencies = [
     "matplotlib",
@@ -15,10 +15,7 @@ dependencies = [
     "pandas",
     "scipy",
     "seaborn",
-    "statmodels"
+    "statsmodels"
 ]
 requires-python = ">=3.9"
 license = {text = 'GNU General Public License v3 (GPLv3)'}
-
-[tool.setuptools.dynamic]
-version = {attr = "utils.__version__"}
