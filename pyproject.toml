@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clampsuite"
+description = "Slice electrophysiology analysis package for analyzing mEPSCs, o/eEPSCs and current clamp data."
+readme = "README.md"
+authors = [{ name = "Lars Henrik Nelson", email = "larshnelson@protonmail.com" }]
+dynamic = ["version"]
+keywords = ["electrophysiology", "analysis"]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "scipy",
+    "seaborn",
+    "statmodels",
+]
+requires-python = ">=3.9"
+license = {text = 'GNU General Public License v3 (GPLv3)'}
+
+[project.optional-dependencies]
+plotting = [
+    "matplotlib",
+]
+data = [
+    "h5py"
+]
+testing = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "tox"
+]
+
+[project.urls]
+Homepage = "https://github.com/LarsHenrikNelson/ClampSuite"
+
+[project.gui-scripts]
+clampsuite = "clampsuite.__main__:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "utils.__version__"}
+
+[tool.mypy]
+mypy_path = "clampsuite"
+check_untyped_defs = true
+ignore_missing_imports = true

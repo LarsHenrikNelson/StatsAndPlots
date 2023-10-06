@@ -197,7 +197,6 @@ def membrane_resistance(df, current_list, column_name):
 
 
 def create_ap_df(dfs, df_key):
-
     column_names, df_list = mEPSC_raw_data(dfs)
 
     (df_key_aps, dataframe_list_aps, final_df_aps) = return_sorted_dfs(
