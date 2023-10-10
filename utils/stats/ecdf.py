@@ -7,7 +7,7 @@ import pandas as pd
 # numba does not seem to support the new numpy random
 # number generator choice method
 def rand_samp_column(
-    array: np.ndarray, repititions: int, size: int, axis: int
+    array: np.ndarray, repititions: int, size: int, axis: int, seed: int = 42
 ) -> np.ndarray:
     """Randomly sample from from a row or column in a numpy array with
     replacement.
@@ -23,7 +23,7 @@ def rand_samp_column(
     """
     # This extracts "size" random values from each cell x times
     # final_arrays = []
-    rng = default_rng(42)
+    rng = default_rng(seed)
     if axis == 1:
         array = array.T
     temp_array = np.zeros(array.shape[0] * size)
@@ -51,11 +51,15 @@ def rand_samp_column(
 
 
 def sample_from_dfs(
-    dfs: dict[str, pd.DataFrame], repititions: int, size: int, axis: int
+    dfs: dict[str, pd.DataFrame],
+    repititions: int,
+    size: int,
+    axis: int = 1,
+    seed: int = 42,
 ) -> dict[str, pd.DataFrame]:
     sampled_dfs = {}
     for key, df in dfs.items():
-        array = rand_samp_column(df.to_numpy(), repititions, size, axis=1)
+        array = rand_samp_column(df.to_numpy(), repititions, size, axis=axis, seed=seed)
         sampled_dfs[key] = pd.DataFrame(array)
     return sampled_dfs
 
@@ -67,8 +71,9 @@ def resampled_cum_prob_df(
     repititions: int = 1000,
     size: int = 100,
     axis: int = 1,
+    seed: int = 42,
 ) -> pd.DataFrame:
-    sampled_dfs = sample_from_dfs(df_dict, repititions, size, axis)
+    sampled_dfs = sample_from_dfs(df_dict, repititions, size, axis=axis, seed=seed)
     df_cumsum = []
     for key, df in sampled_dfs.items():
         df.loc[:, data_id] = df.mean(axis=1)
