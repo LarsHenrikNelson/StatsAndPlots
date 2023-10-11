@@ -1,6 +1,4 @@
-import datetime
-
-__version__ = datetime.datetime.now().strftime("%Y.%m.%d")
+__version__ = "0.0.1"
 
 from . import (
     plotting,  # noqa: F401
