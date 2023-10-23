@@ -161,7 +161,7 @@ def plot_two_way(
         )
     )
     if color is not None:
-        p = p.scale(color=color)
+        p = p.scale(color=color, y=y_scale)
     p.on(ax).plot()
     pos = []
     if color_pval <= 0.05:
@@ -192,6 +192,7 @@ def plot_two_way(
             y_lim[0] = ticks[0]
         if y_lim[1] is None:
             y_lim[1] = ticks[-1]
+        print(ticks)
         ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
         ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=decimals)
         ax.set_yticks(ticks)
