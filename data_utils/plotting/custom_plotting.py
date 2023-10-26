@@ -147,9 +147,9 @@ def _summary_plot(
 
     group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
     temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
     width *= (np.abs(temp_loc[1] - temp_loc[0])) / 2
 
-    subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
     loc_dict = {}
     for i in group_order:
         for j in subgroup_order:
