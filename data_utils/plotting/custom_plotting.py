@@ -192,6 +192,26 @@ def _summary_plot(
     return ax
 
 
+def box_plot(df, y, group, subgroup, group_order=None, subgroup_order=None, ax=None):
+    if ax is None:
+        ax = plt.gca()
+
+    group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
+    temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
+
+    loc_dict = {}
+    for i in group_order:
+        for j in subgroup_order:
+            key = rf"{i}" + rf"{j}"
+            loc_dict[key] = group_loc[i] + subgroup_loc[j]
+
+    unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)[0]
+        ax.boxplot()
+
+
 def paired_plot():
     pass
 
