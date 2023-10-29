@@ -14,7 +14,6 @@ __all__ = [
     "plot_one_way",
     "plot_two_way_violin",
     "multiline_plot",
-    "biplot",
     "Group",
     "Subgroup",
 ]
@@ -102,8 +101,6 @@ def plot_two_way(
     fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
-    ax.spines["left"].set_linewidth(2)
-    ax.spines["bottom"].set_linewidth(2)
     if order is not None:
         df["group_1"] = df[group].replace({i: ind for ind, i in enumerate(order)})
         df["group_2"] = df[subgroup].replace(
@@ -524,55 +521,3 @@ def multiline_plot(
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
     return fig, ax
-
-
-def biplot(X, loadings, y, components=None, labels=None):
-    if components is None:
-        components = [0, 1]
-    xs = X[:, components[0]]
-    ys = X[:, components[1]]
-    n = loadings.shape[0]
-    scalex = 1.0 / (xs.max() - xs.min())
-    scaley = 1.0 / (ys.max() - ys.min())
-    fig, ax = plt.subplots()
-    ax.scatter(xs * scalex, ys * scaley, c=y)
-    for i in range(n):
-        ax.arrow(
-            0,
-            0,
-            loadings[i, 0],
-            loadings[i, 1],
-            color="r",
-            alpha=0.5,
-        )
-        if labels is None:
-            ax.text(
-                loadings[i, 0] * 1.15,
-                loadings[i, 1] * 1.15,
-                "Var" + str(i + 1),
-                color="g",
-                ha="center",
-                va="center",
-            )
-        else:
-            ax.text(
-                loadings[i, 0] * 1.15,
-                loadings[i, 1] * 1.15,
-                labels[i],
-                color="g",
-                ha="center",
-                va="center",
-            )
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1, 1)
-    ax.set_xlabel(f"PC{components[0]}")
-    ax.set_ylabel(f"PC{components[1]}")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-
-if __name__ == "__main__":
-    plot_two_way()
-    plot_one_way()
-    biplot()
-    plot_multi_two_way()

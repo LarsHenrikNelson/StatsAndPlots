@@ -1,11 +1,16 @@
-from typing import Union, Literal
 import inspect
+from typing import Literal, Union
 
-import numpy as np
-from numpy.random import default_rng
 import matplotlib.pyplot as plt
-from scipy import stats
+import numpy as np
 from matplotlib._enums import CapStyle
+from matplotlib.lines import Line2D
+from numpy.random import default_rng
+from scipy import stats
+from sklearn import decomposition, preprocessing
+
+MARKERS = Line2D.filled_markers
+CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
 
 
 def process_args(arg, group_order, subgroup_order):
@@ -192,7 +197,17 @@ def _summary_plot(
     return ax
 
 
-def box_plot(df, y, group, subgroup, group_order=None, subgroup_order=None, ax=None):
+def box_plot(
+    df,
+    y,
+    group,
+    subgroup,
+    group_order=None,
+    subgroup_order=None,
+    group_spacing=0.75,
+    subgroup_spacing=0.15,
+    ax=None,
+):
     if ax is None:
         ax = plt.gca()
 
@@ -209,6 +224,7 @@ def box_plot(df, y, group, subgroup, group_order=None, subgroup_order=None, ax=N
     unique_groups = df[group].astype(str) + df[subgroup].astype(str)
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
+        indexes = indexes
         ax.boxplot()
 
 
@@ -297,6 +313,8 @@ def plot_two_way(
         decimals = np.abs(int(np.max(np.round(np.log10(np.abs(df[y])))))) + 2
     ax.set_xticks(list(group_loc.values()), group_order)
     ax.margins(margins)
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
     if "/" in y:
         y = y.replace("/", "_")
     if y_scale not in ["log", "symlog"]:
@@ -320,3 +338,112 @@ def plot_two_way(
     ax.tick_params(axis="both", which="major", labelsize=labelsize, width=2)
     if path is not None:
         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
+
+
+def biplot(
+    df,
+    columns,
+    group,
+    subgroup=None,
+    group_order=None,
+    subgroup_order=None,
+    plot_pca=False,
+    plot_loadings=True,
+    marker="o",
+    color="black",
+    components=None,
+    alpha=0.8,
+    labelsize=20,
+    axis=True,
+):
+    if components is None:
+        components = (0, 1)
+    X = preprocessing.scale(df[columns])
+    pca = decomposition.PCA(n_components=np.max(components) + 1)
+    X = pca.fit_transform(X)
+    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+
+    fig, ax = plt.subplots()
+
+    if plot_pca:
+        if group_order is None:
+            group_order = df[group].unique()
+        if subgroup is None:
+            subgroup_order = [""]
+        if subgroup_order is None:
+            subgroup_order = df[subgroup].unique()
+
+        unique_groups = []
+        for i in group_order:
+            for j in subgroup_order:
+                unique_groups.append(i + j)
+        if subgroup is None:
+            ug_list = df[group]
+        else:
+            ug_list = df[group] + df[subgroup]
+
+        marker_dict = process_args(marker, group_order, subgroup_order)
+        color_dict = process_args(color, group_order, subgroup_order)
+
+        if components is None:
+            components = [0, 1]
+        xs = X[:, components[0]]
+        ys = X[:, components[1]]
+        scalex = 1.0 / (xs.max() - xs.min())
+        scaley = 1.0 / (ys.max() - ys.min())
+        for ug in unique_groups:
+            indexes = np.where(ug_list == ug)[0]
+            ax.scatter(
+                xs[indexes] * scalex,
+                ys[indexes] * scaley,
+                alpha=alpha,
+                marker=marker_dict[ug],
+                c=color_dict[ug],
+            )
+        ax.legend(
+            marker,
+        )
+    if plot_loadings:
+        width = -0.005 * np.min(
+            [np.subtract(*ax.get_xlim()), np.subtract(*ax.get_ylim())]
+        )
+        for i in range(loadings.shape[0]):
+            ax.arrow(
+                0,
+                0,
+                loadings[i, 0],
+                loadings[i, 1],
+                color="grey",
+                alpha=0.5,
+                width=width,
+            )
+            ax.text(
+                loadings[i, 0] * 1.15,
+                loadings[i, 1] * 1.15,
+                columns[i],
+                color="grey",
+                ha="center",
+                va="center",
+            )
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
+    ax.tick_params(
+        axis="both",
+        which="both",
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
+    ax.set_xlabel(
+        f"PC{components[0]} ({np.round(pca.explained_variance_ratio_[components[0]] * 100,decimals=2)}%)",
+        fontsize=labelsize,
+    )
+    ax.set_ylabel(
+        f"PC{components[1]} ({np.round(pca.explained_variance_ratio_[components[1]] * 100,decimals=2)}%)",
+        fontsize=labelsize,
+    )
+    ax.spines["top"].set_visible(axis)
+    ax.spines["right"].set_visible(axis)
+    ax.spines["left"].set_visible(axis)
+    ax.spines["bottom"].set_visible(axis)
