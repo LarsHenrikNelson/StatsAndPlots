@@ -16,6 +16,8 @@ CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
 def process_args(arg, group_order, subgroup_order):
     if isinstance(arg, str):
         arg = {key: arg for key in group_order}
+    elif isinstance(arg, list):
+        arg = {key: arg for key in group_order}
 
     output_dict = {}
     for s in group_order:
@@ -90,21 +92,27 @@ def _jitter_plot(
     if ax is None:
         ax = plt.gca()
     group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
-    temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    if subgroup is not None:
+        temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    else:
+        temp_loc = list(group_loc.values())
+    subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
     width = np.abs(temp_loc[1] - temp_loc[0])
 
     marker_dict = process_args(marker, group_order, subgroup_order)
     color_dict = process_args(color, group_order, subgroup_order)
     edgecolor_dict = process_args(edgecolor, group_order, subgroup_order)
 
-    subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
     loc_dict = {}
     for i in group_order:
         for j in subgroup_order:
             key = rf"{i}" + rf"{j}"
             loc_dict[key] = group_loc[i] + subgroup_loc[j]
 
-    unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    if subgroup is not None:
+        unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    else:
+        unique_groups = df[group].astype(str)
     rng = default_rng(seed)
     jitter_values = rng.random(unique_groups.size)
     jitter_values *= width
@@ -151,7 +159,10 @@ def _summary_plot(
         ax = plt.gca()
 
     group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
-    temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    if subgroup is not None:
+        temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    else:
+        temp_loc = list(group_loc.values())
     subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
     width *= (np.abs(temp_loc[1] - temp_loc[0])) / 2
 
@@ -160,8 +171,10 @@ def _summary_plot(
         for j in subgroup_order:
             key = rf"{i}" + rf"{j}"
             loc_dict[key] = group_loc[i] + subgroup_loc[j]
-
-    unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    if subgroup is not None:
+        unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    else:
+        unique_groups = df[group].astype(str)
 
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
@@ -197,46 +210,78 @@ def _summary_plot(
     return ax
 
 
-def box_plot(
+def _boxplot(
     df,
     y,
     group,
     subgroup,
     group_order=None,
     subgroup_order=None,
-    group_spacing=0.75,
-    subgroup_spacing=0.15,
+    group_spacing: float = 0.75,
+    subgroup_spacing: float = 0.15,
+    facecolor="none",
+    fliers="",
+    width: float = 1.0,
+    show_means: bool = False,
+    notch: bool = False,
     ax=None,
 ):
     if ax is None:
         ax = plt.gca()
 
     group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
-    temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    if subgroup is not None:
+        temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    else:
+        temp_loc = list(group_loc.values())
     subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
+    width *= np.abs(temp_loc[1] - temp_loc[0])
+
+    color_dict = process_args(facecolor, group_order, subgroup_order)
 
     loc_dict = {}
     for i in group_order:
         for j in subgroup_order:
             key = rf"{i}" + rf"{j}"
             loc_dict[key] = group_loc[i] + subgroup_loc[j]
+    if subgroup is not None:
+        unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    else:
+        unique_groups = df[group].astype(str)
 
-    unique_groups = df[group].astype(str) + df[subgroup].astype(str)
     for i in unique_groups.unique():
+        props = {
+            "boxprops": {"facecolor": color_dict[i], "edgecolor": "black"},
+            "medianprops": {"color": "black"},
+            "whiskerprops": {"color": "black"},
+            "capprops": {"color": "black"},
+        }
+        if show_means:
+            props["meanprops"] = {"color": "black"}
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
-        ax.boxplot()
+        ax.boxplot(
+            df[y],
+            positions=[loc_dict[i]],
+            sym=fliers,
+            widths=width,
+            notch=notch,
+            patch_artist=True,
+            **props,
+        )
+
+    return ax
 
 
 def paired_plot():
     pass
 
 
-def plot_two_way(
+def plot_categorical(
     df,
     y,
     group,
-    subgroup,
+    subgroup=None,
     group_order=None,
     subgroup_order=None,
     plot_type="jitter",
@@ -262,13 +307,16 @@ def plot_two_way(
             raise AttributeError(
                 "The number groups does not match the number in group_order"
             )
-    if subgroup_order is None:
-        subgroup_order = df[subgroup].unique()
-    else:
-        if len(subgroup_order) != len(df[subgroup].unique()):
+    if subgroup is not None:
+        if subgroup_order is None:
+            subgroup_order = df[subgroup].unique()
+        elif len(subgroup_order) != len(df[subgroup].unique()):
             raise AttributeError(
                 "The number subgroups does not match the number in subgroup_order"
             )
+    else:
+        subgroup_order = [""]
+
     group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
 
     fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
@@ -278,6 +326,9 @@ def plot_two_way(
 
     if isinstance(plot_type, str):
         plot_type = [plot_type]
+
+    # if subgroup is None:
+    #     kwargs["subgroup_spacing"] = 0
 
     for plot in plot_type:
         if plot == "jitter":
