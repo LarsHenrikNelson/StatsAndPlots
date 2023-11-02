@@ -3,9 +3,14 @@ from typing import Literal, Union
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .custom_plotting import _jitter_plot, _summary_plot, _boxplot
+from .custom_plotting import _jitter_plot, _summary_plot, _boxplot, _violin_plot
 
-PLOTS = {"jitter": _jitter_plot, "summary": _summary_plot, "boxplot": _boxplot}
+PLOTS = {
+    "jitter": _jitter_plot,
+    "summary": _summary_plot,
+    "boxplot": _boxplot,
+    "violin": _violin_plot,
+}
 
 
 class CategoricalPlot:
@@ -28,6 +33,7 @@ class CategoricalPlot:
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
         labelsize=20,
+        linewidth=2,
         ticksize=2,
         ticklabel=20,
         decimals=None,
@@ -59,6 +65,7 @@ class CategoricalPlot:
             "ticksize": ticksize,
             "ticklabel": ticklabel,
             "decimals": decimals,
+            "linewidth": linewidth,
         }
         self.plots = {}
         self.plot_list = []
@@ -131,18 +138,44 @@ class CategoricalPlot:
         facecolor="none",
         fliers="",
         width: float = 1.0,
+        transform=None,
         show_means: bool = False,
-        notch: bool = False,
+        show_ci: bool = False,
     ):
         boxplot = {
             "facecolor": facecolor,
             "fliers": fliers,
             "width": width,
             "show_means": show_means,
-            "notch": notch,
+            "show_ci": show_ci,
+            "transform": transform,
         }
         self.plots["boxplot"] = boxplot
         self.plot_list.append("boxplot")
+
+    def violin(
+        self,
+        facecolor="none",
+        edgecolor="black",
+        alpha=1,
+        showextrema: bool = False,
+        width: float = 1.0,
+        show_means: bool = True,
+        show_medians: bool = False,
+        transform=None,
+    ):
+        violin = {
+            "facecolor": facecolor,
+            "edgecolor": edgecolor,
+            "alpha": alpha,
+            "showextrema": showextrema,
+            "width": width,
+            "show_means": show_means,
+            "show_medians": show_medians,
+            "transform": transform,
+        }
+        self.plots["violin"] = violin
+        self.plot_list.append("violin")
 
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
@@ -160,6 +193,7 @@ class CategoricalPlot:
         savefig: bool = False,
         path: str = "",
         filetype: str = "svg",
+        transparent=False,
     ):
         group_loc = {
             key: self.plot_dict["group_spacing"] * index
@@ -203,8 +237,10 @@ class CategoricalPlot:
         ax.margins(self.plot_dict["margins"])
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
+        ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
+        ax.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
         if "/" in self.plot_dict["y"]:
-            y = self.plot_dict["y"].replace("/", "_")
+            self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
         if self.plot_dict["y_scale"] not in ["log", "symlog"]:
             ticks = ax.get_yticks()
             if self.plot_dict["y_lim"][0] is None:
@@ -242,7 +278,8 @@ class CategoricalPlot:
         )
         if savefig:
             plt.savefig(
-                f"{self.plot_dict['path']}/{y}.{filetype}",
+                f"{path}/{self.plot_dict['y']}.{filetype}",
                 format=filetype,
                 bbox_inches="tight",
+                transparent=transparent,
             )

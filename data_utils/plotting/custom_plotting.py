@@ -67,8 +67,12 @@ def get_func(input):
         return np.median
     elif input == "std":
         return np.std
+    elif input == "log10":
+        return np.log10
+    elif input == "log":
+        return np.log
     else:
-        return lambda a: 0
+        return lambda a: a
 
 
 def _jitter_plot(
@@ -102,6 +106,8 @@ def _jitter_plot(
     marker_dict = process_args(marker, group_order, subgroup_order)
     color_dict = process_args(color, group_order, subgroup_order)
     edgecolor_dict = process_args(edgecolor, group_order, subgroup_order)
+
+    transform = get_func(transform)
 
     loc_dict = {}
     for i in group_order:
@@ -166,6 +172,8 @@ def _summary_plot(
     subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
     width *= (np.abs(temp_loc[1] - temp_loc[0])) / 2
 
+    transform = get_func(transform)
+
     loc_dict = {}
     for i in group_order:
         for j in subgroup_order:
@@ -220,10 +228,12 @@ def _boxplot(
     group_spacing: float = 0.75,
     subgroup_spacing: float = 0.15,
     facecolor="none",
+    alpha=1,
     fliers="",
     width: float = 1.0,
     show_means: bool = False,
-    notch: bool = False,
+    show_ci: bool = False,
+    transform=None,
     ax=None,
 ):
     if ax is None:
@@ -238,6 +248,7 @@ def _boxplot(
     width *= np.abs(temp_loc[1] - temp_loc[0])
 
     color_dict = process_args(facecolor, group_order, subgroup_order)
+    transform = get_func(transform)
 
     loc_dict = {}
     for i in group_order:
@@ -261,14 +272,81 @@ def _boxplot(
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
         ax.boxplot(
-            df[y],
+            transform_func(df[y].iloc[indexes], transform),
             positions=[loc_dict[i]],
             sym=fliers,
             widths=width,
-            notch=notch,
+            notch=show_ci,
             patch_artist=True,
+            showmeans=show_means,
+            meanline=show_means,
             **props,
         )
+
+    return ax
+
+
+def _violin_plot(
+    df,
+    y,
+    group,
+    subgroup,
+    group_order=None,
+    subgroup_order=None,
+    group_spacing: float = 0.75,
+    subgroup_spacing: float = 0.15,
+    facecolor="none",
+    edgecolor="black",
+    alpha=1,
+    showextrema: bool = False,
+    width: float = 1.0,
+    show_means: bool = True,
+    show_medians: bool = False,
+    transform=None,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+
+    group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
+    if subgroup is not None:
+        temp_loc = np.linspace(-subgroup_spacing, subgroup_spacing, len(subgroup_order))
+    else:
+        temp_loc = list(group_loc.values())
+    subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
+    width *= np.abs(temp_loc[1] - temp_loc[0])
+
+    color_dict = process_args(facecolor, group_order, subgroup_order)
+    edge_dict = process_args(edgecolor, group_order, subgroup_order)
+    transform = get_func(transform)
+
+    loc_dict = {}
+    for i in group_order:
+        for j in subgroup_order:
+            key = rf"{i}" + rf"{j}"
+            loc_dict[key] = group_loc[i] + subgroup_loc[j]
+    if subgroup is not None:
+        unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+    else:
+        unique_groups = df[group].astype(str)
+
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)[0]
+        indexes = indexes
+
+        parts = ax.violinplot(
+            transform_func(df[y].iloc[indexes], transform),
+            positions=[loc_dict[i]],
+            widths=width,
+            showmeans=show_means,
+            showmedians=show_medians,
+            showextrema=showextrema,
+        )
+        for body in parts["bodies"]:
+            body.set_alpha(alpha)
+            body.set_facecolor(color_dict[i])
+            body.set_edgecolor(edge_dict[i])
+        parts["cmeans"].set_color(edge_dict[i])
 
     return ax
 
