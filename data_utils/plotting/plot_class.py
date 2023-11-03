@@ -97,6 +97,7 @@ class CategoricalPlot:
         alpha=1,
         jitter=1,
         seed=42,
+        marker_size=2,
         transform=None,
     ):
         jitter_plot = {
@@ -106,6 +107,7 @@ class CategoricalPlot:
             "alpha": alpha,
             "jitter": jitter,
             "seed": seed,
+            "marker_size": marker_size,
             "transform": transform,
         }
         self.plots["jitter"] = jitter_plot
@@ -139,6 +141,8 @@ class CategoricalPlot:
         fliers="",
         width: float = 1.0,
         transform=None,
+        linewidth=1,
+        alpha: float = 1.0,
         show_means: bool = False,
         show_ci: bool = False,
     ):
@@ -149,6 +153,8 @@ class CategoricalPlot:
             "show_means": show_means,
             "show_ci": show_ci,
             "transform": transform,
+            "alpha": alpha,
+            "linewidth": linewidth,
         }
         self.plots["boxplot"] = boxplot
         self.plot_list.append("boxplot")
@@ -233,6 +239,8 @@ class CategoricalPlot:
                 )
                 + 2
             )
+        else:
+            decimals = self.plot_dict["decimals"]
         ax.set_xticks(list(group_loc.values()), self.plot_dict["group_order"])
         ax.margins(self.plot_dict["margins"])
         ax.spines["right"].set_visible(False)

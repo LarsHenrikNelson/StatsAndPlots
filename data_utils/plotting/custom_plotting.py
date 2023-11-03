@@ -90,6 +90,7 @@ def _jitter_plot(
     subgroup_spacing=0.15,
     jitter=1,
     seed=42,
+    marker_size=2,
     transform=None,
     ax=None,
 ):
@@ -139,6 +140,7 @@ def _jitter_plot(
             c=color_dict[i],
             edgecolors=edgecolor_dict[i],
             alpha=alpha,
+            s=marker_size,
         )
     return ax
 
@@ -231,6 +233,7 @@ def _boxplot(
     alpha=1,
     fliers="",
     width: float = 1.0,
+    linewidth=1,
     show_means: bool = False,
     show_ci: bool = False,
     transform=None,
@@ -271,7 +274,7 @@ def _boxplot(
             props["meanprops"] = {"color": "black"}
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
-        ax.boxplot(
+        bplot = ax.boxplot(
             transform_func(df[y].iloc[indexes], transform),
             positions=[loc_dict[i]],
             sym=fliers,
@@ -282,6 +285,9 @@ def _boxplot(
             meanline=show_means,
             **props,
         )
+        for i in bplot["boxes"]:
+            # i.set_alpha(alpha)
+            i.set_linewidth(linewidth)
 
     return ax
 
