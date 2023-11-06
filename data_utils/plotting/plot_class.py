@@ -2,14 +2,23 @@ from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objects as go
 
-from .custom_plotting import _jitter_plot, _summary_plot, _boxplot, _violin_plot
+from . import matplotlib_plotting as mp
+from . import plotly_plotting as plp
+from .plot_utils import _process_positions, process_args
 
-PLOTS = {
-    "jitter": _jitter_plot,
-    "summary": _summary_plot,
-    "boxplot": _boxplot,
-    "violin": _violin_plot,
+MP_PLOTS = {
+    "jitter": mp._jitter_plot,
+    "summary": mp._summary_plot,
+    "boxplot": mp._boxplot,
+    "violin": mp._violin_plot,
+}
+PLP_PLOTS = {
+    "jitter": plp._jitter_plot,
+    # "summary": plp._summary_plot,
+    # "boxplot": plp._boxplot,
+    # "violin": plp._violin_plot,
 }
 
 
@@ -22,8 +31,8 @@ class CategoricalPlot:
         subgroup=None,
         group_order=None,
         subgroup_order=None,
-        group_spacing=0.75,
-        subgroup_spacing=0.15,
+        group_spacing=1,
+        subgroup_spacing=0.6,
         y_label="",
         title="",
         y_lim: Union[list, None] = None,
@@ -41,9 +50,24 @@ class CategoricalPlot:
         if y_lim is None:
             y_lim = [None, None]
 
+        if subgroup is not None:
+            unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+        else:
+            unique_groups = df[group].astype(str) + ""
+
         group_order, subgroup_order = self._process_groups(
             df, group, subgroup, group_order, subgroup_order
         )
+
+        loc_dict, width = _process_positions(
+            subgroup=subgroup,
+            group_order=group_order,
+            subgroup_order=subgroup_order,
+            group_spacing=group_spacing,
+            subgroup_spacing=subgroup_spacing,
+        )
+
+        x_ticks = [group_spacing * index for index, _ in enumerate(group_order)]
         self.plot_dict = {
             "df": df,
             "y": y,
@@ -51,8 +75,10 @@ class CategoricalPlot:
             "subgroup": subgroup,
             "group_order": group_order,
             "subgroup_order": subgroup_order,
-            "group_spacing": group_spacing,
-            "subgroup_spacing": subgroup_spacing,
+            "unique_groups": unique_groups,
+            "x_ticks": x_ticks,
+            "loc_dict": loc_dict,
+            "width": width,
             "y_label": y_label,
             "title": title,
             "y_lim": y_lim,
@@ -86,26 +112,36 @@ class CategoricalPlot:
                     "The number subgroups does not match the number in subgroup_order"
                 )
         else:
-            subgroup_order = [""]
+            subgroup_order = [""] * len(group_order)
         return group_order, subgroup_order
 
     def jitter(
         self,
         color="black",
         marker="o",
-        edgecolor="none",
+        edgecolor="",
         alpha=1,
         jitter=1,
         seed=42,
         marker_size=2,
         transform=None,
     ):
+        marker_dict = process_args(
+            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        edgecolor_dict = process_args(
+            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
         jitter_plot = {
-            "color": color,
-            "marker": marker,
-            "edgecolor": edgecolor,
+            "color_dict": color_dict,
+            "marker_dict": marker_dict,
+            "edgecolor_dict": edgecolor_dict,
             "alpha": alpha,
-            "jitter": jitter,
+            "width": jitter * self.plot_dict["width"],
             "seed": seed,
             "marker_size": marker_size,
             "transform": transform,
@@ -118,7 +154,7 @@ class CategoricalPlot:
         func="mean",
         capsize=0,
         capstyle="round",
-        width=1.0,
+        bar_width=1.0,
         err_func="sem",
         linewidth=2,
         transform=None,
@@ -127,7 +163,7 @@ class CategoricalPlot:
             "func": func,
             "capsize": capsize,
             "capstyle": capstyle,
-            "width": width,
+            "width": bar_width * self.plot_dict["width"],
             "err_func": err_func,
             "linewidth": linewidth,
             "transform": transform,
@@ -139,21 +175,22 @@ class CategoricalPlot:
         self,
         facecolor="none",
         fliers="",
-        width: float = 1.0,
+        box_width: float = 1.0,
         transform=None,
         linewidth=1,
-        alpha: float = 1.0,
         show_means: bool = False,
         show_ci: bool = False,
     ):
+        color_dict = process_args(
+            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
         boxplot = {
-            "facecolor": facecolor,
+            "color_dict": color_dict,
             "fliers": fliers,
-            "width": width,
+            "width": box_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_ci": show_ci,
             "transform": transform,
-            "alpha": alpha,
             "linewidth": linewidth,
         }
         self.plots["boxplot"] = boxplot
@@ -165,17 +202,23 @@ class CategoricalPlot:
         edgecolor="black",
         alpha=1,
         showextrema: bool = False,
-        width: float = 1.0,
+        violin_width: float = 1.0,
         show_means: bool = True,
         show_medians: bool = False,
         transform=None,
     ):
+        color_dict = process_args(
+            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        edge_dict = process_args(
+            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
         violin = {
-            "facecolor": facecolor,
-            "edgecolor": edgecolor,
+            "color_dict": color_dict,
+            "edge_dict": edge_dict,
             "alpha": alpha,
             "showextrema": showextrema,
-            "width": width,
+            "width": violin_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_medians": show_medians,
             "transform": transform,
@@ -191,8 +234,11 @@ class CategoricalPlot:
                 savefig=savefig, path=path, filetype=filetype
             )
             return output
+        elif backend == "plotly":
+            output = self._plotly_backend(savefig=savefig, path=path, filetype=filetype)
         else:
             raise AttributeError("Backend not implemented")
+        return output
 
     def _matplotlib_backend(
         self,
@@ -201,26 +247,19 @@ class CategoricalPlot:
         filetype: str = "svg",
         transparent=False,
     ):
-        group_loc = {
-            key: self.plot_dict["group_spacing"] * index
-            for index, key in enumerate(self.plot_dict["group_order"])
-        }
         fig, ax = plt.subplots(
             subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
             figsize=self.plot_dict["figsize"],
         )
 
         for i in self.plot_list:
-            plot_func = PLOTS[i]
+            plot_func = MP_PLOTS[i]
             plot_func(
                 df=self.plot_dict["df"],
                 y=self.plot_dict["y"],
-                group=self.plot_dict["group"],
-                subgroup=self.plot_dict["subgroup"],
-                group_order=self.plot_dict["group_order"],
-                subgroup_order=self.plot_dict["subgroup_order"],
-                group_spacing=self.plot_dict["group_spacing"],
-                subgroup_spacing=self.plot_dict["subgroup_spacing"],
+                loc_dict=self.plot_dict["loc_dict"],
+                unique_groups=self.plot_dict["unique_groups"],
+                ax=ax,
                 **self.plots[i],
             )
 
@@ -241,7 +280,7 @@ class CategoricalPlot:
             )
         else:
             decimals = self.plot_dict["decimals"]
-        ax.set_xticks(list(group_loc.values()), self.plot_dict["group_order"])
+        ax.set_xticks(self.plot_dict["x_ticks"], self.plot_dict["group_order"])
         ax.margins(self.plot_dict["margins"])
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
@@ -291,3 +330,91 @@ class CategoricalPlot:
                 bbox_inches="tight",
                 transparent=transparent,
             )
+        return fig, ax
+
+    def _plotly_backend(self, savefig=False, path="", filetype="svg"):
+        fig = go.Figure()
+        for i in self.plot_list:
+            plot_func = PLP_PLOTS[i]
+            plot_func(
+                df=self.plot_dict["df"],
+                y=self.plot_dict["y"],
+                loc_dict=self.plot_dict["loc_dict"],
+                unique_groups=self.plot_dict["unique_groups"],
+                **self.plots[i],
+                fig=fig,
+            )
+        if self.plot_dict["decimals"] is None:
+            decimals = (
+                np.abs(
+                    int(
+                        np.max(
+                            np.round(
+                                np.log10(
+                                    np.abs(self.plot_dict["df"][self.plot_dict["y"]])
+                                )
+                            )
+                        )
+                    )
+                )
+                + 2
+            )
+        else:
+            decimals = self.plot_dict["decimals"]
+
+        if self.plot_dict["y_lim"][0] is None:
+            self.plot_dict["y_lim"][0] = (
+                self.plot_dict["df"][self.plot_dict["y"]].min() * 0.9
+            )
+        if self.plot_dict["y_lim"][1] is None:
+            self.plot_dict["y_lim"][1] = (
+                self.plot_dict["df"][self.plot_dict["y"]].max() * 1.1
+            )
+        ticks = np.round(
+            np.linspace(
+                self.plot_dict["y_lim"][0],
+                self.plot_dict["y_lim"][1],
+                self.plot_dict["steps"],
+            ),
+            decimals=decimals,
+        )
+        print(ticks)
+        fig.update_layout(
+            xaxis=dict(
+                showline=True,
+                linecolor="black",
+                showgrid=False,
+                tickmode="array",
+                tickvals=self.plot_dict["x_ticks"],
+                ticktext=self.plot_dict["group_order"],
+                ticks="outside",
+                color="black",
+                tickfont=dict(size=self.plot_dict["ticklabel"]),
+                tickwidth=self.plot_dict["ticksize"],
+                linewidth=self.plot_dict["linewidth"],
+                automargin=True,
+            ),
+            yaxis=dict(
+                titlefont=dict(size=self.plot_dict["labelsize"]),
+                title=dict(text=self.plot_dict["y_label"]),
+                tickson="boundaries",
+                nticks=self.plot_dict["steps"],
+                showline=True,
+                tickmode="array",
+                linecolor="black",
+                tickvals=ticks,
+                showgrid=False,
+                ticks="outside",
+                color="black",
+                tickfont=dict(size=self.plot_dict["ticklabel"]),
+                tickwidth=self.plot_dict["ticksize"],
+                linewidth=self.plot_dict["linewidth"],
+                automargin=True,
+                range=[ticks[0], ticks[-1]],
+                constrain="range",
+                ticklabeloverflow="hide past div",
+            ),
+            plot_bgcolor="white",
+        )
+        fig.show()
+        return fig
