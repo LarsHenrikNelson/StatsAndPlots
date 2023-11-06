@@ -163,7 +163,7 @@ class CategoricalPlot:
             "func": func,
             "capsize": capsize,
             "capstyle": capstyle,
-            "width": bar_width * self.plot_dict["width"],
+            "bar_width": bar_width * self.plot_dict["width"],
             "err_func": err_func,
             "linewidth": linewidth,
             "transform": transform,
@@ -187,7 +187,7 @@ class CategoricalPlot:
         boxplot = {
             "color_dict": color_dict,
             "fliers": fliers,
-            "width": box_width * self.plot_dict["width"],
+            "box_width": box_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_ci": show_ci,
             "transform": transform,
@@ -218,7 +218,7 @@ class CategoricalPlot:
             "edge_dict": edge_dict,
             "alpha": alpha,
             "showextrema": showextrema,
-            "width": violin_width * self.plot_dict["width"],
+            "violin_width": violin_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_medians": show_medians,
             "transform": transform,
@@ -378,7 +378,6 @@ class CategoricalPlot:
             ),
             decimals=decimals,
         )
-        print(ticks)
         fig.update_layout(
             xaxis=dict(
                 showline=True,
@@ -397,7 +396,6 @@ class CategoricalPlot:
             yaxis=dict(
                 titlefont=dict(size=self.plot_dict["labelsize"]),
                 title=dict(text=self.plot_dict["y_label"]),
-                tickson="boundaries",
                 nticks=self.plot_dict["steps"],
                 showline=True,
                 tickmode="array",
