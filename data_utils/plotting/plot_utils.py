@@ -2,11 +2,72 @@ from scipy import stats
 import numpy as np
 
 
+def get_ticks(
+    lim,
+    ticks,
+    steps,
+    n_decimals,
+):
+    if lim[0] is None:
+        lim[0] = ticks[0]
+    if lim[1] is None:
+        lim[1] = ticks[-1]
+    ticks = np.round(
+        np.linspace(
+            lim[0],
+            lim[1],
+            steps,
+        ),
+        decimals=n_decimals,
+    )
+    return lim, ticks
+
+
+def decimals(data):
+    decimals = np.abs(int(np.max(np.round(np.log10(np.abs(data)))))) + 2
+    return decimals
+
+
+def _process_groups(df, group, subgroup, group_order, subgroup_order):
+    if group_order is None:
+        group_order = df[group].unique()
+    else:
+        if len(group_order) != len(df[group].unique()):
+            raise AttributeError(
+                "The number groups does not match the number in group_order"
+            )
+    if subgroup is not None:
+        if subgroup_order is None:
+            subgroup_order = df[subgroup].unique()
+        elif len(subgroup_order) != len(df[subgroup].unique()):
+            raise AttributeError(
+                "The number subgroups does not match the number in subgroup_order"
+            )
+    else:
+        subgroup_order = [""] * len(group_order)
+    return group_order, subgroup_order
+
+
+def bin_data(data, bins):
+    binned_data = np.zeros(bins.size - 1)
+    index = 0
+    for i in data:
+        if i >= bins[index] and i < bins[int(index + 1)]:
+            binned_data[index] += 1
+        else:
+            if index < binned_data.size:
+                binned_data[index] += 1
+                index += 1
+            else:
+                binned_data[binned_data.size - 1] += 1
+    return binned_data
+
+
 def process_args(arg, group_order, subgroup_order):
-    if isinstance(arg, str):
+    if isinstance(arg, (str, int, float)):
         arg = {key: arg for key in group_order}
     elif isinstance(arg, list):
-        arg = {key: arg for key in group_order}
+        arg = {key: arg for key, arg in zip(group_order, arg)}
 
     output_dict = {}
     for s in group_order:
@@ -19,9 +80,9 @@ def process_args(arg, group_order, subgroup_order):
     return output_dict
 
 
-def transform_func(a, transform=None):
+def transform_func(a, transform=None, axis=None):
     if transform is not None:
-        return transform(a)
+        return transform(a, axis=axis)
     else:
         return a
 
@@ -34,8 +95,8 @@ def get_valid_kwargs(args_list, **kwargs):
     return output_args
 
 
-def sem(a):
-    return np.std(a) / np.sqrt(len(a))
+def sem(a, axis=None):
+    return np.std(a, axis) / np.sqrt(a.shape[1])
 
 
 def ci(a):

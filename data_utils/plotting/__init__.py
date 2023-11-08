@@ -1,1 +1,1 @@
-from .plot_class import CategoricalPlot  # noqa
+from .plot_class import CategoricalPlot, LinePlot  # noqa

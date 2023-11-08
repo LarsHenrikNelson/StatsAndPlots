@@ -1,4 +1,3 @@
-# import inspect
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -8,7 +7,7 @@ from matplotlib.lines import Line2D
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
-from .plot_utils import get_func, transform_func, process_args
+from .plot_utils import get_func, transform_func, process_args, bin_data
 
 MARKERS = Line2D.filled_markers
 CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
@@ -206,149 +205,122 @@ def _hist_plot(
     y,
     unique_groups,
     color_dict,
-    hist_type: Literal["bar", "barstacked", "step", "stepfilled", "poly"] = "poly",
+    hist_type: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
     bins=None,
+    density=True,
     ax=None,
 ):
     if ax is None:
         ax = plt.gca()
-    if hist_type == "poly":
-        for i in unique_groups.unique():
-            indexes = np.where(unique_groups == i)[0]
-            temp = df[y].iloc[indexes].sort_values()
-            bins = np.linspace(temp.min(), temp.max(), num=200 + 1)
-            poly = np.zeros(bins.size - 1)
-            index = 0
-            for i in temp:
-                if i >= bins[index] and i <= bins[int(index + 1)]:
-                    poly[index] += 1
-                else:
-                    index += 1
-                    poly[index] += 1
-            poly /= poly.sum()
-            ax.plot(poly)
-    else:
+    for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
         temp = df[y].iloc[indexes]
-        for i in unique_groups.unique():
-            ax.hist(
-                x=temp, histtype=hist_type, bins=bins, color=color_dict[i], density=True
-            )
+        ax.hist(
+            x=temp,
+            histtype=hist_type,
+            bins=bins,
+            color=color_dict[i],
+            density=density,
+        )
     return ax
 
 
-# def plot_categorical(
-#     df,
-#     y,
-#     group,
-#     subgroup=None,
-#     group_order=None,
-#     subgroup_order=None,
-#     plot_type="jitter",
-#     group_spacing=0.75,
-#     y_label="",
-#     title="",
-#     y_lim: Union[list, None] = None,
-#     y_scale: Literal["linear", "log", "symlog"] = "linear",
-#     steps: int = 5,
-#     margins=0.05,
-#     aspect: Union[int, float] = 1,
-#     figsize: Union[None, tuple[int, int]] = None,
-#     labelsize=20,
-#     path=None,
-#     filetype="svg",
-#     decimals=None,
-#     **kwargs,
-# ):
-#     if group_order is None:
-#         group_order = df[group].unique()
-#     else:
-#         if len(group_order) != len(df[group].unique()):
-#             raise AttributeError(
-#                 "The number groups does not match the number in group_order"
-#             )
-#     if subgroup is not None:
-#         if subgroup_order is None:
-#             subgroup_order = df[subgroup].unique()
-#         elif len(subgroup_order) != len(df[subgroup].unique()):
-#             raise AttributeError(
-#                 "The number subgroups does not match the number in subgroup_order"
-#             )
-#     else:
-#         subgroup_order = [""]
+def _poly_hist(
+    df,
+    y,
+    unique_groups,
+    color_dict,
+    facet_dict,
+    linestyle_dict,
+    bins=None,
+    unique_id=None,
+    density=True,
+    bin=None,
+    steps=50,
+    func="mean",
+    err_func="sem",
+    fit_func=None,
+    alpha=1,
+    ax=None,
+):
+    if bin is None:
+        bins = np.linspace(df[y].min(), df[y].max(), num=steps + 1)
+    else:
+        bins = np.linspace(bin[0], bin[1], num=steps + 1)
+    if ax is None:
+        ax = plt.gca()
+        ax = [ax]
+    if unique_id is not None:
+        func = get_func(func)
+        if err_func is not None:
+            err_func = get_func(err_func)
+        x = np.linspace(bin[0], bin[1], num=steps)
+        for i in unique_groups.unique():
+            indexes = np.where(unique_groups == i)
+            temp_df = df.iloc[indexes]
+            uids = temp_df[unique_id].unique()
+            temp_list = np.zeros((len(uids), steps))
+            for index, j in enumerate(uids):
+                temp = np.where(df[unique_id] == j)[0]
+                temp_data = df[y].iloc[temp].to_numpy()
+                poly = bin_data(np.sort(temp_data), bins)
+                if density:
+                    poly = poly / poly.sum()
+                if fit_func is not None:
+                    poly = fit_func(x, poly)
+                temp_list[index] = poly
+            mean_data = func(temp_list, axis=0)
+            ax[facet_dict[i]].plot(
+                x, mean_data, c=color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
+            )
+            if err_func is not None:
+                ax[facet_dict[i]].fill_between(
+                    x=x,
+                    y1=mean_data - err_func(temp_list, axis=0),
+                    y2=mean_data + err_func(temp_list, axis=0),
+                    alpha=alpha / 2,
+                    color=color_dict[i],
+                )
+    else:
+        for i in unique_groups.unique():
+            indexes = np.where(unique_groups == i)[0]
+            temp = df[y].iloc[indexes].sort_values()
+            poly = bin_data(temp, bins)
+            if density:
+                poly /= poly.sum()
+            ax[facet_dict[i]].plot(poly, c=color_dict[i], linestyle=linestyle_dict[i])
+    return ax
 
-#     group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
 
-#     fig, ax = plt.subplots(subplot_kw=dict(box_aspect=aspect), figsize=figsize)
-
-#     if y_lim is None:
-#         y_lim = [None, None]
-
-#     if isinstance(plot_type, str):
-#         plot_type = [plot_type]
-
-#     # if subgroup is None:
-#     #     kwargs["subgroup_spacing"] = 0
-
-#     for plot in plot_type:
-#         if plot == "jitter":
-#             args = inspect.getfullargspec(_jitter_plot).args
-#             valid_kwargs = get_valid_kwargs(args, **kwargs)
-#             ax = _jitter_plot(
-#                 df=df,
-#                 y=y,
-#                 group=group,
-#                 subgroup=subgroup,
-#                 group_spacing=group_spacing,
-#                 ax=ax,
-#                 group_order=group_order,
-#                 subgroup_order=subgroup_order,
-#                 **valid_kwargs,
-#             )
-#         if plot == "summary":
-#             args = inspect.getfullargspec(_summary_plot).args
-#             valid_kwargs = get_valid_kwargs(args, **kwargs)
-#             ax = _summary_plot(
-#                 df=df,
-#                 y=y,
-#                 group=group,
-#                 subgroup=subgroup,
-#                 group_spacing=group_spacing,
-#                 ax=ax,
-#                 group_order=group_order,
-#                 subgroup_order=subgroup_order,
-#                 **valid_kwargs,
-#             )
-
-#     if decimals is None:
-#         decimals = np.abs(int(np.max(np.round(np.log10(np.abs(df[y])))))) + 2
-#     ax.set_xticks(list(group_loc.values()), group_order)
-#     ax.margins(margins)
-#     ax.spines["right"].set_visible(False)
-#     ax.spines["top"].set_visible(False)
-#     if "/" in y:
-#         y = y.replace("/", "_")
-#     if y_scale not in ["log", "symlog"]:
-#         ticks = ax.get_yticks()
-#         if y_lim[0] is None:
-#             y_lim[0] = ticks[0]
-#         if y_lim[1] is None:
-#             y_lim[1] = ticks[-1]
-#         ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
-#         ticks = np.round(np.linspace(y_lim[0], y_lim[1], steps), decimals=decimals)
-#         ax.set_yticks(ticks)
-#     else:
-#         ticks = ax.get_yticks()
-#         if y_lim[0] is None:
-#             y_lim[0] = ticks[0]
-#         if y_lim[1] is None:
-#             y_lim[1] = ticks[-1]
-#         ax.set_ylim(bottom=y_lim[0], top=y_lim[1])
-#     ax.set_ylabel(y_label, fontsize=labelsize)
-#     ax.set_title(title, fontsize=labelsize)
-#     ax.tick_params(axis="both", which="major", labelsize=labelsize, width=2)
-#     if path is not None:
-#         plt.savefig(f"{path}/{y}.{filetype}", format=filetype, bbox_inches="tight")
+def _line_plot(
+    df,
+    y,
+    x,
+    unique_groups,
+    color_dict,
+    linestyle_dict,
+    unique_id,
+    facet_dict,
+    fit_func,
+    stat_func,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+    if unique_id:
+        pass
+        # for i in unique_groups.unique():
+        #     indexes = np.where(unique_groups == i)[0]
+        #     temp_df = df.iloc[indexes]
+    else:
+        for i in unique_groups.unique():
+            indexes = np.where(unique_groups == i)[0]
+            temp_y = df[y].iloc[indexes]
+            temp_x = df[x].loc[indexes]
+            ax[facet_dict[i]].plot(
+                temp_x, temp_y, c=color_dict[i], linestyle=linestyle_dict[i]
+            )
+    return ax
 
 
 def biplot(

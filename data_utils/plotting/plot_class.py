@@ -6,13 +6,22 @@ import plotly.graph_objects as go
 
 from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
-from .plot_utils import _process_positions, process_args
+from .plot_utils import (
+    _process_positions,
+    process_args,
+    _process_groups,
+    decimals,
+    get_ticks,
+)
 
 MP_PLOTS = {
     "jitter": mp._jitter_plot,
     "summary": mp._summary_plot,
     "boxplot": mp._boxplot,
     "violin": mp._violin_plot,
+    "line_plot": mp._line_plot,
+    "poly_hist": mp._poly_hist,
+    "hist": mp._hist_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -29,14 +38,18 @@ class LinePlot:
         df,
         y,
         group,
+        x=None,
         subgroup=None,
         group_order=None,
         subgroup_order=None,
+        unique_id=None,
         y_label="",
         x_label="",
         title="",
         y_lim: Union[list, None] = None,
+        x_lim: Union[list, None] = None,
         y_scale: Literal["linear", "log", "symlog"] = "linear",
+        x_scale: Literal["linear", "log", "symlog"] = "linear",
         margins=0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
@@ -44,18 +57,49 @@ class LinePlot:
         linewidth=2,
         ticksize=2,
         ticklabel=20,
+        steps=5,
+        y_decimals=None,
+        x_decimals=None,
+        facet=False,
     ):
+        self.plots = {}
+        self.plot_list = []
         if y_lim is None:
             y_lim = [None, None]
+        if x_lim is None:
+            x_lim = [None, None]
 
         if subgroup is not None:
             unique_groups = df[group].astype(str) + df[subgroup].astype(str)
         else:
             unique_groups = df[group].astype(str) + ""
 
-        group_order, subgroup_order = self._process_groups(
+        group_order, subgroup_order = _process_groups(
             df, group, subgroup, group_order, subgroup_order
         )
+        if isinstance(title, str) and not facet:
+            title = [title]
+        elif isinstance(title, str) and facet:
+            title = [title] * len(group_order)
+        elif isinstance(title, list) and facet:
+            if len(title) != len(group_order):
+                raise ValueError(
+                    "Length of title must be the same a the number of groups."
+                )
+            title = title
+        else:
+            title = group_order
+
+        if facet:
+            facet_length = list(range(len(group_order)))
+        else:
+            facet_length = 0
+        facet_dict = process_args(
+            facet_length,
+            group_order,
+            subgroup_order,
+        )
+
         self.plot_dict = {
             "df": df,
             "y": y,
@@ -68,7 +112,9 @@ class LinePlot:
             "x_label": x_label,
             "title": title,
             "y_lim": y_lim,
+            "x_lim": x_lim,
             "y_scale": y_scale,
+            "x_scale": x_scale,
             "margins": margins,
             "aspect": aspect,
             "figsize": figsize,
@@ -76,9 +122,177 @@ class LinePlot:
             "ticksize": ticksize,
             "ticklabel": ticklabel,
             "linewidth": linewidth,
+            "facet": facet,
+            "facet_dict": facet_dict,
+            "unique_id": unique_id,
+            "y_decimals": y_decimals,
+            "x_decimals": x_decimals,
+            "x": x,
+            "steps": steps,
         }
         self.plots = {}
         self.plot_list = []
+
+    def line(
+        self,
+        color="black",
+        linestyle="-",
+    ):
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        linestyle_dict = process_args(
+            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        line_plot = {
+            "color_dict": color_dict,
+            "linestyle_dict": linestyle_dict,
+        }
+        self.plots["line_plot"] = line_plot
+        self.plot_list.append("line_plot")
+
+    def polyhist(
+        self,
+        color="black",
+        linestyle="-",
+        bin=None,
+        density=True,
+        steps=50,
+        func="mean",
+        err_func="sem",
+        fit_func=None,
+        alpha=1,
+    ):
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        linestyle_dict = process_args(
+            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        poly_hist = {
+            "color_dict": color_dict,
+            "linestyle_dict": linestyle_dict,
+            "density": density,
+            "bin": bin,
+            "steps": steps,
+            "func": func,
+            "err_func": err_func,
+            "fit_func": fit_func,
+            "alpha": alpha,
+        }
+        self.plots["poly_hist"] = poly_hist
+        self.plot_list.append("poly_hist")
+
+    def plot(
+        self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
+    ):
+        if backend == "matplotlib":
+            output = self._matplotlib_backend(
+                savefig=savefig, path=path, filetype=filetype
+            )
+            return output
+        elif backend == "plotly":
+            output = self._plotly_backend(savefig=savefig, path=path, filetype=filetype)
+        else:
+            raise AttributeError("Backend not implemented")
+        return output
+
+    def _matplotlib_backend(
+        self,
+        savefig: bool = False,
+        path: str = "",
+        filetype: str = "svg",
+        transparent=False,
+    ):
+        if self.plot_dict["facet"]:
+            fig, ax = plt.subplots(
+                subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
+                figsize=self.plot_dict["figsize"],
+                ncols=len(self.plot_dict["group_order"]),
+            )
+        else:
+            fig, ax = plt.subplots(
+                subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
+                figsize=self.plot_dict["figsize"],
+            )
+            ax = [ax]
+        for i in self.plot_list:
+            plot_func = MP_PLOTS[i]
+            plot_func(
+                df=self.plot_dict["df"],
+                y=self.plot_dict["y"],
+                unique_groups=self.plot_dict["unique_groups"],
+                unique_id=self.plot_dict["unique_id"],
+                facet_dict=self.plot_dict["facet_dict"],
+                ax=ax,
+                **self.plots[i],
+            )
+
+        if self.plot_dict["y_decimals"] is None:
+            y_decimals = decimals(self.plot_dict["df"][self.plot_dict["y"]])
+        else:
+            y_decimals = self.plot_dict["y_decimals"]
+        if self.plot_dict["x_decimals"] is None:
+            x_decimals = decimals(self.plot_dict["df"][self.plot_dict["y"]])
+        else:
+            x_decimals = self.plot_dict["x_decimals"]
+        for index, i in enumerate(ax):
+            i.margins(self.plot_dict["margins"])
+            i.spines["right"].set_visible(False)
+            i.spines["top"].set_visible(False)
+            i.spines["left"].set_linewidth(self.plot_dict["linewidth"])
+            i.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
+            if "/" in self.plot_dict["y"]:
+                self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
+            if self.plot_dict["y_scale"] not in ["log", "symlog"]:
+                ticks = i.get_yticks()
+                lim, ticks = get_ticks(
+                    self.plot_dict["y_lim"], ticks, self.plot_dict["steps"], y_decimals
+                )
+                i.set_ylim(bottom=lim[0], top=lim[1])
+                i.set_yticks(ticks)
+            else:
+                ticks = i.get_yticks()
+                lim, _ = get_ticks(
+                    self.plot_dict["y_lim"], ticks, self.plot_dict["steps"], y_decimals
+                )
+                i.set_ylim(bottom=lim[0], top=lim[1])
+            if self.plot_dict["x_scale"] not in ["log", "symlog"]:
+                ticks = i.get_xticks()
+                lim, ticks = get_ticks(
+                    self.plot_dict["x_lim"], ticks, self.plot_dict["steps"], x_decimals
+                )
+                i.set_xlim(left=lim[0], right=lim[1])
+                i.set_xticks(ticks)
+            else:
+                ticks = i.get_xticks()
+                lim, _ = get_ticks(
+                    self.plot_dict["x_lim"], ticks, self.plot_dict["steps"], x_decimals
+                )
+                i.set_xlim(left=lim[0], right=lim[1])
+            i.set_ylabel(
+                self.plot_dict["y_label"], fontsize=self.plot_dict["labelsize"]
+            )
+            i.set_title(
+                self.plot_dict["title"][index], fontsize=self.plot_dict["labelsize"]
+            )
+            i.tick_params(
+                axis="both",
+                which="major",
+                labelsize=self.plot_dict["ticklabel"],
+                width=self.plot_dict["ticksize"],
+            )
+        fig.tight_layout()
+        if savefig:
+            plt.savefig(
+                f"{path}/{self.plot_dict['y']}.{filetype}",
+                format=filetype,
+                bbox_inches="tight",
+                transparent=transparent,
+            )
+        return fig, ax
 
 
 class CategoricalPlot:
@@ -114,7 +328,7 @@ class CategoricalPlot:
         else:
             unique_groups = df[group].astype(str) + ""
 
-        group_order, subgroup_order = self._process_groups(
+        group_order, subgroup_order = _process_groups(
             df, group, subgroup, group_order, subgroup_order
         )
 
@@ -154,25 +368,6 @@ class CategoricalPlot:
         }
         self.plots = {}
         self.plot_list = []
-
-    def _process_groups(self, df, group, subgroup, group_order, subgroup_order):
-        if group_order is None:
-            group_order = df[group].unique()
-        else:
-            if len(group_order) != len(df[group].unique()):
-                raise AttributeError(
-                    "The number groups does not match the number in group_order"
-                )
-        if subgroup is not None:
-            if subgroup_order is None:
-                subgroup_order = df[subgroup].unique()
-            elif len(subgroup_order) != len(df[subgroup].unique()):
-                raise AttributeError(
-                    "The number subgroups does not match the number in subgroup_order"
-                )
-        else:
-            subgroup_order = [""] * len(group_order)
-        return group_order, subgroup_order
 
     def jitter(
         self,
