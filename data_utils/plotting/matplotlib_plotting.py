@@ -1,5 +1,5 @@
 # import inspect
-# from typing import Literal, Union
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -199,6 +199,42 @@ def _violin_plot(
 
 def paired_plot():
     pass
+
+
+def _hist_plot(
+    df,
+    y,
+    unique_groups,
+    color_dict,
+    hist_type: Literal["bar", "barstacked", "step", "stepfilled", "poly"] = "poly",
+    bins=None,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+    if hist_type == "poly":
+        for i in unique_groups.unique():
+            indexes = np.where(unique_groups == i)[0]
+            temp = df[y].iloc[indexes].sort_values()
+            bins = np.linspace(temp.min(), temp.max(), num=200 + 1)
+            poly = np.zeros(bins.size - 1)
+            index = 0
+            for i in temp:
+                if i >= bins[index] and i <= bins[int(index + 1)]:
+                    poly[index] += 1
+                else:
+                    index += 1
+                    poly[index] += 1
+            poly /= poly.sum()
+            ax.plot(poly)
+    else:
+        indexes = np.where(unique_groups == i)[0]
+        temp = df[y].iloc[indexes]
+        for i in unique_groups.unique():
+            ax.hist(
+                x=temp, histtype=hist_type, bins=bins, color=color_dict[i], density=True
+            )
+    return ax
 
 
 # def plot_categorical(

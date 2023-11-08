@@ -22,6 +22,65 @@ PLP_PLOTS = {
 }
 
 
+# %%
+class LinePlot:
+    def __init__(
+        self,
+        df,
+        y,
+        group,
+        subgroup=None,
+        group_order=None,
+        subgroup_order=None,
+        y_label="",
+        x_label="",
+        title="",
+        y_lim: Union[list, None] = None,
+        y_scale: Literal["linear", "log", "symlog"] = "linear",
+        margins=0.05,
+        aspect: Union[int, float] = 1,
+        figsize: Union[None, tuple[int, int]] = None,
+        labelsize=20,
+        linewidth=2,
+        ticksize=2,
+        ticklabel=20,
+    ):
+        if y_lim is None:
+            y_lim = [None, None]
+
+        if subgroup is not None:
+            unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+        else:
+            unique_groups = df[group].astype(str) + ""
+
+        group_order, subgroup_order = self._process_groups(
+            df, group, subgroup, group_order, subgroup_order
+        )
+        self.plot_dict = {
+            "df": df,
+            "y": y,
+            "group": group,
+            "subgroup": subgroup,
+            "group_order": group_order,
+            "subgroup_order": subgroup_order,
+            "unique_groups": unique_groups,
+            "y_label": y_label,
+            "x_label": x_label,
+            "title": title,
+            "y_lim": y_lim,
+            "y_scale": y_scale,
+            "margins": margins,
+            "aspect": aspect,
+            "figsize": figsize,
+            "labelsize": labelsize,
+            "ticksize": ticksize,
+            "ticklabel": ticklabel,
+            "linewidth": linewidth,
+        }
+        self.plots = {}
+        self.plot_list = []
+
+
 class CategoricalPlot:
     def __init__(
         self,
