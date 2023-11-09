@@ -232,7 +232,6 @@ def _poly_hist(
     color_dict,
     facet_dict,
     linestyle_dict,
-    bins=None,
     unique_id=None,
     density=True,
     bin=None,
@@ -240,6 +239,7 @@ def _poly_hist(
     func="mean",
     err_func="sem",
     fit_func=None,
+    plot_both=False,
     alpha=1,
     ax=None,
 ):
@@ -286,6 +286,8 @@ def _poly_hist(
             indexes = np.where(unique_groups == i)[0]
             temp = df[y].iloc[indexes].sort_values()
             poly = bin_data(temp, bins)
+            if fit_func is not None:
+                poly = fit_func(x, poly)
             if density:
                 poly /= poly.sum()
             ax[facet_dict[i]].plot(poly, c=color_dict[i], linestyle=linestyle_dict[i])
@@ -298,25 +300,70 @@ def _line_plot(
     x,
     unique_groups,
     color_dict,
-    linestyle_dict,
-    unique_id,
     facet_dict,
-    fit_func,
-    stat_func,
+    linestyle_dict,
+    unique_id=None,
+    func="mean",
+    err_func="sem",
+    fit_func=None,
+    alpha=1,
     ax=None,
 ):
     if ax is None:
         ax = plt.gca()
-    if unique_id:
-        pass
-        # for i in unique_groups.unique():
-        #     indexes = np.where(unique_groups == i)[0]
-        #     temp_df = df.iloc[indexes]
+    if ax is None:
+        ax = plt.gca()
+        ax = [ax]
+    if unique_id is not None:
+        func = get_func(func)
+        if err_func is not None:
+            err_func = get_func(err_func)
+        for i in unique_groups.unique():
+            indexes = np.where(unique_groups == i)
+            temp_df = df.iloc[indexes]
+            uids = temp_df[unique_id].unique()
+            temp_list_y = None
+            temp_list_x = None
+            for index, j in enumerate(uids):
+                temp = np.where(df[unique_id] == j)[0]
+                temp_y = df[y].iloc[temp].to_numpy()
+                temp_x = df[x].iloc[temp].to_numpy()
+                if temp_list_y is None:
+                    temp_list_y = np.zeros((len(uids), temp_x.size))
+                if temp_list_x is None:
+                    temp_list_x = np.zeros((len(uids), temp_x.size))
+                if fit_func is not None:
+                    poly = fit_func(temp_x, temp_y)
+                    temp_list_y[index] = poly
+                else:
+                    temp_list_y[index] = temp_y
+                temp_list_x[index] = temp_x
+            mean_x = np.nanmean(temp_list_x, axis=0)
+            mean_y = func(temp_list_y, axis=0)
+            ax[facet_dict[i]].plot(
+                mean_x,
+                mean_y,
+                c=color_dict[i],
+                linestyle=linestyle_dict[i],
+                alpha=alpha,
+            )
+            if err_func is not None:
+                mean_y = func(temp_list_y)
+                err = err_func(temp_list_y, axis=0)
+                ax[facet_dict[i]].fill_between(
+                    x=mean_x,
+                    y1=mean_y - err,
+                    y2=mean_y + err,
+                    alpha=alpha / 2,
+                    color=color_dict[i],
+                )
     else:
         for i in unique_groups.unique():
             indexes = np.where(unique_groups == i)[0]
-            temp_y = df[y].iloc[indexes]
-            temp_x = df[x].loc[indexes]
+            temp_y = df[y].iloc[temp].to_numpy()
+            temp_x = df[x].iloc[temp].to_numpy()
+            if fit_func is not None:
+                temp_y = fit_func(temp_x, temp_y)
             ax[facet_dict[i]].plot(
                 temp_x, temp_y, c=color_dict[i], linestyle=linestyle_dict[i]
             )

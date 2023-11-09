@@ -137,6 +137,10 @@ class LinePlot:
         self,
         color="black",
         linestyle="-",
+        func="mean",
+        err_func="sem",
+        fit_func=None,
+        alpha=1,
     ):
         color_dict = process_args(
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -148,6 +152,10 @@ class LinePlot:
         line_plot = {
             "color_dict": color_dict,
             "linestyle_dict": linestyle_dict,
+            "func": func,
+            "err_func": err_func,
+            "fit_func": fit_func,
+            "alpha": alpha,
         }
         self.plots["line_plot"] = line_plot
         self.plot_list.append("line_plot")

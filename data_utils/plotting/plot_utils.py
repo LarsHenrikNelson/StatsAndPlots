@@ -96,7 +96,11 @@ def get_valid_kwargs(args_list, **kwargs):
 
 
 def sem(a, axis=None):
-    return np.std(a, axis) / np.sqrt(a.shape[1])
+    if len(a.shape) == 2:
+        shape = a.shape[1]
+    else:
+        shape = a.size
+    return np.std(a, axis) / np.sqrt(shape)
 
 
 def ci(a):
@@ -113,16 +117,26 @@ def get_func(input):
         return ci
     elif input == "mean":
         return np.mean
+    elif input == "nanmean":
+        return np.nanmean
+    elif input == "nanmedian":
+        return np.nanmedian
     elif input == "median":
         return np.median
     elif input == "std":
+        return np.std
+    elif input == "nanstd":
         return np.std
     elif input == "log10":
         return np.log10
     elif input == "log":
         return np.log
+    elif input == "var":
+        return np.var
+    elif input == "nanvar":
+        return np.nanvar
     else:
-        return lambda a: a
+        return lambda a, axis: a
 
 
 def _process_positions(
