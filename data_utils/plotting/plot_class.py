@@ -38,7 +38,6 @@ class LinePlot:
         df,
         y,
         group,
-        x=None,
         subgroup=None,
         group_order=None,
         subgroup_order=None,
@@ -127,7 +126,6 @@ class LinePlot:
             "unique_id": unique_id,
             "y_decimals": y_decimals,
             "x_decimals": x_decimals,
-            "x": x,
             "steps": steps,
         }
         self.plots = {}
@@ -135,6 +133,7 @@ class LinePlot:
 
     def line(
         self,
+        x,
         color="black",
         linestyle="-",
         func="mean",
@@ -155,6 +154,7 @@ class LinePlot:
             "func": func,
             "err_func": err_func,
             "fit_func": fit_func,
+            "x": x,
             "alpha": alpha,
         }
         self.plots["line_plot"] = line_plot
