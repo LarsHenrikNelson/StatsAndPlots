@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "data_utils"
+name = "statsandplots"
 description = "Package for analyzing data."
 authors = [{ name = "Lars Henrik Nelson", email = "larshnelson@protonmail.com" }]
 version = "0.0.1"
