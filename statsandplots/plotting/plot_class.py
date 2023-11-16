@@ -1,4 +1,5 @@
 from typing import Literal, Union
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,6 +30,8 @@ PLP_PLOTS = {
     # "boxplot": plp._boxplot,
     # "violin": plp._violin_plot,
 }
+
+SAVE_TYPES = {"svg", "png", "jpeg", "html"}
 
 
 # %%
@@ -294,8 +297,13 @@ class LinePlot:
             )
         fig.tight_layout()
         if savefig:
+            path = Path(path)
+            if path.suffix[1:] not in SAVE_TYPES:
+                path = path / f"{self.plot_dict['y']}.{filetype}"
+            else:
+                filetype = path.suffix[1:]
             plt.savefig(
-                f"{path}/{self.plot_dict['y']}.{filetype}",
+                path,
                 format=filetype,
                 bbox_inches="tight",
                 transparent=transparent,
@@ -586,8 +594,13 @@ class CategoricalPlot:
             width=self.plot_dict["ticksize"],
         )
         if savefig:
+            path = Path(path)
+            if path.suffix[1:] not in SAVE_TYPES:
+                path = path / f"{self.plot_dict['y']}.{filetype}"
+            else:
+                filetype = path.suffix[1:]
             plt.savefig(
-                f"{path}/{self.plot_dict['y']}.{filetype}",
+                path,
                 format=filetype,
                 bbox_inches="tight",
                 transparent=transparent,
