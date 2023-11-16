@@ -15,7 +15,9 @@ dependencies = [
     "pandas",
     "scipy",
     "seaborn",
-    "statsmodels"
+    "statsmodels",
+    "openpyxl",
+    "lxml"
 ]
 requires-python = ">=3.9"
 license = {text = 'GNU General Public License v3 (GPLv3)'}
