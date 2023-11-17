@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import default_rng
 
 
-from .plot_utils import get_func, transform_func
+from .plot_utils import get_func
 
 
 def _jitter_plot(
@@ -36,7 +36,7 @@ def _jitter_plot(
         x += jitter_values[indexes]
         scat = go.Scatter(
             x=x,
-            y=transform_func(df[y].iloc[indexes], transform),
+            y=transform(df[y].iloc[indexes]),
             mode="markers",
             marker={
                 "symbol": marker_dict[i],

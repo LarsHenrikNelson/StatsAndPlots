@@ -7,7 +7,7 @@ from matplotlib.lines import Line2D
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
-from .plot_utils import get_func, transform_func, process_args, bin_data
+from .plot_utils import get_func, process_args, bin_data
 
 MARKERS = Line2D.filled_markers
 CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
@@ -44,7 +44,7 @@ def _jitter_plot(
         x += jitter_values[indexes]
         ax.scatter(
             x,
-            transform_func(df[y].iloc[indexes], transform),
+            transform(df[y].iloc[indexes]),
             marker=marker_dict[i],
             c=color_dict[i],
             edgecolors=edgecolor_dict[i],
@@ -75,8 +75,8 @@ def _summary_plot(
 
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
-        tdata = get_func(func)(transform_func(df[y].iloc[indexes], transform))
-        err_data = get_func(err_func)(transform_func(df[y].iloc[indexes], transform))
+        tdata = get_func(func)(transform(df[y].iloc[indexes]))
+        err_data = get_func(err_func)(transform(df[y].iloc[indexes]))
         _, caplines, bars = ax.errorbar(
             x=loc_dict[i],
             y=tdata,
@@ -138,7 +138,7 @@ def _boxplot(
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
         bplot = ax.boxplot(
-            transform_func(df[y].iloc[indexes], transform),
+            transform(df[y].iloc[indexes]),
             positions=[loc_dict[i]],
             sym=fliers,
             widths=box_width,
@@ -180,7 +180,7 @@ def _violin_plot(
         indexes = indexes
 
         parts = ax.violinplot(
-            transform_func(df[y].iloc[indexes], transform),
+            transform(df[y].iloc[indexes]),
             positions=[loc_dict[i]],
             widths=violin_width,
             showmeans=show_means,

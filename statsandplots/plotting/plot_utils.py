@@ -80,13 +80,6 @@ def process_args(arg, group_order, subgroup_order):
     return output_dict
 
 
-def transform_func(a, transform=None, axis=None):
-    if transform is not None:
-        return transform(a, axis=axis)
-    else:
-        return a
-
-
 def get_valid_kwargs(args_list, **kwargs):
     output_args = {}
     for i in args_list:
@@ -136,7 +129,7 @@ def get_func(input):
     elif input == "nanvar":
         return np.nanvar
     else:
-        return lambda a, axis: a
+        return lambda a, axis=None: a
 
 
 def _process_positions(
