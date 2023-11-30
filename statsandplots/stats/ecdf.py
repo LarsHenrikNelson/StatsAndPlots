@@ -27,9 +27,10 @@ def rand_samp_column(
     if axis == 1:
         array = array.T
     temp_array = np.zeros(array.shape[0] * size)
-    for i in np.arange(0, repititions):
-        extracted_df1 = []
-        for j in np.arange(0, array.shape[0]):
+    extracted_df1 = np.zeros(array.shape[0] * size)
+    for i in range(0, repititions):
+        index = 0
+        for j in range(0, array.shape[0]):
             # Copy column to numpy array
             x1 = array[j, :]
 
@@ -42,9 +43,9 @@ def rand_samp_column(
 
             # Choose samples
             b1 = rng.choice(x2, size=size_1)
-            extracted_df1 = np.concatenate([extracted_df1, b1])
-        extracted_df1.sort()
-        # final_arrays += [extracted_df1]
+            extracted_df1[index : index + size] = b1
+            index += size
+        extracted_df1 = np.sort(extracted_df1)
         temp_array += extracted_df1
     final_array = temp_array / repititions
     return final_array
