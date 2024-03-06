@@ -302,6 +302,7 @@ def _line_plot(
     color_dict,
     facet_dict,
     linestyle_dict,
+    linewidth=2,
     unique_id=None,
     func="mean",
     err_func="sem",
@@ -345,6 +346,7 @@ def _line_plot(
                 mean_y,
                 c=color_dict[i],
                 linestyle=linestyle_dict[i],
+                linewidth=linewidth,
                 alpha=alpha,
             )
             if err_func is not None:

@@ -139,6 +139,7 @@ class LinePlot:
         x,
         color="black",
         linestyle="-",
+        linewidth=2,
         func="mean",
         err_func="sem",
         fit_func=None,
@@ -154,6 +155,7 @@ class LinePlot:
         line_plot = {
             "color_dict": color_dict,
             "linestyle_dict": linestyle_dict,
+            "linewidth": linewidth,
             "func": func,
             "err_func": err_func,
             "fit_func": fit_func,
