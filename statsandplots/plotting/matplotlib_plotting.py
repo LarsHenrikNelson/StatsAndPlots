@@ -319,7 +319,7 @@ def _line_plot(
         if err_func is not None:
             err_func = get_func(err_func)
         for i in unique_groups.unique():
-            indexes = np.where(unique_groups == i)
+            indexes = np.where(unique_groups == i)[0]
             temp_df = df.iloc[indexes]
             uids = temp_df[unique_id].unique()
             temp_list_y = None
