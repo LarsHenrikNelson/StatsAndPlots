@@ -326,20 +326,11 @@ class CategoricalPlot:
         subgroup_spacing=0.6,
         y_label="",
         title="",
-        y_lim: Union[list, None] = None,
-        y_scale: Literal["linear", "log", "symlog"] = "linear",
-        steps: int = 5,
-        margins=0.05,
-        aspect: Union[int, float] = 1,
-        figsize: Union[None, tuple[int, int]] = None,
-        labelsize=20,
-        linewidth=2,
-        ticksize=2,
-        ticklabel=20,
-        decimals=None,
+        inplace=True,
     ):
-        if y_lim is None:
-            y_lim = [None, None]
+
+        self._plot_settings_run = False
+        self.inplace = inplace
 
         if subgroup is not None:
             unique_groups = df[group].astype(str) + df[subgroup].astype(str)
@@ -372,6 +363,29 @@ class CategoricalPlot:
             "width": width,
             "y_label": y_label,
             "title": title,
+        }
+        self.plots = {}
+        self.plot_list = []
+
+    def plot_settings(
+        self,
+        y_lim: Union[list, None] = None,
+        y_scale: Literal["linear", "log", "symlog"] = "linear",
+        steps: int = 5,
+        margins=0.05,
+        aspect: Union[int, float] = 1,
+        figsize: Union[None, tuple[int, int]] = None,
+        labelsize=20,
+        linewidth=2,
+        ticksize=2,
+        ticklabel=20,
+        decimals=None,
+    ):
+        self._plot_settings_run = True
+        if y_lim is None:
+            y_lim = [None, None]
+
+        plot_settings = {
             "y_lim": y_lim,
             "y_scale": y_scale,
             "steps": steps,
@@ -384,8 +398,10 @@ class CategoricalPlot:
             "decimals": decimals,
             "linewidth": linewidth,
         }
-        self.plots = {}
-        self.plot_list = []
+        self.plot_dict.update(plot_settings)
+
+        if not self.inplace:
+            return self
 
     def jitter(
         self,
@@ -421,6 +437,9 @@ class CategoricalPlot:
         self.plots["jitter"] = jitter_plot
         self.plot_list.append("jitter")
 
+        if not self.inplace:
+            return self
+
     def summary(
         self,
         func="mean",
@@ -442,6 +461,9 @@ class CategoricalPlot:
         }
         self.plots["summary"] = summary_plot
         self.plot_list.append("summary")
+
+        if not self.inplace:
+            return self
 
     def boxplot(
         self,
@@ -467,6 +489,9 @@ class CategoricalPlot:
         }
         self.plots["boxplot"] = boxplot
         self.plot_list.append("boxplot")
+
+        if not self.inplace:
+            return self
 
     def violin(
         self,
@@ -498,9 +523,15 @@ class CategoricalPlot:
         self.plots["violin"] = violin
         self.plot_list.append("violin")
 
+        if not self.inplace:
+            return self
+
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
     ):
+        if not self._plot_settings_run:
+            self.plot_settings()
+
         if backend == "matplotlib":
             output = self._matplotlib_backend(
                 savefig=savefig, path=path, filetype=filetype
@@ -536,6 +567,8 @@ class CategoricalPlot:
             )
 
         if self.plot_dict["decimals"] is None:
+
+            # No better way around this mess at the moment
             decimals = (
                 np.abs(
                     int(

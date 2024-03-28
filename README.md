@@ -1,1 +1,1 @@
-This is simple plotting and stats package. The plots can utilize Matplotlib or Plotly backend. It is currently in development.
+This is a simple plotting and stats package. The plots can utilize Matplotlib or Plotly backend. It is currently in development.
