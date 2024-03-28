@@ -59,9 +59,9 @@ def _jitter_plot(
 
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
-        x = np.array([loc_dict[i]] * indexes.size)
-        x += jitter_values[indexes]
         if unique_id is None:
+            x = np.array([loc_dict[i]] * indexes.size)
+            x += jitter_values[indexes]
             ax.plot(
                 x,
                 transform(df[y].iloc[indexes]),
@@ -73,19 +73,21 @@ def _jitter_plot(
             )
         else:
             unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
-            x_index = 0
             for index, ui_group in enumerate(unique_ids_sub):
-                temp_indexes = np.where(df[unique_id] == ui_group)[0]
+                sub_indexes = np.where(
+                    np.logical_and(df[unique_id] == ui_group, unique_groups == i)
+                )[0]
+                x = np.array([loc_dict[i]] * sub_indexes.size)
+                x += jitter_values[sub_indexes]
                 ax.plot(
-                    x[x_index : int(x_index + temp_indexes.size)],
-                    transform(df[y].iloc[temp_indexes]),
+                    x,
+                    transform(df[y].iloc[sub_indexes]),
                     MARKERS[index],
                     markerfacecolor=color_dict[i],
                     markeredgecolor=edgecolor_dict[i],
                     alpha=alpha,
                     markersize=marker_size,
                 )
-                x_index += temp_indexes.size
     return ax
 
 
