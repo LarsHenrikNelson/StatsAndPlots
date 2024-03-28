@@ -3,6 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 
 from . import matplotlib_plotting as mp
@@ -316,22 +317,22 @@ class LinePlot:
 class CategoricalPlot:
     def __init__(
         self,
-        df,
-        y,
-        group,
-        subgroup=None,
-        group_order=None,
-        subgroup_order=None,
-        unique_id=None,
-        group_spacing=1,
-        subgroup_spacing=0.6,
-        y_label="",
-        title="",
-        inplace=True,
+        df: pd.DataFrame,
+        y: Union[str, int, float],
+        group: Union[str, int, float],
+        subgroup: Union[str, int, float] = None,
+        group_order: Union[None, list[Union[str, int, float]]] = None,
+        subgroup_order: Union[None, list[Union[str, int, float]]] = None,
+        group_spacing: Union[float, int] = 1.0,
+        subgroup_spacing: Union[float, int] = 0.6,
+        y_label: str = "",
+        title: str = "",
+        inplace: bool = True,
     ):
 
         self._plot_settings_run = False
         self.inplace = inplace
+        self.style = "default"
 
         if subgroup is not None:
             unique_groups = df[group].astype(str) + df[subgroup].astype(str)
@@ -359,7 +360,6 @@ class CategoricalPlot:
             "group_order": group_order,
             "subgroup_order": subgroup_order,
             "unique_groups": unique_groups,
-            "unique_id": unique_id,
             "x_ticks": x_ticks,
             "loc_dict": loc_dict,
             "width": width,
@@ -371,17 +371,18 @@ class CategoricalPlot:
 
     def plot_settings(
         self,
+        style: str = "default",
         y_lim: Union[list, None] = None,
         y_scale: Literal["linear", "log", "symlog"] = "linear",
         steps: int = 5,
         margins=0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
-        labelsize=20,
-        linewidth=2,
-        ticksize=2,
-        ticklabel=20,
-        decimals=None,
+        labelsize: int = 20,
+        linewidth: int = 2,
+        ticksize: int = 2,
+        ticklabel: int = 20,
+        decimals: int = None,
     ):
         self._plot_settings_run = True
         if y_lim is None:
@@ -402,19 +403,33 @@ class CategoricalPlot:
         }
         self.plot_dict.update(plot_settings)
 
+        plt.style.use(style)
+        self.style = style
+
+        # Quick check just for dark and default backgrounds
+        if "summary" in self.plots:
+            if (
+                self.style == "dark_background"
+                and self.plots["summary"]["color"] == "black"
+            ):
+                self.plots["summary"]["color"] = "white"
+            elif self.style == "default" and self.plots["summary"]["color"] == "white":
+                self.plots["summary"]["color"] = "black"
+
         if not self.inplace:
             return self
 
     def jitter(
         self,
-        color="black",
-        marker="o",
-        edgecolor="",
-        alpha=1,
-        jitter=1,
-        seed=42,
-        marker_size=2,
-        transform=None,
+        color: Union[str, dict[str, str]] = "black",
+        marker: Union[str, dict[str, str]] = "o",
+        edgecolor: Union[str, dict[str, str]] = "",
+        alpha: Union[float, int] = 1.0,
+        jitter: Union[float, int] = 1.0,
+        seed: int = 42,
+        marker_size: float = 2.0,
+        transform: Union[None, str] = None,
+        unique_id: Union[None] = None,
     ):
         marker_dict = process_args(
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -435,6 +450,7 @@ class CategoricalPlot:
             "seed": seed,
             "marker_size": marker_size,
             "transform": transform,
+            "unique_id": unique_id,
         }
         self.plots["jitter"] = jitter_plot
         self.plot_list.append("jitter")
@@ -450,8 +466,11 @@ class CategoricalPlot:
         bar_width=1.0,
         err_func="sem",
         linewidth=2,
+        color="black",
         transform=None,
     ):
+        if self.style == "dark_background":
+            color = "white"
         summary_plot = {
             "func": func,
             "capsize": capsize,
@@ -460,6 +479,7 @@ class CategoricalPlot:
             "err_func": err_func,
             "linewidth": linewidth,
             "transform": transform,
+            "color": color,
         }
         self.plots["summary"] = summary_plot
         self.plot_list.append("summary")
@@ -470,24 +490,34 @@ class CategoricalPlot:
     def boxplot(
         self,
         facecolor="none",
+        linecolor="black",
         fliers="",
         box_width: float = 1.0,
         transform=None,
         linewidth=1,
+        alpha=1.0,
+        line_alpha=1.0,
         show_means: bool = False,
         show_ci: bool = False,
     ):
         color_dict = process_args(
             facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+
+        linecolor_dict = process_args(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
         boxplot = {
             "color_dict": color_dict,
+            "linecolor_dict": linecolor_dict,
             "fliers": fliers,
             "box_width": box_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_ci": show_ci,
             "transform": transform,
             "linewidth": linewidth,
+            "alpha": alpha,
+            "line_alpha": line_alpha,
         }
         self.plots["boxplot"] = boxplot
         self.plot_list.append("boxplot")
@@ -532,7 +562,12 @@ class CategoricalPlot:
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
     ):
         if not self._plot_settings_run:
-            self.plot_settings()
+            if self.inplace:
+                self.plot_settings()
+            else:
+                self.inplace = True
+                self.plot_settings()
+                self.inplace = False
 
         if backend == "matplotlib":
             output = self._matplotlib_backend(
@@ -588,7 +623,7 @@ class CategoricalPlot:
         else:
             decimals = self.plot_dict["decimals"]
         ax.set_xticks(self.plot_dict["x_ticks"], self.plot_dict["group_order"])
-        ax.margins(self.plot_dict["margins"])
+        ax.margins(x=self.plot_dict["margins"])
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])

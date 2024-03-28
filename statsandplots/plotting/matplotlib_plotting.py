@@ -1,15 +1,33 @@
 from typing import Literal
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 from matplotlib._enums import CapStyle
-from matplotlib.lines import Line2D
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from .plot_utils import get_func, process_args, bin_data
 
-MARKERS = Line2D.filled_markers
+# Reorder the filled matplotlib markers to choose the most different
+MARKERS = [
+    "o",
+    "X",
+    "^",
+    "s",
+    "*",
+    "d",
+    "h",
+    "p",
+    "<",
+    "H",
+    "D",
+    "v",
+    "P",
+    ".",
+    ">",
+    "8",
+]
 CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
 
 
@@ -27,6 +45,7 @@ def _jitter_plot(
     marker_size=2,
     transform=None,
     ax=None,
+    unique_id=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -42,15 +61,31 @@ def _jitter_plot(
         indexes = np.where(unique_groups == i)[0]
         x = np.array([loc_dict[i]] * indexes.size)
         x += jitter_values[indexes]
-        ax.scatter(
-            x,
-            transform(df[y].iloc[indexes]),
-            marker=marker_dict[i],
-            c=color_dict[i],
-            edgecolors=edgecolor_dict[i],
-            alpha=alpha,
-            s=marker_size,
-        )
+        if unique_id is None:
+            ax.plot(
+                x,
+                transform(df[y].iloc[indexes]),
+                marker_dict[i],
+                markerfacecolor=color_dict[i],
+                markeredgecolor=edgecolor_dict[i],
+                alpha=alpha,
+                markersize=marker_size,
+            )
+        else:
+            unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+            x_index = 0
+            for index, ui_group in enumerate(unique_ids_sub):
+                temp_indexes = np.where(df[unique_id] == ui_group)[0]
+                ax.plot(
+                    x[x_index : int(x_index + temp_indexes.size)],
+                    transform(df[y].iloc[temp_indexes]),
+                    MARKERS[index],
+                    markerfacecolor=color_dict[i],
+                    markeredgecolor=edgecolor_dict[i],
+                    alpha=alpha,
+                    markersize=marker_size,
+                )
+                x_index += temp_indexes.size
     return ax
 
 
@@ -65,6 +100,7 @@ def _summary_plot(
     bar_width=1.0,
     err_func="sem",
     linewidth=2,
+    color="black",
     transform=None,
     ax=None,
 ):
@@ -82,7 +118,7 @@ def _summary_plot(
             y=tdata,
             # xerr=width,
             yerr=err_data,
-            c="black",
+            c=color,
             fmt="none",
             linewidth=linewidth,
             capsize=capsize,
@@ -98,7 +134,7 @@ def _summary_plot(
             y=tdata,
             xerr=bar_width / 2,
             # yerr=err_data,
-            c="black",
+            c=color,
             fmt="none",
             linewidth=linewidth,
         )
@@ -113,11 +149,14 @@ def _boxplot(
     unique_groups,
     loc_dict,
     color_dict,
+    linecolor_dict,
     fliers="",
     box_width: float = 1.0,
     linewidth=1,
     show_means: bool = False,
     show_ci: bool = False,
+    alpha: float = 1.0,
+    line_alpha=1.0,
     transform=None,
     ax=None,
 ):
@@ -128,13 +167,24 @@ def _boxplot(
 
     for i in unique_groups.unique():
         props = {
-            "boxprops": {"facecolor": color_dict[i], "edgecolor": "black"},
-            "medianprops": {"color": "black"},
-            "whiskerprops": {"color": "black"},
-            "capprops": {"color": "black"},
+            "boxprops": {
+                "facecolor": mpl.colors.to_rgba(color_dict[i], alpha=alpha),
+                "edgecolor": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha),
+            },
+            "medianprops": {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            },
+            "whiskerprops": {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            },
+            "capprops": {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            },
         }
         if show_means:
-            props["meanprops"] = {"color": "black"}
+            props["meanprops"] = {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            }
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
         bplot = ax.boxplot(
@@ -149,7 +199,6 @@ def _boxplot(
             **props,
         )
         for i in bplot["boxes"]:
-            # i.set_alpha(alpha)
             i.set_linewidth(linewidth)
 
     return ax
