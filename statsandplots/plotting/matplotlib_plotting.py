@@ -91,6 +91,57 @@ def _jitter_plot(
     return ax
 
 
+def _jitteru_plot(
+    df,
+    y,
+    unique_groups,
+    unique_id,
+    loc_dict,
+    width,
+    color_dict,
+    marker_dict,
+    edgecolor_dict,
+    alpha=1,
+    marker_size=2,
+    transform=None,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+
+    transform = get_func(transform)
+
+    # rng = default_rng(seed)
+    # jitter_values = rng.random(unique_groups.size)
+    # jitter_values *= width
+    # jitter_values -= width / 2
+
+    temp = width / 2
+
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)[0]
+        unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+        if len(unique_ids_sub) > 1:
+            dist = np.linspace(-temp, temp, num=len(unique_ids_sub))
+        else:
+            dist = [0]
+        for index, ui_group in enumerate(unique_ids_sub):
+            sub_indexes = np.where(
+                np.logical_and(df[unique_id] == ui_group, unique_groups == i)
+            )[0]
+            x = np.full(sub_indexes.size, loc_dict[i]) + dist[index]
+            ax.plot(
+                x,
+                transform(df[y].iloc[sub_indexes]),
+                marker_dict[i],
+                markerfacecolor=color_dict[i],
+                markeredgecolor=edgecolor_dict[i],
+                alpha=alpha,
+                markersize=marker_size,
+            )
+    return ax
+
+
 def _summary_plot(
     df,
     y,

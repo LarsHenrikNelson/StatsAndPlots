@@ -1,5 +1,5 @@
-from typing import Literal, Union
 from pathlib import Path
+from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,21 +9,22 @@ import plotly.graph_objects as go
 from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
 from .plot_utils import (
-    _process_positions,
-    process_args,
     _process_groups,
+    _process_positions,
     decimals,
     get_ticks,
+    process_args,
 )
 
 MP_PLOTS = {
-    "jitter": mp._jitter_plot,
-    "summary": mp._summary_plot,
     "boxplot": mp._boxplot,
-    "violin": mp._violin_plot,
+    "hist": mp._hist_plot,
+    "jitter": mp._jitter_plot,
+    "jitteru": mp._jitteru_plot,
     "line_plot": mp._line_plot,
     "poly_hist": mp._poly_hist,
-    "hist": mp._hist_plot,
+    "summary": mp._summary_plot,
+    "violin": mp._violin_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -454,6 +455,44 @@ class CategoricalPlot:
         }
         self.plots["jitter"] = jitter_plot
         self.plot_list.append("jitter")
+
+        if not self.inplace:
+            return self
+
+    def jitteru(
+        self,
+        unique_id: Union[str, int, float],
+        color: Union[str, dict[str, str]] = "black",
+        marker: Union[str, dict[str, str]] = "o",
+        edgecolor: Union[str, dict[str, str]] = "",
+        alpha: Union[float, int] = 1.0,
+        width: Union[float, int] = 1.0,
+        seed: int = 42,
+        marker_size: float = 2.0,
+        transform: Union[None, str] = None,
+    ):
+        marker_dict = process_args(
+            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        edgecolor_dict = process_args(
+            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        jitteru_plot = {
+            "color_dict": color_dict,
+            "marker_dict": marker_dict,
+            "edgecolor_dict": edgecolor_dict,
+            "alpha": alpha,
+            "width": width * self.plot_dict["width"],
+            "marker_size": marker_size,
+            "transform": transform,
+            "unique_id": unique_id,
+        }
+        self.plots["jitteru"] = jitteru_plot
+        self.plot_list.append("jitteru")
 
         if not self.inplace:
             return self
