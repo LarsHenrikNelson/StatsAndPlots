@@ -467,7 +467,7 @@ class CategoricalPlot:
         edgecolor: Union[str, dict[str, str]] = "",
         alpha: Union[float, int] = 1.0,
         width: Union[float, int] = 1.0,
-        seed: int = 42,
+        duplicate_offset=0.0,
         marker_size: float = 2.0,
         transform: Union[None, str] = None,
     ):
@@ -490,6 +490,7 @@ class CategoricalPlot:
             "marker_size": marker_size,
             "transform": transform,
             "unique_id": unique_id,
+            "duplicate_offset": duplicate_offset,
         }
         self.plots["jitteru"] = jitteru_plot
         self.plot_list.append("jitteru")

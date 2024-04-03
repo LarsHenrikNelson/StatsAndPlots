@@ -2,6 +2,26 @@ from scipy import stats
 import numpy as np
 
 
+def process_duplicates(values, output=None):
+    vals, counts = np.unique(
+        values,
+        return_counts=True,
+    )
+    track_counts = {}
+    if output is None:
+        output = np.zeros(values.size)
+    for key, val in zip(vals, counts):
+        if val > 1:
+            track_counts[key] = [0, np.linspace(-1, 1, num=val)]
+        else:
+            track_counts[key] = [0, [0]]
+    for index, val in enumerate(values):
+
+        output[index] += track_counts[val][1][track_counts[val][0]]
+        track_counts[val][0] += 1
+    return output
+
+
 def get_ticks(
     lim,
     ticks,

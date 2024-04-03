@@ -7,7 +7,7 @@ from matplotlib._enums import CapStyle
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
-from .plot_utils import get_func, process_args, bin_data
+from .plot_utils import get_func, process_args, bin_data, process_duplicates
 
 # Reorder the filled matplotlib markers to choose the most different
 MARKERS = [
@@ -102,6 +102,7 @@ def _jitteru_plot(
     marker_dict,
     edgecolor_dict,
     alpha=1,
+    duplicate_offset=0.0,
     marker_size=2,
     transform=None,
     ax=None,
@@ -110,12 +111,6 @@ def _jitteru_plot(
         ax = plt.gca()
 
     transform = get_func(transform)
-
-    # rng = default_rng(seed)
-    # jitter_values = rng.random(unique_groups.size)
-    # jitter_values *= width
-    # jitter_values -= width / 2
-
     temp = width / 2
 
     for i in unique_groups.unique():
@@ -130,6 +125,13 @@ def _jitteru_plot(
                 np.logical_and(df[unique_id] == ui_group, unique_groups == i)
             )[0]
             x = np.full(sub_indexes.size, loc_dict[i]) + dist[index]
+            if duplicate_offset > 0.0:
+                output = (
+                    process_duplicates(df[y].iloc[sub_indexes])
+                    * duplicate_offset
+                    * temp
+                )
+                x += output
             ax.plot(
                 x,
                 transform(df[y].iloc[sub_indexes]),
