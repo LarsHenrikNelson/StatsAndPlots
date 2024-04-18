@@ -1,5 +1,5 @@
 from io import StringIO
-from typing import Union
+from typing import Union, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -23,6 +23,12 @@ __all__ = [
     "two_way_ci",
     "find_counts",
 ]
+
+
+class TwoWayAnova(TypedDict):
+    descriptive_stats: pd.DataFrame
+    aov: pd.DataFrame
+    posthoc: pd.DataFrame
 
 
 def _find_counts(data: dict[str, np.ndarray], column: str, indexes: list[str]):
@@ -211,7 +217,7 @@ def two_way_anova(
     two_way_ci(aov_table, descriptive_stats)
     comp = MultiComparison(df_copy[column_for_analysis], df_copy["anova_id"])
     if post_hoc_test == "bonferroni":
-        post_hoc, a1, a2 = comp.allpairtest(stats.ttest_ind, method="bonf")
+        post_hoc, _, _ = comp.allpairtest(stats.ttest_ind, method="bonf")
         post_hoc_html = post_hoc.as_html()
         post_hoc_df = pd.read_html(StringIO(post_hoc_html), header=0)[0]
     elif post_hoc_test == "tukey":
@@ -220,7 +226,7 @@ def two_way_anova(
             data=post_hoc._results_table.data[1:],
             columns=post_hoc._results_table.data[0],
         )
-    return descriptive_stats, aov_table.round(5), post_hoc_df
+    return TwoWayAnova(descriptive_stats, aov_table.round(5), post_hoc_df)
 
 
 def three_way_anova(
