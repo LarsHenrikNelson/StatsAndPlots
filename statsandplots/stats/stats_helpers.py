@@ -1,10 +1,18 @@
 import math
+from typing import TypedDict
 
 import numpy as np
+import pandas as pd
 
 __all__ = [
     "round_sig",
 ]
+
+
+class BaseData(TypedDict):
+    data: pd.DataFrame
+    text: str
+    descriptive_stats: pd.DataFrame
 
 
 def round_sig(x, sig=2):

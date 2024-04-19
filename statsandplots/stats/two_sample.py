@@ -7,6 +7,8 @@ from numpy.random import default_rng
 from scipy import stats
 from scipy.stats import norm
 
+from .stats_helpers import round_sig, BaseData
+
 __all__ = [
     "bootstrap_test",
     "bootstrap_two_sample",
@@ -15,7 +17,21 @@ __all__ = [
     "boostrap",
     "permutation_test",
     "find_counts",
+    "BootStrapData",
 ]
+
+
+class BootStrapData(BaseData):
+    replicates: np.ndarray
+
+
+def serialize_bootstrap(data):
+    x = ""
+    p_value = "P_vale"
+    cib = "Lower_CI"
+    cit = "Upper_CI"
+    x += f"p = {data[p_value].iloc[0]}, CI[{data[cib].iloc[0]}, {data[cit].iloc}]"
+    return x
 
 
 def _find_counts(data: dict[str, np.ndarray], column: str, indexes: list[str]):
@@ -196,6 +212,7 @@ def bootstrap_test(
     column_for_analysis: str,
     iterations: int,
     base_stat_func: str,
+    sig: int = 3,
 ):
     """Boostrap_test function needs a dataframe input, the column that contains your
     groups, the column that contains the data you want to analyze, the iterations,
@@ -264,7 +281,14 @@ def bootstrap_test(
             "Upper_CI": [confidence_intervals[1]],
         }
     )
-    return descriptive_stats, statistics, bs_replicates
+    text = serialize_bootstrap(statistics.map(lambda x: round_sig(x, sig)))
+    output = BootStrapData(
+        table=statistics.map(lambda x: round_sig(x, sig)),
+        descriptive_stats=descriptive_stats,
+        text=text,
+        replicates=bs_replicates,
+    )
+    return output
 
 
 def bootstrap_two_sample(

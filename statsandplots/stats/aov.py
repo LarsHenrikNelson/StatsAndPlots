@@ -1,5 +1,4 @@
 from io import StringIO
-from typing import TypedDict
 
 import numpy as np
 import pandas as pd
@@ -9,9 +8,16 @@ from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from statsmodels.stats.multicomp import MultiComparison
 
-from .stats_helpers import round_sig
+from .stats_helpers import round_sig, BaseData
 
 __all__ = ["run_batch_aov", "two_way_anova", "three_way_anova"]
+
+
+class TwoWayAnovaData(BaseData):
+    descriptive_stats: pd.DataFrame
+    table: pd.DataFrame
+    text: str
+    posthoc: pd.DataFrame
 
 
 def run_batch_aov(columns, data, group, subgroup):
@@ -31,17 +37,10 @@ def serialize_aov(data):
     cib = data["CI_lower"]
     x = ""
     for i in range(3):
-        x += f"({groups[i]}: F{int(df.iloc[i]),int(df.iloc[-1])} = {F.iloc[i]}, p = {p.iloc[i]}, η2 = {n2.iloc[i]}, 95% CI[{cib.iloc[i]}, {cit.iloc[i]}];"
+        x += f"{groups[i]}: F{int(df.iloc[i]),int(df.iloc[-1])} = {F.iloc[i]}, p = {p.iloc[i]}, η2 = {n2.iloc[i]}, 95% CI[{cib.iloc[i]}, {cit.iloc[i]}];"
         x += " "
     x += "\n"
     return x
-
-
-class TwoWayAnovaData(TypedDict):
-    descriptive_stats: pd.DataFrame
-    aov_table: pd.DataFrame
-    aov_text: str
-    posthoc: pd.DataFrame
 
 
 def eta_squared(aov):
@@ -169,8 +168,8 @@ def two_way_anova(
     text = serialize_aov(aov_table.map(lambda x: round_sig(x, sig)))
     return TwoWayAnovaData(
         descriptive_stats=descriptive_stats,
-        aov_table=aov_table.map(lambda x: round_sig(x, sig)),
-        aov_text=text,
+        table=aov_table.map(lambda x: round_sig(x, sig)),
+        text=text,
         post_hoc=post_hoc_df,
     )
 
