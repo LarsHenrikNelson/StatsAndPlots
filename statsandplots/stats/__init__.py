@@ -1,3 +1,5 @@
-from . import ecdf, spreadsheet_functions, stats_functions  # noqa: F401
-from .stats_functions import *  # noqa: F403
-import input_output as io  # noqa: F401
+from . import input_output as io  # noqa: F401
+from . import aov  # noqa: F401
+from . import two_sample  # noqa: F401
+
+from . import ecdf, spreadsheet_functions  # noqa: F401

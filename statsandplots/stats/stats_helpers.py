@@ -1,8 +1,20 @@
-from .stats_functions import two_way_anova
+import math
+
+import numpy as np
+
+__all__ = [
+    "round_sig",
+]
 
 
-def run_batch_aov(columns, data, group, subgroup):
-    output = {}
-    for i in columns:
-        output[i] = two_way_anova(data, group, subgroup, i, "bonferroni")
-    return output
+def round_sig(x, sig=2):
+    if np.isnan(x):
+        return np.nan
+    elif x == 0:
+        return 0
+    elif x != 0 or not np.isnan(x):
+        temp = math.floor(math.log10(abs(x)))
+        if np.isnan(temp):
+            return round(x, 0)
+        else:
+            return round(x, sig - int(temp) - 1)
