@@ -30,5 +30,5 @@ def save_aov(data, filename):
         engine="xlsxwriter",
     ) as writer:
         for outer_key, d in data.items():
-            for inner_key, value in d.items():
-                value.to_excel(writer, sheet_name=f"{outer_key}_{inner_key}_aov")
+            d["table"].to_excel(writer, sheet_name=f"{outer_key}_aov")
+            d["descriptive_stats"].to_excel(writer, sheet_name=f"{outer_key}_ds")
