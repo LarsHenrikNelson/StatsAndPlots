@@ -340,23 +340,26 @@ def _kde_plot(
     alpha,
     fill_under,
     fill_color_dict,
-    axis,
+    axis="y",
+    unique_id=None,
     ax=None,
 ):
     if ax is None:
         ax = plt.gca()
         ax = [ax]
     for i in unique_groups.unique():
-        indexes = np.where(unique_groups == i)
-        y_values = df[y].iloc[indexes]
-        x, y = kde(y_values)
+        indexes = np.where(unique_groups == i)[0]
+        y_values = df[y].iloc[indexes].to_numpy().flatten()
+        x_kde, y_kde = kde(y_values)
         if axis == "x":
-            y, x = x, y
+            y_kde, x_kde = x_kde, y_kde
         ax[facet_dict[i]].plot(
-            x, y, c=line_color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
+            x_kde, y_kde, c=line_color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
         )
         if fill_under:
-            ax[facet_dict[i]].fill_between(x, y, c=fill_color_dict[i], alpha=alpha)
+            ax[facet_dict[i]].fill_between(
+                x_kde, y_kde, color=fill_color_dict[i], alpha=alpha
+            )
     return ax
 
 
@@ -390,7 +393,7 @@ def _poly_hist(
             err_func = get_func(err_func)
         x = np.linspace(bin[0], bin[1], num=steps)
         for i in unique_groups.unique():
-            indexes = np.where(unique_groups == i)
+            indexes = np.where(unique_groups == i)[0]
             temp_df = df.iloc[indexes]
             uids = temp_df[unique_id].unique()
             temp_list = np.zeros((len(uids), steps))

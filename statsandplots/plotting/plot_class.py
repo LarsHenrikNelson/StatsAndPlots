@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Union, Annotated, ValueRange
+from typing import Literal, Union, Annotated
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +16,13 @@ from .plot_utils import (
     get_ticks,
     process_args,
 )
+
+
+@dataclass
+class ValueRange:
+    lo: float
+    hi: float
+
 
 AlphaRange = Annotated[float, ValueRange(0.0, 1.0)]
 ColorDict = Union[str, dict[str, str]]
@@ -60,6 +68,7 @@ class LinePlot:
         self.inplace = inplace
         self.plots = {}
         self.plot_list = []
+        self._plot_settings_run = False
 
         if subgroup is not None:
             unique_groups = df[group].astype(str) + df[subgroup].astype(str)
@@ -107,9 +116,6 @@ class LinePlot:
             "facet_dict": facet_dict,
             "unique_id": unique_id,
         }
-
-        if not self.inplace:
-            return self
 
     def plot_settings(
         self,
@@ -209,7 +215,7 @@ class LinePlot:
         linestyle="-",
         fill_under=False,
         fill_color: ColorDict = "black",
-        alpha: Union[tuple[float], float] = 1,
+        alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
     ):
         line_color_dict = process_args(
@@ -279,6 +285,13 @@ class LinePlot:
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
     ):
+        if not self._plot_settings_run:
+            if self.inplace:
+                self.plot_settings()
+            else:
+                self.inplace = True
+                self.plot_settings()
+                self.inplace = False
         if backend == "matplotlib":
             output = self._matplotlib_backend(
                 savefig=savefig, path=path, filetype=filetype
