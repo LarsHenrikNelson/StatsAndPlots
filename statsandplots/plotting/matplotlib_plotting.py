@@ -8,6 +8,7 @@ from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from .plot_utils import get_func, process_args, bin_data, process_duplicates
+from ..stats import kde
 
 # Reorder the filled matplotlib markers to choose the most different
 MARKERS = [
@@ -329,6 +330,36 @@ def _hist_plot(
     return ax
 
 
+def _kde_plot(
+    df,
+    y,
+    unique_groups,
+    line_color_dict,
+    facet_dict,
+    linestyle_dict,
+    alpha,
+    fill_under,
+    fill_color_dict,
+    axis,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+        ax = [ax]
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)
+        y_values = df[y].iloc[indexes]
+        x, y = kde(y_values)
+        if axis == "x":
+            y, x = x, y
+        ax[facet_dict[i]].plot(
+            x, y, c=line_color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
+        )
+        if fill_under:
+            ax[facet_dict[i]].fill_between(x, y, c=fill_color_dict[i], alpha=alpha)
+    return ax
+
+
 def _poly_hist(
     df,
     y,
@@ -343,7 +374,6 @@ def _poly_hist(
     func="mean",
     err_func="sem",
     fit_func=None,
-    plot_both=False,
     alpha=1,
     ax=None,
 ):
