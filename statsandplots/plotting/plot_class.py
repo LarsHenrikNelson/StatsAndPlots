@@ -1,7 +1,6 @@
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal, Optional, Union, Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
