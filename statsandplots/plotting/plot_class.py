@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Union, Annotated
+from typing import Annotated, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,18 +53,19 @@ SAVE_TYPES = {"svg", "png", "jpeg", "html"}
 class LinePlot:
     def __init__(
         self,
-        df,
-        y,
-        group,
-        subgroup=None,
-        group_order=None,
-        subgroup_order=None,
-        unique_id=None,
-        y_label="",
-        x_label="",
-        title="",
-        facet=False,
-        inplace=False,
+        df: pd.DataFrame,
+        y: str,
+        group: str,
+        x: Optional[str] = None,
+        subgroup: Optional[str] = None,
+        group_order: Optional[list[str]] = None,
+        subgroup_order: Optional[list[str]] = None,
+        unique_id: Optional[str] = None,
+        y_label: str = "",
+        x_label: str = "",
+        title: str = "",
+        facet: bool = False,
+        inplace: bool = False,
     ):
         self.inplace = inplace
         self.plots = {}
@@ -120,20 +122,20 @@ class LinePlot:
     def plot_settings(
         self,
         style: str = "default",
-        y_lim: Union[list, None] = None,
-        x_lim: Union[list, None] = None,
+        y_lim: Optional[list] = None,
+        x_lim: Optional[list] = None,
         y_scale: Literal["linear", "log", "symlog"] = "linear",
         x_scale: Literal["linear", "log", "symlog"] = "linear",
-        margins=0.05,
+        margins: float = 0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
-        labelsize=20,
-        linewidth=2,
-        ticksize=2,
-        ticklabel=20,
-        steps=5,
-        y_decimals=None,
-        x_decimals=None,
+        labelsize: int = 20,
+        linewidth: int = 2,
+        ticksize: int = 2,
+        ticklabel: int = 20,
+        steps: int = 5,
+        y_decimals: int = None,
+        x_decimals: int = None,
     ):
         self._plot_settings_run = True
         if y_lim is None:
@@ -177,13 +179,13 @@ class LinePlot:
 
     def line(
         self,
-        x,
+        x: str,
         color: ColorDict = "black",
-        linestyle="-",
-        linewidth=2,
-        func="mean",
-        err_func="sem",
-        fit_func=None,
+        linestyle: str = "-",
+        linewidth: int = 2,
+        func: str = "mean",
+        err_func: str = "sem",
+        fit_func: Optional[Callable[[Union[np.ndarray, pd.Series]], np.ndarray]] = None,
         alpha: AlphaRange = 1.0,
     ):
         color_dict = process_args(
@@ -211,9 +213,23 @@ class LinePlot:
 
     def kde(
         self,
+        kernel: Literal[
+            "gaussian",
+            "exponential",
+            "box",
+            "tri",
+            "epa",
+            "biweight",
+            "triweight",
+            "tricube",
+            "cosine",
+        ] = "gaussian",
+        bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
+        tol: Union[float, int] = 3.0,
+        density: bool = True,
         line_color: ColorDict = "black",
-        linestyle="-",
-        fill_under=False,
+        linestyle: str = "-",
+        fill_under: bool = False,
         fill_color: ColorDict = "black",
         alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
@@ -227,6 +243,8 @@ class LinePlot:
                 self.plot_dict["group_order"],
                 self.plot_dict["subgroup_order"],
             )
+        else:
+            fill_color_dict = {}
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
@@ -238,6 +256,10 @@ class LinePlot:
             "fill_under": fill_under,
             "fill_color_dict": fill_color_dict,
             "axis": axis,
+            "kernel": kernel,
+            "bw": bw,
+            "tol": tol,
+            "density": density,
         }
 
         self.plots["kde"] = kde_plot
@@ -343,7 +365,16 @@ class LinePlot:
         else:
             x_decimals = self.plot_dict["x_decimals"]
         for index, i in enumerate(ax):
-            i.margins(self.plot_dict["margins"])
+            if "kde" in self.plot_list and all(
+                v is None for v in self.plot_dict["y_lim"]
+            ):
+                if self.plots["kde"]["axis"] == "y":
+                    self.plot_dict["y_lim"] = [0, None]
+            if "kde" in self.plot_list and all(
+                v is None for v in self.plot_dict["x_lim"]
+            ):
+                if self.plots["kde"]["axis"] == "x":
+                    self.plot_dict["x_lim"] = [0, None]
             i.spines["right"].set_visible(False)
             i.spines["top"].set_visible(False)
             i.spines["left"].set_linewidth(self.plot_dict["linewidth"])
@@ -388,6 +419,7 @@ class LinePlot:
                 labelsize=self.plot_dict["ticklabel"],
                 width=self.plot_dict["ticksize"],
             )
+            i.margins(self.plot_dict["margins"])
         fig.tight_layout()
         if savefig:
             path = Path(path)
@@ -462,7 +494,7 @@ class CategoricalPlot:
     def plot_settings(
         self,
         style: str = "default",
-        y_lim: Union[list, None] = None,
+        y_lim: Optional[list] = None,
         y_scale: Literal["linear", "log", "symlog"] = "linear",
         steps: int = 5,
         margins=0.05,
@@ -752,7 +784,6 @@ class CategoricalPlot:
         else:
             decimals = self.plot_dict["decimals"]
         ax.set_xticks(self.plot_dict["x_ticks"], self.plot_dict["group_order"])
-        ax.margins(x=self.plot_dict["margins"])
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
@@ -794,6 +825,7 @@ class CategoricalPlot:
             labelsize=self.plot_dict["ticklabel"],
             width=self.plot_dict["ticksize"],
         )
+        ax.margins(x=self.plot_dict["margins"])
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in SAVE_TYPES:

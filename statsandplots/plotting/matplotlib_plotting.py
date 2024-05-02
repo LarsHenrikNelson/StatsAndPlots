@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -340,6 +340,20 @@ def _kde_plot(
     alpha,
     fill_under,
     fill_color_dict,
+    kernel: Literal[
+        "gaussian",
+        "exponential",
+        "box",
+        "tri",
+        "epa",
+        "biweight",
+        "triweight",
+        "tricube",
+        "cosine",
+    ] = "gaussian",
+    bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
+    tol: Union[float, int] = 3.0,
+    density: bool = True,
     axis="y",
     unique_id=None,
     ax=None,
@@ -350,7 +364,7 @@ def _kde_plot(
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
         y_values = df[y].iloc[indexes].to_numpy().flatten()
-        x_kde, y_kde = kde(y_values)
+        x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol, density=density)
         if axis == "x":
             y_kde, x_kde = x_kde, y_kde
         ax[facet_dict[i]].plot(

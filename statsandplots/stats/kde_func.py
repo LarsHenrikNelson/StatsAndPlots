@@ -19,13 +19,18 @@ def kde(
         "cosine",
     ] = "gaussian",
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
-    tol: float = 0.01,
+    density: bool = True,
+    tol: float = 3,
 ):
     data = np.asarray(data)
-    power2 = int(np.ceil(np.log2(len(data))))
-    width = np.cov(data)
+    kde_obj = KDEpy.FFTKDE(kernel=kernel, bw=bw).fit(data)
+    width = np.cov(data) * kde_obj.bw**2
+    width = np.sqrt(width)
     min_data = data.min() - width * tol
     max_data = data.max() + width * tol
-    x = np.linspace(min_data, max_data, num=1 << power2)
-    y = KDEpy.FFTKDE(kernel=kernel, bw=bw).fit(data).evaluate(x)
+    power2 = int(np.ceil(np.log2(len(data))))
+    x = np.linspace(min_data, max_data, num=(1 << power2))
+    y = kde_obj.evaluate(x)
+    if density:
+        y = y / np.sum(y)
     return x, y
