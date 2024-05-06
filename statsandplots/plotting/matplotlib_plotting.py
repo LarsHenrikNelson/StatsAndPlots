@@ -150,13 +150,13 @@ def _summary_plot(
     y,
     unique_groups,
     loc_dict,
-    func="mean",
-    capsize=0,
-    capstyle="round",
-    bar_width=1.0,
-    err_func="sem",
-    linewidth=2,
-    color="black",
+    func,
+    capsize,
+    capstyle,
+    bar_width,
+    err_func,
+    linewidth,
+    color_dict,
     transform=None,
     ax=None,
 ):
@@ -174,7 +174,7 @@ def _summary_plot(
             y=tdata,
             # xerr=width,
             yerr=err_data,
-            c=color,
+            c=color_dict[i],
             fmt="none",
             linewidth=linewidth,
             capsize=capsize,
@@ -190,7 +190,7 @@ def _summary_plot(
             y=tdata,
             xerr=bar_width / 2,
             # yerr=err_data,
-            c=color,
+            c=color_dict[i],
             fmt="none",
             linewidth=linewidth,
         )
@@ -353,7 +353,7 @@ def _kde_plot(
     ] = "gaussian",
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
     tol: Union[float, int] = 3.0,
-    density: bool = True,
+    common_norm: bool = True,
     axis="y",
     unique_id=None,
     ax=None,
@@ -362,13 +362,19 @@ def _kde_plot(
         ax = plt.gca()
         ax = [ax]
     ugroups = np.unique(unique_groups)
+    size = df[y].size
     for i in ugroups:
         if i == "none" and ugroups == 1:
             y_values = df[y].to_numpy.flatten()
+            temp_size = size
         else:
             indexes = np.where(unique_groups == i)[0]
             y_values = df[y].iloc[indexes].to_numpy().flatten()
-        x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol, density=density)
+            temp_size = indexes.size
+        x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol)
+        if common_norm:
+            multiplier = float(temp_size / size)
+            y_kde *= multiplier
         if axis == "x":
             y_kde, x_kde = x_kde, y_kde
         ax[facet_dict[i]].plot(

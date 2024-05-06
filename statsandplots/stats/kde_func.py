@@ -19,7 +19,6 @@ def kde(
         "cosine",
     ] = "gaussian",
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
-    density: bool = True,
     tol: float = 3,
 ):
     data = np.asarray(data)
@@ -31,6 +30,4 @@ def kde(
     power2 = int(np.ceil(np.log2(len(data))))
     x = np.linspace(min_data, max_data, num=(1 << power2))
     y = kde_obj.evaluate(x)
-    if density:
-        y = y / np.sum(y)
     return x, y

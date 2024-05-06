@@ -228,7 +228,7 @@ class LinePlot:
         ] = "gaussian",
         bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
         tol: Union[float, int] = 3.0,
-        density: bool = True,
+        common_norm: bool = True,
         line_color: ColorDict = "black",
         linestyle: str = "-",
         fill_under: bool = False,
@@ -262,7 +262,7 @@ class LinePlot:
             "kernel": kernel,
             "bw": bw,
             "tol": tol,
-            "density": density,
+            "common_norm": common_norm,
         }
 
         self.plots["kde"] = kde_plot
@@ -535,11 +535,14 @@ class CategoricalPlot:
         if "summary" in self.plots:
             if (
                 self.style == "dark_background"
-                and self.plots["summary"]["color"] == "black"
+                and self.plots["summary"]["color_dict"] == "black"
             ):
-                self.plots["summary"]["color"] = "white"
-            elif self.style == "default" and self.plots["summary"]["color"] == "white":
-                self.plots["summary"]["color"] = "black"
+                self.plots["summary"]["color_dict"] = "white"
+            elif (
+                self.style == "default"
+                and self.plots["summary"]["color_dict"] == "white"
+            ):
+                self.plots["summary"]["color_dict"] = "black"
 
         if not self.inplace:
             return self
@@ -633,8 +636,13 @@ class CategoricalPlot:
         color: ColorDict = "black",
         transform=None,
     ):
-        if self.style == "dark_background":
+        if self.style == "dark_background" and color == "black":
             color = "white"
+
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
         summary_plot = {
             "func": func,
             "capsize": capsize,
@@ -643,7 +651,7 @@ class CategoricalPlot:
             "err_func": err_func,
             "linewidth": linewidth,
             "transform": transform,
-            "color": color,
+            "color_dict": color_dict,
         }
         self.plots["summary"] = summary_plot
         self.plot_list.append("summary")
