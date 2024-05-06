@@ -361,9 +361,13 @@ def _kde_plot(
     if ax is None:
         ax = plt.gca()
         ax = [ax]
-    for i in unique_groups.unique():
-        indexes = np.where(unique_groups == i)[0]
-        y_values = df[y].iloc[indexes].to_numpy().flatten()
+    ugroups = np.unique(unique_groups)
+    for i in ugroups:
+        if i == "none" and ugroups == 1:
+            y_values = df[y].to_numpy.flatten()
+        else:
+            indexes = np.where(unique_groups == i)[0]
+            y_values = df[y].iloc[indexes].to_numpy().flatten()
         x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol, density=density)
         if axis == "x":
             y_kde, x_kde = x_kde, y_kde

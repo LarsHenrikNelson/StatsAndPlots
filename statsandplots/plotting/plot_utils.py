@@ -49,6 +49,8 @@ def decimals(data):
 
 
 def _process_groups(df, group, subgroup, group_order, subgroup_order):
+    if group is None:
+        return ["none"], [""]
     if group_order is None:
         group_order = df[group].unique()
     else:
@@ -88,7 +90,6 @@ def process_args(arg, group_order, subgroup_order):
         arg = {key: arg for key in group_order}
     elif isinstance(arg, list):
         arg = {key: arg for key, arg in zip(group_order, arg)}
-
     output_dict = {}
     for s in group_order:
         for b in subgroup_order:

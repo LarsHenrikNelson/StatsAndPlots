@@ -54,7 +54,7 @@ class LinePlot:
         self,
         df: pd.DataFrame,
         y: str,
-        group: str,
+        group: Optional[str] = None,
         x: Optional[str] = None,
         subgroup: Optional[str] = None,
         group_order: Optional[list[str]] = None,
@@ -71,10 +71,13 @@ class LinePlot:
         self.plot_list = []
         self._plot_settings_run = False
 
-        if subgroup is not None:
-            unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+        if group is None:
+            unique_groups = np.array(["none"] * df.shape[0])
         else:
-            unique_groups = df[group].astype(str) + ""
+            if subgroup is not None:
+                unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+            else:
+                unique_groups = df[group].astype(str) + ""
 
         group_order, subgroup_order = _process_groups(
             df, group, subgroup, group_order, subgroup_order
@@ -244,6 +247,7 @@ class LinePlot:
             )
         else:
             fill_color_dict = {}
+
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
