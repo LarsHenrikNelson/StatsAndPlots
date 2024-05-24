@@ -9,6 +9,7 @@ authors = [{ name = "Lars Henrik Nelson", email = "larshnelson@protonmail.com" }
 version = "0.0.1"
 keywords = ["analysis"]
 dependencies = [
+    "KDEpy",
     "matplotlib",
     "numba",
     "numpy",

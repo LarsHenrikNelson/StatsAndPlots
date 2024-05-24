@@ -2,6 +2,26 @@ from scipy import stats
 import numpy as np
 
 
+def process_duplicates(values, output=None):
+    vals, counts = np.unique(
+        values,
+        return_counts=True,
+    )
+    track_counts = {}
+    if output is None:
+        output = np.zeros(values.size)
+    for key, val in zip(vals, counts):
+        if val > 1:
+            track_counts[key] = [0, np.linspace(-1, 1, num=val)]
+        else:
+            track_counts[key] = [0, [0]]
+    for index, val in enumerate(values):
+
+        output[index] += track_counts[val][1][track_counts[val][0]]
+        track_counts[val][0] += 1
+    return output
+
+
 def get_ticks(
     lim,
     ticks,
@@ -29,6 +49,8 @@ def decimals(data):
 
 
 def _process_groups(df, group, subgroup, group_order, subgroup_order):
+    if group is None:
+        return ["none"], [""]
     if group_order is None:
         group_order = df[group].unique()
     else:
@@ -68,7 +90,6 @@ def process_args(arg, group_order, subgroup_order):
         arg = {key: arg for key in group_order}
     elif isinstance(arg, list):
         arg = {key: arg for key, arg in zip(group_order, arg)}
-
     output_dict = {}
     for s in group_order:
         for b in subgroup_order:

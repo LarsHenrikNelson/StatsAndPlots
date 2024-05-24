@@ -1,28 +1,42 @@
-from typing import Literal, Union
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated, Literal, Optional, Union, Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 
 from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
 from .plot_utils import (
-    _process_positions,
-    process_args,
     _process_groups,
+    _process_positions,
     decimals,
     get_ticks,
+    process_args,
 )
 
+
+@dataclass
+class ValueRange:
+    lo: float
+    hi: float
+
+
+AlphaRange = Annotated[float, ValueRange(0.0, 1.0)]
+ColorDict = Union[str, dict[str, str]]
+
 MP_PLOTS = {
-    "jitter": mp._jitter_plot,
-    "summary": mp._summary_plot,
     "boxplot": mp._boxplot,
-    "violin": mp._violin_plot,
+    "hist": mp._hist_plot,
+    "jitter": mp._jitter_plot,
+    "jitteru": mp._jitteru_plot,
     "line_plot": mp._line_plot,
     "poly_hist": mp._poly_hist,
-    "hist": mp._hist_plot,
+    "summary": mp._summary_plot,
+    "violin": mp._violin_plot,
+    "kde": mp._kde_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -38,43 +52,32 @@ SAVE_TYPES = {"svg", "png", "jpeg", "html"}
 class LinePlot:
     def __init__(
         self,
-        df,
-        y,
-        group,
-        subgroup=None,
-        group_order=None,
-        subgroup_order=None,
-        unique_id=None,
-        y_label="",
-        x_label="",
-        title="",
-        y_lim: Union[list, None] = None,
-        x_lim: Union[list, None] = None,
-        y_scale: Literal["linear", "log", "symlog"] = "linear",
-        x_scale: Literal["linear", "log", "symlog"] = "linear",
-        margins=0.05,
-        aspect: Union[int, float] = 1,
-        figsize: Union[None, tuple[int, int]] = None,
-        labelsize=20,
-        linewidth=2,
-        ticksize=2,
-        ticklabel=20,
-        steps=5,
-        y_decimals=None,
-        x_decimals=None,
-        facet=False,
+        df: pd.DataFrame,
+        y: str,
+        group: Optional[str] = None,
+        x: Optional[str] = None,
+        subgroup: Optional[str] = None,
+        group_order: Optional[list[str]] = None,
+        subgroup_order: Optional[list[str]] = None,
+        unique_id: Optional[str] = None,
+        y_label: str = "",
+        x_label: str = "",
+        title: str = "",
+        facet: bool = False,
+        inplace: bool = False,
     ):
+        self.inplace = inplace
         self.plots = {}
         self.plot_list = []
-        if y_lim is None:
-            y_lim = [None, None]
-        if x_lim is None:
-            x_lim = [None, None]
+        self._plot_settings_run = False
 
-        if subgroup is not None:
-            unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+        if group is None:
+            unique_groups = np.array(["none"] * df.shape[0])
         else:
-            unique_groups = df[group].astype(str) + ""
+            if subgroup is not None:
+                unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+            else:
+                unique_groups = df[group].astype(str) + ""
 
         group_order, subgroup_order = _process_groups(
             df, group, subgroup, group_order, subgroup_order
@@ -86,7 +89,7 @@ class LinePlot:
         elif isinstance(title, list) and facet:
             if len(title) != len(group_order):
                 raise ValueError(
-                    "Length of title must be the same a the number of groups."
+                    "Number of titles must be the same a the number of groups."
                 )
             title = title
         else:
@@ -113,8 +116,36 @@ class LinePlot:
             "y_label": y_label,
             "x_label": x_label,
             "title": title,
-            "y_lim": y_lim,
-            "x_lim": x_lim,
+            "facet": facet,
+            "facet_dict": facet_dict,
+            "unique_id": unique_id,
+        }
+
+    def plot_settings(
+        self,
+        style: str = "default",
+        y_lim: Optional[list] = None,
+        x_lim: Optional[list] = None,
+        y_scale: Literal["linear", "log", "symlog"] = "linear",
+        x_scale: Literal["linear", "log", "symlog"] = "linear",
+        margins: float = 0.05,
+        aspect: Union[int, float] = 1,
+        figsize: Union[None, tuple[int, int]] = None,
+        labelsize: int = 20,
+        linewidth: int = 2,
+        ticksize: int = 2,
+        ticklabel: int = 20,
+        steps: int = 5,
+        y_decimals: int = None,
+        x_decimals: int = None,
+    ):
+        self._plot_settings_run = True
+        if y_lim is None:
+            y_lim = [None, None]
+        if x_lim is None:
+            x_lim = [None, None]
+
+        plot_settings = {
             "y_scale": y_scale,
             "x_scale": x_scale,
             "margins": margins,
@@ -124,26 +155,40 @@ class LinePlot:
             "ticksize": ticksize,
             "ticklabel": ticklabel,
             "linewidth": linewidth,
-            "facet": facet,
-            "facet_dict": facet_dict,
-            "unique_id": unique_id,
+            "y_lim": y_lim,
+            "x_lim": x_lim,
             "y_decimals": y_decimals,
             "x_decimals": x_decimals,
             "steps": steps,
         }
-        self.plots = {}
-        self.plot_list = []
+        self.plot_dict.update(plot_settings)
+
+        plt.style.use(style)
+        self.style = style
+
+        # Quick check just for dark and default backgrounds
+        if "line" in self.plots:
+            if (
+                self.style == "dark_background"
+                and self.plots["line"]["color"] == "black"
+            ):
+                self.plots["line"]["color"] = "white"
+            elif self.style == "default" and self.plots["line"]["color"] == "white":
+                self.plots["line"]["color"] = "black"
+
+        if not self.inplace:
+            return self
 
     def line(
         self,
-        x,
-        color="black",
-        linestyle="-",
-        linewidth=2,
-        func="mean",
-        err_func="sem",
-        fit_func=None,
-        alpha=1,
+        x: str,
+        color: ColorDict = "black",
+        linestyle: str = "-",
+        linewidth: int = 2,
+        func: str = "mean",
+        err_func: str = "sem",
+        fit_func: Optional[Callable[[Union[np.ndarray, pd.Series]], np.ndarray]] = None,
+        alpha: AlphaRange = 1.0,
     ):
         color_dict = process_args(
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -165,9 +210,70 @@ class LinePlot:
         self.plots["line_plot"] = line_plot
         self.plot_list.append("line_plot")
 
+        if not self.inplace:
+            return self
+
+    def kde(
+        self,
+        kernel: Literal[
+            "gaussian",
+            "exponential",
+            "box",
+            "tri",
+            "epa",
+            "biweight",
+            "triweight",
+            "tricube",
+            "cosine",
+        ] = "gaussian",
+        bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
+        tol: Union[float, int] = 3.0,
+        common_norm: bool = True,
+        line_color: ColorDict = "black",
+        linestyle: str = "-",
+        fill_under: bool = False,
+        fill_color: ColorDict = "black",
+        alpha: AlphaRange = 1.0,
+        axis: Literal["x", "y"] = "y",
+    ):
+        line_color_dict = process_args(
+            line_color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        if fill_under:
+            fill_color_dict = process_args(
+                fill_color,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            )
+        else:
+            fill_color_dict = {}
+
+        linestyle_dict = process_args(
+            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        kde_plot = {
+            "line_color_dict": line_color_dict,
+            "linestyle_dict": linestyle_dict,
+            "alpha": alpha,
+            "fill_under": fill_under,
+            "fill_color_dict": fill_color_dict,
+            "axis": axis,
+            "kernel": kernel,
+            "bw": bw,
+            "tol": tol,
+            "common_norm": common_norm,
+        }
+
+        self.plots["kde"] = kde_plot
+        self.plot_list.append("kde")
+
+        if not self.inplace:
+            return self
+
     def polyhist(
         self,
-        color="black",
+        color: ColorDict = "black",
         linestyle="-",
         bin=None,
         density=True,
@@ -175,7 +281,7 @@ class LinePlot:
         func="mean",
         err_func="sem",
         fit_func=None,
-        alpha=1,
+        alpha: AlphaRange = 1.0,
     ):
         color_dict = process_args(
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -198,9 +304,19 @@ class LinePlot:
         self.plots["poly_hist"] = poly_hist
         self.plot_list.append("poly_hist")
 
+        if not self.inplace:
+            return self
+
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
     ):
+        if not self._plot_settings_run:
+            if self.inplace:
+                self.plot_settings()
+            else:
+                self.inplace = True
+                self.plot_settings()
+                self.inplace = False
         if backend == "matplotlib":
             output = self._matplotlib_backend(
                 savefig=savefig, path=path, filetype=filetype
@@ -252,7 +368,16 @@ class LinePlot:
         else:
             x_decimals = self.plot_dict["x_decimals"]
         for index, i in enumerate(ax):
-            i.margins(self.plot_dict["margins"])
+            if "kde" in self.plot_list and all(
+                v is None for v in self.plot_dict["y_lim"]
+            ):
+                if self.plots["kde"]["axis"] == "y":
+                    self.plot_dict["y_lim"] = [0, None]
+            if "kde" in self.plot_list and all(
+                v is None for v in self.plot_dict["x_lim"]
+            ):
+                if self.plots["kde"]["axis"] == "x":
+                    self.plot_dict["x_lim"] = [0, None]
             i.spines["right"].set_visible(False)
             i.spines["top"].set_visible(False)
             i.spines["left"].set_linewidth(self.plot_dict["linewidth"])
@@ -297,6 +422,7 @@ class LinePlot:
                 labelsize=self.plot_dict["ticklabel"],
                 width=self.plot_dict["ticksize"],
             )
+            i.margins(self.plot_dict["margins"])
         fig.tight_layout()
         if savefig:
             path = Path(path)
@@ -316,22 +442,22 @@ class LinePlot:
 class CategoricalPlot:
     def __init__(
         self,
-        df,
-        y,
-        group,
-        subgroup=None,
-        group_order=None,
-        subgroup_order=None,
-        unique_id=None,
-        group_spacing=1,
-        subgroup_spacing=0.6,
-        y_label="",
-        title="",
-        inplace=True,
+        df: pd.DataFrame,
+        y: Union[str, int, float],
+        group: Union[str, int, float],
+        subgroup: Union[str, int, float] = None,
+        group_order: Union[None, list[Union[str, int, float]]] = None,
+        subgroup_order: Union[None, list[Union[str, int, float]]] = None,
+        group_spacing: Union[float, int] = 1.0,
+        subgroup_spacing: Union[float, int] = 0.6,
+        y_label: str = "",
+        title: str = "",
+        inplace: bool = True,
     ):
 
         self._plot_settings_run = False
         self.inplace = inplace
+        self.style = "default"
 
         if subgroup is not None:
             unique_groups = df[group].astype(str) + df[subgroup].astype(str)
@@ -359,7 +485,6 @@ class CategoricalPlot:
             "group_order": group_order,
             "subgroup_order": subgroup_order,
             "unique_groups": unique_groups,
-            "unique_id": unique_id,
             "x_ticks": x_ticks,
             "loc_dict": loc_dict,
             "width": width,
@@ -371,17 +496,18 @@ class CategoricalPlot:
 
     def plot_settings(
         self,
-        y_lim: Union[list, None] = None,
+        style: str = "default",
+        y_lim: Optional[list] = None,
         y_scale: Literal["linear", "log", "symlog"] = "linear",
         steps: int = 5,
         margins=0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
-        labelsize=20,
-        linewidth=2,
-        ticksize=2,
-        ticklabel=20,
-        decimals=None,
+        labelsize: int = 20,
+        linewidth: int = 2,
+        ticksize: int = 2,
+        ticklabel: int = 20,
+        decimals: int = None,
     ):
         self._plot_settings_run = True
         if y_lim is None:
@@ -402,19 +528,36 @@ class CategoricalPlot:
         }
         self.plot_dict.update(plot_settings)
 
+        plt.style.use(style)
+        self.style = style
+
+        # Quick check just for dark and default backgrounds
+        if "summary" in self.plots:
+            if (
+                self.style == "dark_background"
+                and self.plots["summary"]["color_dict"] == "black"
+            ):
+                self.plots["summary"]["color_dict"] = "white"
+            elif (
+                self.style == "default"
+                and self.plots["summary"]["color_dict"] == "white"
+            ):
+                self.plots["summary"]["color_dict"] = "black"
+
         if not self.inplace:
             return self
 
     def jitter(
         self,
-        color="black",
-        marker="o",
-        edgecolor="",
-        alpha=1,
-        jitter=1,
-        seed=42,
-        marker_size=2,
-        transform=None,
+        color: ColorDict = "black",
+        marker: Union[str, dict[str, str]] = "o",
+        edgecolor: ColorDict = "",
+        alpha: AlphaRange = 1.0,
+        jitter: Union[float, int] = 1.0,
+        seed: int = 42,
+        marker_size: float = 2.0,
+        transform: Union[None, str] = None,
+        unique_id: Union[None] = None,
     ):
         marker_dict = process_args(
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -435,9 +578,49 @@ class CategoricalPlot:
             "seed": seed,
             "marker_size": marker_size,
             "transform": transform,
+            "unique_id": unique_id,
         }
         self.plots["jitter"] = jitter_plot
         self.plot_list.append("jitter")
+
+        if not self.inplace:
+            return self
+
+    def jitteru(
+        self,
+        unique_id: Union[str, int, float],
+        color: ColorDict = "black",
+        marker: Union[str, dict[str, str]] = "o",
+        edgecolor: ColorDict = "",
+        alpha: AlphaRange = 1.0,
+        width: Union[float, int] = 1.0,
+        duplicate_offset=0.0,
+        marker_size: float = 2.0,
+        transform: Union[None, str] = None,
+    ):
+        marker_dict = process_args(
+            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        edgecolor_dict = process_args(
+            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        jitteru_plot = {
+            "color_dict": color_dict,
+            "marker_dict": marker_dict,
+            "edgecolor_dict": edgecolor_dict,
+            "alpha": alpha,
+            "width": width * self.plot_dict["width"],
+            "marker_size": marker_size,
+            "transform": transform,
+            "unique_id": unique_id,
+            "duplicate_offset": duplicate_offset,
+        }
+        self.plots["jitteru"] = jitteru_plot
+        self.plot_list.append("jitteru")
 
         if not self.inplace:
             return self
@@ -450,8 +633,16 @@ class CategoricalPlot:
         bar_width=1.0,
         err_func="sem",
         linewidth=2,
+        color: ColorDict = "black",
         transform=None,
     ):
+        if self.style == "dark_background" and color == "black":
+            color = "white"
+
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
         summary_plot = {
             "func": func,
             "capsize": capsize,
@@ -460,6 +651,7 @@ class CategoricalPlot:
             "err_func": err_func,
             "linewidth": linewidth,
             "transform": transform,
+            "color_dict": color_dict,
         }
         self.plots["summary"] = summary_plot
         self.plot_list.append("summary")
@@ -470,24 +662,34 @@ class CategoricalPlot:
     def boxplot(
         self,
         facecolor="none",
+        linecolor: ColorDict = "black",
         fliers="",
         box_width: float = 1.0,
         transform=None,
         linewidth=1,
+        alpha: AlphaRange = 1.0,
+        line_alpha: AlphaRange = 1.0,
         show_means: bool = False,
         show_ci: bool = False,
     ):
         color_dict = process_args(
             facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+
+        linecolor_dict = process_args(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
         boxplot = {
             "color_dict": color_dict,
+            "linecolor_dict": linecolor_dict,
             "fliers": fliers,
             "box_width": box_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_ci": show_ci,
             "transform": transform,
             "linewidth": linewidth,
+            "alpha": alpha,
+            "line_alpha": line_alpha,
         }
         self.plots["boxplot"] = boxplot
         self.plot_list.append("boxplot")
@@ -498,8 +700,8 @@ class CategoricalPlot:
     def violin(
         self,
         facecolor="none",
-        edgecolor="black",
-        alpha=1,
+        edgecolor: ColorDict = "black",
+        alpha: AlphaRange = 1.0,
         showextrema: bool = False,
         violin_width: float = 1.0,
         show_means: bool = True,
@@ -532,7 +734,12 @@ class CategoricalPlot:
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
     ):
         if not self._plot_settings_run:
-            self.plot_settings()
+            if self.inplace:
+                self.plot_settings()
+            else:
+                self.inplace = True
+                self.plot_settings()
+                self.inplace = False
 
         if backend == "matplotlib":
             output = self._matplotlib_backend(
@@ -588,7 +795,6 @@ class CategoricalPlot:
         else:
             decimals = self.plot_dict["decimals"]
         ax.set_xticks(self.plot_dict["x_ticks"], self.plot_dict["group_order"])
-        ax.margins(self.plot_dict["margins"])
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
@@ -630,6 +836,7 @@ class CategoricalPlot:
             labelsize=self.plot_dict["ticklabel"],
             width=self.plot_dict["ticksize"],
         )
+        ax.margins(x=self.plot_dict["margins"])
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in SAVE_TYPES:

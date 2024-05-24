@@ -1,15 +1,34 @@
-from typing import Literal
+from typing import Literal, Union
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 from matplotlib._enums import CapStyle
-from matplotlib.lines import Line2D
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
-from .plot_utils import get_func, process_args, bin_data
+from .plot_utils import get_func, process_args, bin_data, process_duplicates
+from ..stats import kde
 
-MARKERS = Line2D.filled_markers
+# Reorder the filled matplotlib markers to choose the most different
+MARKERS = [
+    "o",
+    "X",
+    "^",
+    "s",
+    "*",
+    "d",
+    "h",
+    "p",
+    "<",
+    "H",
+    "D",
+    "v",
+    "P",
+    ".",
+    ">",
+    "8",
+]
 CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
 
 
@@ -27,6 +46,7 @@ def _jitter_plot(
     marker_size=2,
     transform=None,
     ax=None,
+    unique_id=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -40,17 +60,88 @@ def _jitter_plot(
 
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
-        x = np.array([loc_dict[i]] * indexes.size)
-        x += jitter_values[indexes]
-        ax.scatter(
-            x,
-            transform(df[y].iloc[indexes]),
-            marker=marker_dict[i],
-            c=color_dict[i],
-            edgecolors=edgecolor_dict[i],
-            alpha=alpha,
-            s=marker_size,
-        )
+        if unique_id is None:
+            x = np.array([loc_dict[i]] * indexes.size)
+            x += jitter_values[indexes]
+            ax.plot(
+                x,
+                transform(df[y].iloc[indexes]),
+                marker_dict[i],
+                markerfacecolor=color_dict[i],
+                markeredgecolor=edgecolor_dict[i],
+                alpha=alpha,
+                markersize=marker_size,
+            )
+        else:
+            unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+            for index, ui_group in enumerate(unique_ids_sub):
+                sub_indexes = np.where(
+                    np.logical_and(df[unique_id] == ui_group, unique_groups == i)
+                )[0]
+                x = np.array([loc_dict[i]] * sub_indexes.size)
+                x += jitter_values[sub_indexes]
+                ax.plot(
+                    x,
+                    transform(df[y].iloc[sub_indexes]),
+                    MARKERS[index],
+                    markerfacecolor=color_dict[i],
+                    markeredgecolor=edgecolor_dict[i],
+                    alpha=alpha,
+                    markersize=marker_size,
+                )
+    return ax
+
+
+def _jitteru_plot(
+    df,
+    y,
+    unique_groups,
+    unique_id,
+    loc_dict,
+    width,
+    color_dict,
+    marker_dict,
+    edgecolor_dict,
+    alpha=1,
+    duplicate_offset=0.0,
+    marker_size=2,
+    transform=None,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+
+    transform = get_func(transform)
+    temp = width / 2
+
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)[0]
+        unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+        if len(unique_ids_sub) > 1:
+            dist = np.linspace(-temp, temp, num=len(unique_ids_sub))
+        else:
+            dist = [0]
+        for index, ui_group in enumerate(unique_ids_sub):
+            sub_indexes = np.where(
+                np.logical_and(df[unique_id] == ui_group, unique_groups == i)
+            )[0]
+            x = np.full(sub_indexes.size, loc_dict[i]) + dist[index]
+            if duplicate_offset > 0.0:
+                output = (
+                    process_duplicates(df[y].iloc[sub_indexes])
+                    * duplicate_offset
+                    * temp
+                )
+                x += output
+            ax.plot(
+                x,
+                transform(df[y].iloc[sub_indexes]),
+                marker_dict[i],
+                markerfacecolor=color_dict[i],
+                markeredgecolor=edgecolor_dict[i],
+                alpha=alpha,
+                markersize=marker_size,
+            )
     return ax
 
 
@@ -59,12 +150,13 @@ def _summary_plot(
     y,
     unique_groups,
     loc_dict,
-    func="mean",
-    capsize=0,
-    capstyle="round",
-    bar_width=1.0,
-    err_func="sem",
-    linewidth=2,
+    func,
+    capsize,
+    capstyle,
+    bar_width,
+    err_func,
+    linewidth,
+    color_dict,
     transform=None,
     ax=None,
 ):
@@ -82,7 +174,7 @@ def _summary_plot(
             y=tdata,
             # xerr=width,
             yerr=err_data,
-            c="black",
+            c=color_dict[i],
             fmt="none",
             linewidth=linewidth,
             capsize=capsize,
@@ -98,7 +190,7 @@ def _summary_plot(
             y=tdata,
             xerr=bar_width / 2,
             # yerr=err_data,
-            c="black",
+            c=color_dict[i],
             fmt="none",
             linewidth=linewidth,
         )
@@ -113,11 +205,14 @@ def _boxplot(
     unique_groups,
     loc_dict,
     color_dict,
+    linecolor_dict,
     fliers="",
     box_width: float = 1.0,
     linewidth=1,
     show_means: bool = False,
     show_ci: bool = False,
+    alpha: float = 1.0,
+    line_alpha=1.0,
     transform=None,
     ax=None,
 ):
@@ -128,13 +223,24 @@ def _boxplot(
 
     for i in unique_groups.unique():
         props = {
-            "boxprops": {"facecolor": color_dict[i], "edgecolor": "black"},
-            "medianprops": {"color": "black"},
-            "whiskerprops": {"color": "black"},
-            "capprops": {"color": "black"},
+            "boxprops": {
+                "facecolor": mpl.colors.to_rgba(color_dict[i], alpha=alpha),
+                "edgecolor": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha),
+            },
+            "medianprops": {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            },
+            "whiskerprops": {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            },
+            "capprops": {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            },
         }
         if show_means:
-            props["meanprops"] = {"color": "black"}
+            props["meanprops"] = {
+                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
+            }
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
         bplot = ax.boxplot(
@@ -149,7 +255,6 @@ def _boxplot(
             **props,
         )
         for i in bplot["boxes"]:
-            # i.set_alpha(alpha)
             i.set_linewidth(linewidth)
 
     return ax
@@ -225,6 +330,63 @@ def _hist_plot(
     return ax
 
 
+def _kde_plot(
+    df,
+    y,
+    unique_groups,
+    line_color_dict,
+    facet_dict,
+    linestyle_dict,
+    alpha,
+    fill_under,
+    fill_color_dict,
+    kernel: Literal[
+        "gaussian",
+        "exponential",
+        "box",
+        "tri",
+        "epa",
+        "biweight",
+        "triweight",
+        "tricube",
+        "cosine",
+    ] = "gaussian",
+    bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
+    tol: Union[float, int] = 3.0,
+    common_norm: bool = True,
+    axis="y",
+    unique_id=None,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+        ax = [ax]
+    ugroups = np.unique(unique_groups)
+    size = df[y].size
+    for i in ugroups:
+        if i == "none" and ugroups == 1:
+            y_values = df[y].to_numpy.flatten()
+            temp_size = size
+        else:
+            indexes = np.where(unique_groups == i)[0]
+            y_values = df[y].iloc[indexes].to_numpy().flatten()
+            temp_size = indexes.size
+        x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol)
+        if common_norm:
+            multiplier = float(temp_size / size)
+            y_kde *= multiplier
+        if axis == "x":
+            y_kde, x_kde = x_kde, y_kde
+        ax[facet_dict[i]].plot(
+            x_kde, y_kde, c=line_color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
+        )
+        if fill_under:
+            ax[facet_dict[i]].fill_between(
+                x_kde, y_kde, color=fill_color_dict[i], alpha=alpha
+            )
+    return ax
+
+
 def _poly_hist(
     df,
     y,
@@ -239,7 +401,6 @@ def _poly_hist(
     func="mean",
     err_func="sem",
     fit_func=None,
-    plot_both=False,
     alpha=1,
     ax=None,
 ):
@@ -256,7 +417,7 @@ def _poly_hist(
             err_func = get_func(err_func)
         x = np.linspace(bin[0], bin[1], num=steps)
         for i in unique_groups.unique():
-            indexes = np.where(unique_groups == i)
+            indexes = np.where(unique_groups == i)[0]
             temp_df = df.iloc[indexes]
             uids = temp_df[unique_id].unique()
             temp_list = np.zeros((len(uids), steps))
