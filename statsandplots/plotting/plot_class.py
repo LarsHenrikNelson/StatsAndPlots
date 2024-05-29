@@ -37,7 +37,7 @@ MP_PLOTS = {
     "summary": mp._summary_plot,
     "violin": mp._violin_plot,
     "kde": mp._kde_plot,
-    "percent": mp.percent_plot,
+    "percent": mp._percent_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -511,7 +511,9 @@ class CategoricalPlot:
         decimals: int = None,
     ):
         self._plot_settings_run = True
-        if y_lim is None:
+        if "y_lim" in self.plot_dict:
+            y_lim = self.plot_dict["y_lim"]
+        elif y_lim is None:
             y_lim = [None, None]
 
         plot_settings = {
@@ -741,7 +743,8 @@ class CategoricalPlot:
         linewidth=1,
         alpha: float = 1.0,
         line_alpha=1.0,
-        cutoff: Union[float, int, list[Union[float, int]]] = 0.5,
+        axis_type: Literal["density", "percent"] = "density",
+        cutoff: Union[None, float, int, list[Union[float, int]]] = None,
     ):
         if isinstance(cutoff, (float, int)):
             cutoff = [cutoff]
@@ -753,6 +756,8 @@ class CategoricalPlot:
         linecolor_dict = process_args(
             linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        if cutoff is None:
+            cutoff = self.plot_dict["df"][self.plot_dict["y"]].mean()
 
         percent_plot = {
             "color_dict": color_dict,
@@ -760,13 +765,20 @@ class CategoricalPlot:
             "cutoff": cutoff,
             "fill": fill,
             "hatch": hatch,
-            "box_width": bar_width * self.plot_dict["width"],
+            "bar_width": bar_width * self.plot_dict["width"],
             "linewidth": linewidth,
             "alpha": alpha,
             "line_alpha": line_alpha,
         }
         self.plots["percent"] = percent_plot
         self.plot_list.append("percent")
+        if axis_type == "density":
+            self.plot_dict["y_lim"] = [0.0, 1.0]
+        else:
+            self.plot_dict["y_lim"] = [0, 100]
+
+        if not self.inplace:
+            return self
 
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"

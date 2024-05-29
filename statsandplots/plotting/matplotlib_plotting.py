@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 from matplotlib._enums import CapStyle
+from matplotlib.colors import to_rgba
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
@@ -653,7 +654,7 @@ def biplot(
     ax.spines["bottom"].set_visible(axis)
 
 
-def percent_plot(
+def _percent_plot(
     df,
     y,
     unique_groups,
@@ -677,24 +678,25 @@ def percent_plot(
     bins[1] = df[y].min()
     bins[-1] = df[y].max() + 1
     for i in range(len(cutoff)):
-        bins[i + 1] = cutoff[i]
+        bins[i + 2] = cutoff[i]
 
     if hatch is None:
-        hatches = HATCHES[: len(bins)]
+        hatches = HATCHES[: len(cutoff) + 1]
 
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
         temp = df[y].iloc[indexes].sort_values()
         binned_data = bin_data(temp, bins)
-        binned_data /= binned_data.sum()
+        binned_data = binned_data / binned_data.sum()
         ax.bar(
             x=[loc_dict[i]],
             height=binned_data[1:],
             bottom=binned_data[:-1],
-            widths=bar_width,
-            hatches=hatches,
+            width=bar_width,
+            hatch=hatches,
             fill=fill,
-            edgecolor=linecolor_dict[i],
-            facecolor=linecolor_dict[i],
+            edgecolor=to_rgba(linecolor_dict[i], alpha=line_alpha),
+            facecolor=to_rgba(color_dict[i], alpha=alpha),
+            linewidth=linewidth,
         )
     return ax

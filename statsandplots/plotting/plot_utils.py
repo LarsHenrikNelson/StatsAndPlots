@@ -71,13 +71,16 @@ def _process_groups(df, group, subgroup, group_order, subgroup_order):
 
 
 def bin_data(data, bins):
-    binned_data = np.zeros(bins.size - 1)
+    binned_data = np.zeros(bins.size - 1, dtype=int)
     index = 0
     for i in data:
         if i >= bins[index] and i < bins[int(index + 1)]:
             binned_data[index] += 1
         else:
-            if index < binned_data.size:
+            if index < binned_data.size - 1:
+                index += 1
+                binned_data[index] += 1
+            elif index < binned_data.size:
                 binned_data[index] += 1
                 index += 1
             else:
