@@ -37,6 +37,7 @@ MP_PLOTS = {
     "summary": mp._summary_plot,
     "violin": mp._violin_plot,
     "kde": mp._kde_plot,
+    "percent": mp.percent_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -729,6 +730,43 @@ class CategoricalPlot:
 
         if not self.inplace:
             return self
+
+    def percent(
+        self,
+        facecolor="none",
+        linecolor: ColorDict = "black",
+        fill: bool = False,
+        hatch=None,
+        bar_width: float = 1.0,
+        linewidth=1,
+        alpha: float = 1.0,
+        line_alpha=1.0,
+        cutoff: Union[float, int, list[Union[float, int]]] = 0.5,
+    ):
+        if isinstance(cutoff, (float, int)):
+            cutoff = [cutoff]
+
+        color_dict = process_args(
+            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        linecolor_dict = process_args(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        percent_plot = {
+            "color_dict": color_dict,
+            "linecolor_dict": linecolor_dict,
+            "cutoff": cutoff,
+            "fill": fill,
+            "hatch": hatch,
+            "box_width": bar_width * self.plot_dict["width"],
+            "linewidth": linewidth,
+            "alpha": alpha,
+            "line_alpha": line_alpha,
+        }
+        self.plots["percent"] = percent_plot
+        self.plot_list.append("percent")
 
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"

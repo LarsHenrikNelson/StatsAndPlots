@@ -30,6 +30,18 @@ MARKERS = [
     "8",
 ]
 CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
+HATCHES = [
+    "/",
+    "o",
+    "-",
+    "*",
+    "+",
+    "\\",
+    "|",
+    "O",
+    ".",
+    "x",
+]
 
 
 def _jitter_plot(
@@ -242,7 +254,6 @@ def _boxplot(
                 "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
             }
         indexes = np.where(unique_groups == i)[0]
-        indexes = indexes
         bplot = ax.boxplot(
             transform(df[y].iloc[indexes]),
             positions=[loc_dict[i]],
@@ -640,3 +651,50 @@ def biplot(
     ax.spines["right"].set_visible(axis)
     ax.spines["left"].set_visible(axis)
     ax.spines["bottom"].set_visible(axis)
+
+
+def percent_plot(
+    df,
+    y,
+    unique_groups,
+    loc_dict,
+    color_dict,
+    linecolor_dict,
+    fill: bool = True,
+    bar_width: float = 1.0,
+    linewidth=1,
+    alpha: float = 1.0,
+    line_alpha=1.0,
+    hatch=None,
+    cutoff: Union[float, int, list[Union[float, int]]] = "mean",
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+
+    bins = np.zeros(len(cutoff) + 3)
+    bins[0] = df[y].min() - 1
+    bins[1] = df[y].min()
+    bins[-1] = df[y].max() + 1
+    for i in range(len(cutoff)):
+        bins[i + 1] = cutoff[i]
+
+    if hatch is None:
+        hatches = HATCHES[: len(bins)]
+
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)[0]
+        temp = df[y].iloc[indexes].sort_values()
+        binned_data = bin_data(temp, bins)
+        binned_data /= binned_data.sum()
+        ax.bar(
+            x=[loc_dict[i]],
+            height=binned_data[1:],
+            bottom=binned_data[:-1],
+            widths=bar_width,
+            hatches=hatches,
+            fill=fill,
+            edgecolor=linecolor_dict[i],
+            facecolor=linecolor_dict[i],
+        )
+    return ax
