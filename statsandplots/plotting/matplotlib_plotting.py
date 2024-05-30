@@ -322,6 +322,7 @@ def _hist_plot(
     y,
     unique_groups,
     color_dict,
+    facet_dict,
     hist_type: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
     bins=None,
     density=True,
@@ -332,7 +333,7 @@ def _hist_plot(
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
         temp = df[y].iloc[indexes]
-        ax.hist(
+        ax[facet_dict[i]].hist(
             x=temp,
             histtype=hist_type,
             bins=bins,
@@ -349,6 +350,7 @@ def _kde_plot(
     line_color_dict,
     facet_dict,
     linestyle_dict,
+    linewidth,
     alpha,
     fill_under,
     fill_color_dict,
@@ -390,13 +392,45 @@ def _kde_plot(
         if axis == "x":
             y_kde, x_kde = x_kde, y_kde
         ax[facet_dict[i]].plot(
-            x_kde, y_kde, c=line_color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
+            x_kde,
+            y_kde,
+            c=line_color_dict[i],
+            linestyle=linestyle_dict[i],
+            alpha=alpha,
+            linewidth=linewidth,
         )
         if fill_under:
             ax[facet_dict[i]].fill_between(
                 x_kde, y_kde, color=fill_color_dict[i], alpha=alpha
             )
     return ax
+
+
+def _ecdf(
+    df,
+    y,
+    unique_groups,
+    unique_id,
+    linewidth,
+    color_dict,
+    facet_dict,
+    linestyle_dict,
+    alpha,
+    ax,
+):
+    if ax is None:
+        ax = plt.gca()
+
+    for i in unique_groups.unique():
+        indexes = np.where(unique_groups == i)[0]
+        temp = df[y].iloc[indexes]
+        ax[facet_dict[i]].ecdf(
+            x=temp,
+            color=color_dict[i],
+            alpha=alpha,
+            linestyle=linestyle_dict[i],
+            linewidth=linewidth,
+        )
 
 
 def _poly_hist(

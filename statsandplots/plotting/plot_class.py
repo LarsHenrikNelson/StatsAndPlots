@@ -38,6 +38,7 @@ MP_PLOTS = {
     "violin": mp._violin_plot,
     "kde": mp._kde_plot,
     "percent": mp._percent_plot,
+    "ecdf": mp._ecdf,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -65,6 +66,8 @@ class LinePlot:
         x_label: str = "",
         title: str = "",
         facet: bool = False,
+        facet_title: bool = True,
+        cols_rows: Optional[tuple[int]] = None,
         inplace: bool = False,
     ):
         self.inplace = inplace
@@ -83,18 +86,18 @@ class LinePlot:
         group_order, subgroup_order = _process_groups(
             df, group, subgroup, group_order, subgroup_order
         )
-        if isinstance(title, str) and not facet:
-            title = [title]
-        elif isinstance(title, str) and facet:
-            title = [title] * len(group_order)
-        elif isinstance(title, list) and facet:
-            if len(title) != len(group_order):
-                raise ValueError(
-                    "Number of titles must be the same a the number of groups."
-                )
-            title = title
-        else:
-            title = group_order
+        # if isinstance(title, str) and not facet:
+        #     title = [title]
+        # elif isinstance(title, str) and facet:
+        #     title = [title] * len(group_order)
+        # elif isinstance(title, list) and facet:
+        #     if len(title) != len(group_order):
+        #         raise ValueError(
+        #             "Number of titles must be the same a the number of groups."
+        #         )
+        #     title = title
+        # else:
+        #     title = group_order
 
         if facet:
             facet_length = list(range(len(group_order)))
@@ -120,6 +123,8 @@ class LinePlot:
             "facet": facet,
             "facet_dict": facet_dict,
             "unique_id": unique_id,
+            "cols_rows": cols_rows,
+            "facet_title": facet_title,
         }
 
     def plot_settings(
@@ -232,6 +237,7 @@ class LinePlot:
         common_norm: bool = True,
         line_color: ColorDict = "black",
         linestyle: str = "-",
+        linewidth: int = 2,
         fill_under: bool = False,
         fill_color: ColorDict = "black",
         alpha: AlphaRange = 1.0,
@@ -256,6 +262,7 @@ class LinePlot:
         kde_plot = {
             "line_color_dict": line_color_dict,
             "linestyle_dict": linestyle_dict,
+            "linewidth": linewidth,
             "alpha": alpha,
             "fill_under": fill_under,
             "fill_color_dict": fill_color_dict,
@@ -275,7 +282,8 @@ class LinePlot:
     def polyhist(
         self,
         color: ColorDict = "black",
-        linestyle="-",
+        linestyle: str = "-",
+        linewidth: int = 2,
         bin=None,
         density=True,
         steps=50,
@@ -294,6 +302,7 @@ class LinePlot:
         poly_hist = {
             "color_dict": color_dict,
             "linestyle_dict": linestyle_dict,
+            "linewidth": linewidth,
             "density": density,
             "bin": bin,
             "steps": steps,
@@ -304,6 +313,32 @@ class LinePlot:
         }
         self.plots["poly_hist"] = poly_hist
         self.plot_list.append("poly_hist")
+
+        if not self.inplace:
+            return self
+
+    def ecdf(
+        self,
+        color: ColorDict = "black",
+        linestyle: str = "-",
+        linewidth: int = 2,
+        alpha: AlphaRange = 1.0,
+    ):
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        linestyle_dict = process_args(
+            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        ecdf = {
+            "color_dict": color_dict,
+            "linestyle_dict": linestyle_dict,
+            "linewidth": linewidth,
+            "alpha": alpha,
+        }
+        self.plots["ecdf"] = ecdf
+        self.plot_list.append("ecdf")
 
         if not self.inplace:
             return self
@@ -336,12 +371,20 @@ class LinePlot:
         filetype: str = "svg",
         transparent=False,
     ):
+        if self.plot_dict["cols_rows"] is None:
+            nrows = len(self.plot_dict["group_order"])
+            ncols = 1
+        else:
+            nrows = self.plot_dict["cols_rows"][1]
+            ncols = self.plot_dict["cols_rows"][0]
         if self.plot_dict["facet"]:
             fig, ax = plt.subplots(
                 subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
                 figsize=self.plot_dict["figsize"],
-                ncols=len(self.plot_dict["group_order"]),
+                ncols=ncols,
+                nrows=nrows,
             )
+            ax = ax.flatten()
         else:
             fig, ax = plt.subplots(
                 subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
@@ -368,7 +411,8 @@ class LinePlot:
             x_decimals = decimals(self.plot_dict["df"][self.plot_dict["y"]])
         else:
             x_decimals = self.plot_dict["x_decimals"]
-        for index, i in enumerate(ax):
+        num_plots = len(self.plot_dict["group_order"])
+        for index, i in enumerate(ax[:num_plots]):
             if "kde" in self.plot_list and all(
                 v is None for v in self.plot_dict["y_lim"]
             ):
@@ -414,9 +458,16 @@ class LinePlot:
             i.set_ylabel(
                 self.plot_dict["y_label"], fontsize=self.plot_dict["labelsize"]
             )
-            i.set_title(
-                self.plot_dict["title"][index], fontsize=self.plot_dict["labelsize"]
-            )
+            if self.plot_dict["facet_title"]:
+                i.set_title(
+                    self.plot_dict["group_order"][index],
+                    fontsize=self.plot_dict["labelsize"],
+                )
+            else:
+                i.set_title(
+                    self.plot_dict["title"], fontsize=self.plot_dict["labelsize"]
+                )
+
             i.tick_params(
                 axis="both",
                 which="major",
@@ -424,6 +475,8 @@ class LinePlot:
                 width=self.plot_dict["ticksize"],
             )
             i.margins(self.plot_dict["margins"])
+        if self.plot_dict["title"] is not None:
+            fig.suptitle(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
         fig.tight_layout()
         if savefig:
             path = Path(path)
