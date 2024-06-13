@@ -47,7 +47,8 @@ PLP_PLOTS = {
     # "violin": plp._violin_plot,
 }
 
-SAVE_TYPES = {"svg", "png", "jpeg", "html"}
+MPL_SAVE_TYPES = {"svg", "png", "jpeg"}
+PLOTLY_SAVE_TYPES = {"html"}
 
 
 # %%
@@ -480,7 +481,7 @@ class LinePlot:
         fig.tight_layout()
         if savefig:
             path = Path(path)
-            if path.suffix[1:] not in SAVE_TYPES:
+            if path.suffix[1:] not in MPL_SAVE_TYPES:
                 path = path / f"{self.plot_dict['y']}.{filetype}"
             else:
                 filetype = path.suffix[1:]
@@ -942,7 +943,7 @@ class CategoricalPlot:
         ax.margins(x=self.plot_dict["margins"])
         if savefig:
             path = Path(path)
-            if path.suffix[1:] not in SAVE_TYPES:
+            if path.suffix[1:] not in MPL_SAVE_TYPES:
                 path = path / f"{self.plot_dict['y']}.{filetype}"
             else:
                 filetype = path.suffix[1:]
@@ -1037,4 +1038,12 @@ class CategoricalPlot:
             plot_bgcolor="white",
         )
         fig.show()
+        if savefig:
+            path = Path(path)
+            if path.suffix[1:] not in PLOTLY_SAVE_TYPES:
+                path = path / f"{self.plot_dict['y']}.{filetype}"
+            else:
+                filetype = path.suffix[1:]
+            if filetype == "html":
+                fig.write_html(path)
         return fig
