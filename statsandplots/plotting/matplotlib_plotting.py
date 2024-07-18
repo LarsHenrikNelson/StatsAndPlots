@@ -701,13 +701,14 @@ def _percent_plot(
     loc_dict,
     color_dict,
     linecolor_dict,
+    cutoff: Union[float, int, list[Union[float, int]]],
+    include_bins: list[bool],
     fill: bool = True,
     bar_width: float = 1.0,
     linewidth=1,
     alpha: float = 1.0,
     line_alpha=1.0,
     hatch=None,
-    cutoff: Union[float, int, list[Union[float, int]]] = "mean",
     ax=None,
 ):
     if ax is None:
@@ -720,18 +721,25 @@ def _percent_plot(
     for i in range(len(cutoff)):
         bins[i + 2] = cutoff[i]
 
-    if hatch is None:
-        hatches = HATCHES[: len(cutoff) + 1]
+    plot_bins = sum(include_bins)
+    if hatch is True:
+        hatches = HATCHES[:plot_bins]
+    else:
+        hatches = None
 
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
         temp = df[y].iloc[indexes].sort_values()
         binned_data = bin_data(temp, bins)
         binned_data = binned_data / binned_data.sum()
+        top = binned_data[1:]
+        bottom = binned_data[:-1]
+        top = top[include_bins]
+        bottom = bottom[include_bins]
         ax.bar(
             x=[loc_dict[i]],
-            height=binned_data[1:],
-            bottom=binned_data[:-1],
+            height=top,
+            bottom=bottom,
             width=bar_width,
             hatch=hatches,
             fill=fill,

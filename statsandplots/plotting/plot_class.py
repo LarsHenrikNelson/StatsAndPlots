@@ -438,6 +438,7 @@ class LinePlot:
                 i.set_ylim(bottom=lim[0], top=lim[1])
                 i.set_yticks(ticks)
             else:
+                i.set_yscale(self.plot_dict["y_scale"])
                 ticks = i.get_yticks()
                 lim, _ = get_ticks(
                     self.plot_dict["y_lim"], ticks, self.plot_dict["steps"], y_decimals
@@ -451,6 +452,7 @@ class LinePlot:
                 i.set_xlim(left=lim[0], right=lim[1])
                 i.set_xticks(ticks)
             else:
+                i.set_xscale(self.plot_dict["x_scale"])
                 ticks = i.get_xticks()
                 lim, _ = get_ticks(
                     self.plot_dict["x_lim"], ticks, self.plot_dict["steps"], x_decimals
@@ -799,6 +801,7 @@ class CategoricalPlot:
         line_alpha=1.0,
         axis_type: Literal["density", "percent"] = "density",
         cutoff: Union[None, float, int, list[Union[float, int]]] = None,
+        include_bins: Optional[list[bool]] = None,
     ):
         if isinstance(cutoff, (float, int)):
             cutoff = [cutoff]
@@ -811,7 +814,10 @@ class CategoricalPlot:
             linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         if cutoff is None:
-            cutoff = self.plot_dict["df"][self.plot_dict["y"]].mean()
+            cutoff = [self.plot_dict["df"][self.plot_dict["y"]].mean()]
+
+        if include_bins is None:
+            include_bins = [True] * (len(cutoff) + 1)
 
         percent_plot = {
             "color_dict": color_dict,
@@ -823,6 +829,7 @@ class CategoricalPlot:
             "linewidth": linewidth,
             "alpha": alpha,
             "line_alpha": line_alpha,
+            "include_bins": include_bins,
         }
         self.plots["percent"] = percent_plot
         self.plot_list.append("percent")
@@ -924,6 +931,7 @@ class CategoricalPlot:
             )
             ax.set_yticks(ticks)
         else:
+            ax.set_yscale(self.plot_dict["y_scale"])
             ticks = ax.get_yticks()
             if self.plot_dict["y_lim"][0] is None:
                 self.plot_dict["y_lim"][0] = ticks[0]
