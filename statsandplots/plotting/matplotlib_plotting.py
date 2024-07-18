@@ -181,7 +181,10 @@ def _summary_plot(
     for i in unique_groups.unique():
         indexes = np.where(unique_groups == i)[0]
         tdata = get_func(func)(transform(df[y].iloc[indexes]))
-        err_data = get_func(err_func)(transform(df[y].iloc[indexes]))
+        if err_func is not None:
+            err_data = get_func(err_func)(transform(df[y].iloc[indexes]))
+        else:
+            err_data = None
         _, caplines, bars = ax.errorbar(
             x=loc_dict[i],
             y=tdata,
