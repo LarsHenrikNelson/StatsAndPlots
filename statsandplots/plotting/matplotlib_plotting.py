@@ -308,7 +308,10 @@ def _violin_plot(
             body.set_alpha(alpha)
             body.set_facecolor(color_dict[i])
             body.set_edgecolor(edge_dict[i])
-        parts["cmeans"].set_color(edge_dict[i])
+        if show_means:
+            parts["cmeans"].set_color(edge_dict[i])
+        if show_medians:
+            parts["cmedians"].set_color(edge_dict[i])
 
     return ax
 
