@@ -6,3 +6,4 @@ from . import (
     two_sample,  # noqa: F401
 )
 from .kde_func import kde  # noqa: F401
+from .circular_stats import *  # noqa: F403

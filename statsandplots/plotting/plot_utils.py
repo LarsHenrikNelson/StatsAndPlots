@@ -1,6 +1,8 @@
 from scipy import stats
 import numpy as np
 
+from ..stats.circular_stats import periodic_mean, periodic_std, periodic_sem
+
 
 def process_duplicates(values, output=None):
     vals, counts = np.unique(
@@ -134,6 +136,12 @@ def get_func(input):
         return ci
     elif input == "mean":
         return np.mean
+    elif input == "periodic_mean":
+        return periodic_mean
+    elif input == "periodic_std":
+        return periodic_std
+    elif input == "periodic_sem":
+        return periodic_sem
     elif input == "nanmean":
         return np.nanmean
     elif input == "nanmedian":
