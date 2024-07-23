@@ -791,6 +791,7 @@ class CategoricalPlot:
 
     def percent(
         self,
+        unique_id=None,
         facecolor="none",
         linecolor: ColorDict = "black",
         fill: bool = False,
@@ -830,6 +831,7 @@ class CategoricalPlot:
             "alpha": alpha,
             "line_alpha": line_alpha,
             "include_bins": include_bins,
+            "unique_id": unique_id,
         }
         self.plots["percent"] = percent_plot
         self.plot_list.append("percent")

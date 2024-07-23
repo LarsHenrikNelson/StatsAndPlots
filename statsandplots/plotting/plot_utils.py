@@ -129,37 +129,31 @@ def ci(a):
     return ci_interval[1] - ci_interval[0]
 
 
+FUNC_DICT = {
+    "sem": sem,
+    "ci": ci,
+    "mean": np.mean,
+    "preiodic_mean": periodic_mean,
+    "periodic_std": periodic_std,
+    "periodic_sem": periodic_sem,
+    "nanmean": np.nanmean,
+    "nanmedian": np.nanmedian,
+    "median": np.median,
+    "std": np.std,
+    "nanstd": np.nanstd,
+    "log10": np.log10,
+    "log2": np.log2,
+    "ln": np.log,
+    "var": np.var,
+    "nanvar": np.nanvar,
+    "inverse": lambda a, axis=None: 1 / (a + 1e-10),
+    "ninverse": lambda a, axis=None: -1 / (a + 1e-10),
+}
+
+
 def get_func(input):
-    if input == "sem":
-        return sem
-    elif input == "ci":
-        return ci
-    elif input == "mean":
-        return np.mean
-    elif input == "periodic_mean":
-        return periodic_mean
-    elif input == "periodic_std":
-        return periodic_std
-    elif input == "periodic_sem":
-        return periodic_sem
-    elif input == "nanmean":
-        return np.nanmean
-    elif input == "nanmedian":
-        return np.nanmedian
-    elif input == "median":
-        return np.median
-    elif input == "std":
-        return np.std
-    elif input == "nanstd":
-        return np.std
-    elif input == "log10":
-        return np.log10
-    elif input == "log":
-        return np.log
-    elif input == "var":
-        return np.var
-    elif input == "nanvar":
-        return np.nanvar
+    if input in FUNC_DICT:
+        return FUNC_DICT[input]
     else:
         return lambda a, axis=None: a
 

@@ -7,6 +7,8 @@ from matplotlib._enums import CapStyle
 from matplotlib.colors import to_rgba
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
+import matplotlib.patches as mpatches
+from matplotlib.container import BarContainer
 
 from .plot_utils import get_func, process_args, bin_data, process_duplicates
 from ..stats import kde
@@ -709,6 +711,7 @@ def _percent_plot(
     alpha: float = 1.0,
     line_alpha=1.0,
     hatch=None,
+    unique_id=None,
     ax=None,
 ):
     if ax is None:
@@ -721,30 +724,106 @@ def _percent_plot(
     for i in range(len(cutoff)):
         bins[i + 2] = cutoff[i]
 
+    groups = unique_groups.unique()
     plot_bins = sum(include_bins)
-    if hatch is True:
-        hatches = HATCHES[:plot_bins]
-    else:
-        hatches = None
 
-    for i in unique_groups.unique():
-        indexes = np.where(unique_groups == i)[0]
-        temp = df[y].iloc[indexes].sort_values()
-        binned_data = bin_data(temp, bins)
-        binned_data = binned_data / binned_data.sum()
-        top = binned_data[1:]
-        bottom = binned_data[:-1]
-        top = top[include_bins]
-        bottom = bottom[include_bins]
-        ax.bar(
-            x=[loc_dict[i]],
-            height=top,
-            bottom=bottom,
-            width=bar_width,
-            hatch=hatches,
-            fill=fill,
-            edgecolor=to_rgba(linecolor_dict[i], alpha=line_alpha),
-            facecolor=to_rgba(color_dict[i], alpha=alpha),
-            linewidth=linewidth,
+    if unique_id is not None:
+        uids = np.unique(df[unique_id])
+        multiplier = len(groups) * len(uids)
+    else:
+        multiplier = len(groups) * plot_bins
+
+    if hatch is True:
+        hs = HATCHES[:plot_bins]
+    else:
+        hs = [None] * plot_bins
+
+    tops = []
+    bottoms = []
+    linewidth = [linewidth] * multiplier
+    fill = [fill] * multiplier
+    edgecolors = []
+    fillcolors = []
+    x_loc = []
+    hatches = []
+    bw = []
+
+    for gr in groups:
+        indexes = np.where(unique_groups == gr)[0]
+        if unique_id is None:
+            bar_width = [bar_width] * multiplier
+            bw.extend(bar_width)
+            temp = df[y].iloc[indexes].sort_values()
+            binned_data = bin_data(temp, bins)
+            binned_data = binned_data / binned_data.sum()
+            top = binned_data[1:]
+            bottom = binned_data[:-1]
+            tops.extend(top[include_bins])
+            bottoms.extend(bottom[include_bins])
+            fc = [
+                to_rgba(color_dict[gr], alpha=alpha),
+            ] * plot_bins
+            fillcolors.extend(fc)
+            ec = [
+                to_rgba(linecolor_dict[gr], alpha=line_alpha),
+            ] * plot_bins
+            edgecolors.extend(ec)
+            x_s = [loc_dict[gr]] * plot_bins
+            x_loc.extend(x_s)
+            hatches.extend(hs)
+        else:
+            unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+            temp_width = bar_width / len(unique_ids_sub)
+            if len(unique_ids_sub) > 1:
+                dist = np.linspace(
+                    -bar_width / 2, bar_width / 2, num=len(unique_ids_sub) + 1
+                )
+                dist = (dist[1:] + dist[:-1]) / 2
+            else:
+                dist = [0]
+            bw.extend([temp_width] * len(unique_ids_sub))
+            for index, ui_group in enumerate(unique_ids_sub):
+                sub_indexes = np.where(
+                    np.logical_and(df[unique_id] == ui_group, unique_groups == gr)
+                )[0]
+                temp = df[y].iloc[sub_indexes].sort_values()
+                binned_data = bin_data(temp, bins)
+                binned_data = binned_data / binned_data.sum()
+                top = binned_data[1:]
+                bottom = binned_data[:-1]
+                tops.extend(top[include_bins])
+                bottoms.extend(bottom[include_bins])
+                fc = [
+                    to_rgba(color_dict[gr], alpha=alpha),
+                ] * plot_bins
+                fillcolors.extend(fc)
+                ec = [
+                    to_rgba(linecolor_dict[gr], alpha=line_alpha),
+                ] * plot_bins
+                edgecolors.extend(ec)
+                x_s = [loc_dict[gr] + dist[index]] * plot_bins
+                x_loc.extend(x_s)
+                hatches.extend(hs)
+    patches = []
+    print(len(tops))
+    for t, b, x, width, fc, ec, h, lw in zip(
+        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth
+    ):
+        left = x - width / 2
+        r = mpatches.Rectangle(
+            xy=(left, b),
+            width=width,
+            height=t,
+            facecolor=fc,
+            edgecolor=ec,
+            hatch=h,
+            linewidth=lw,
         )
+        # r._internal_update()
+        r.get_path()._interpolation_steps = 100
+        r.sticky_edges.y.append(b)
+        ax.add_patch(r)
+        patches.append(r)
+    bar_container = BarContainer(patches, datavalues=tops)
+    ax.add_container(bar_container)
     return ax
