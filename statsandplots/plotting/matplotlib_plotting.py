@@ -1,17 +1,19 @@
-from typing import Literal, Union
+from typing import Literal, Union, Optional
 
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 from matplotlib._enums import CapStyle
-from matplotlib.colors import to_rgba
+from matplotlib.collections import LineCollection
+from matplotlib.colors import Normalize, to_rgba
+from matplotlib.container import BarContainer
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
-import matplotlib.patches as mpatches
-from matplotlib.container import BarContainer
 
-from .plot_utils import get_func, process_args, bin_data, process_duplicates
 from ..stats import kde
+from .plot_utils import bin_data, get_func, process_args, process_duplicates
 
 # Reorder the filled matplotlib markers to choose the most different
 MARKERS = [
@@ -805,7 +807,6 @@ def _percent_plot(
                 x_loc.extend(x_s)
                 hatches.extend(hs)
     patches = []
-    print(len(tops))
     for t, b, x, width, fc, ec, h, lw in zip(
         tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth
     ):
@@ -827,3 +828,92 @@ def _percent_plot(
     bar_container = BarContainer(patches, datavalues=tops)
     ax.add_container(bar_container)
     return ax
+
+
+def _plot_network(
+    graph,
+    marker_alpha: float = 0.8,
+    line_alpha: float = 0.1,
+    marker_size: int = 2,
+    marker_scale: int = 1,
+    linewidth: int = 1,
+    edge_color: str = "k",
+    marker_color: str = "red",
+    marker_attr: Optional[str] = None,
+    cmap: str = "gray",
+    seed: int = 42,
+    scale: int = 50,
+    plot_max_degree: bool = False,
+    layout: Literal["spring", "circular", "communities"] = "spring",
+):
+
+    if isinstance(cmap, str):
+        cmap = plt.colormaps[cmap]
+    _, ax = plt.subplots()
+    Gcc = graph.subgraph(
+        sorted(nx.connected_components(graph), key=len, reverse=True)[0]
+    )
+    if layout == "spring":
+        pos = nx.spring_layout(Gcc, seed=seed, scale=scale)
+    elif layout == "circular":
+        pos = nx.circular_layout(Gcc, scale=scale)
+    elif layout == "random":
+        pos = nx.random_layout(Gcc, seed=seed)
+    elif layout == "communities":
+        communities = nx.community.greedy_modularity_communities(Gcc)
+        # Compute positions for the node clusters as if they were themselves nodes in a
+        # supergraph using a larger scale factor
+        _ = nx.cycle_graph(len(communities))
+        superpos = nx.spring_layout(Gcc, scale=scale, seed=seed)
+
+        # Use the "supernode" positions as the center of each node cluster
+        centers = list(superpos.values())
+        pos = {}
+        for center, comm in zip(centers, communities):
+            pos.update(
+                nx.spring_layout(nx.subgraph(Gcc, comm), center=center, seed=seed)
+            )
+
+    nodelist = list(Gcc)
+    marker_size = np.array([Gcc.degree(i) for i in nodelist])
+    marker_size = marker_size * marker_scale
+    xy = np.asarray([pos[v] for v in nodelist])
+
+    edgelist = list(Gcc.edges(data=True))
+    edge_pos = np.asarray([(pos[e0], pos[e1]) for (e0, e1, _) in edgelist])
+    _, _, data = edgelist[0]
+    if edge_color in data:
+        edge_color = [data["weight"] for (_, _, data) in edgelist]
+        edge_vmin = min(edge_color)
+        edge_vmax = max(edge_color)
+        color_normal = Normalize(vmin=edge_vmin, vmax=edge_vmax)
+        edge_color = [cmap(color_normal(e)) for e in edge_color]
+    edge_collection = LineCollection(
+        edge_pos,
+        colors=edge_color,
+        linewidths=linewidth,
+        antialiaseds=(1,),
+        linestyle="solid",
+        alpha=line_alpha,
+    )
+    edge_collection.set_cmap(cmap)
+    edge_collection.set_clim(edge_vmin, edge_vmax)
+    edge_collection.set_zorder(0)  # edges go behind nodes
+    edge_collection.set_label("edges")
+    ax.add_collection(edge_collection)
+
+    if isinstance(marker_color, dict):
+        if marker_attr is not None:
+            mcolor = [
+                marker_color[data[marker_attr]] for (_, data) in Gcc.nodes(data=True)
+            ]
+        else:
+            mcolor = "red"
+    else:
+        mcolor = marker_color
+
+    path_collection = ax.scatter(
+        xy[:, 0], xy[:, 1], s=marker_size, alpha=marker_alpha, c=mcolor
+    )
+    path_collection.set_zorder(1)
+    ax.axis("off")

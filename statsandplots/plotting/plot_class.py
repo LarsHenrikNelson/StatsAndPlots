@@ -174,14 +174,15 @@ class LinePlot:
         self.style = style
 
         # Quick check just for dark and default backgrounds
-        if "line" in self.plots:
-            if (
-                self.style == "dark_background"
-                and self.plots["line"]["color"] == "black"
-            ):
-                self.plots["line"]["color"] = "white"
-            elif self.style == "default" and self.plots["line"]["color"] == "white":
-                self.plots["line"]["color"] = "black"
+        for index, val in enumerate(self.plots_list):
+            if val == "line":
+                if (
+                    self.style == "dark_background"
+                    and self.plots[index]["color"] == "black"
+                ):
+                    self.plots[index]["color"] = "white"
+                elif self.style == "default" and self.plots[index]["color"] == "white":
+                    self.plots[index]["color"] = "black"
 
         if not self.inplace:
             return self
@@ -548,7 +549,7 @@ class CategoricalPlot:
             "y_label": y_label,
             "title": title,
         }
-        self.plots = {}
+        self.plots = []
         self.plot_list = []
 
     def plot_settings(
@@ -591,17 +592,18 @@ class CategoricalPlot:
         self.style = style
 
         # Quick check just for dark and default backgrounds
-        if "summary" in self.plots:
-            if (
-                self.style == "dark_background"
-                and self.plots["summary"]["color_dict"] == "black"
-            ):
-                self.plots["summary"]["color_dict"] = "white"
-            elif (
-                self.style == "default"
-                and self.plots["summary"]["color_dict"] == "white"
-            ):
-                self.plots["summary"]["color_dict"] = "black"
+        for index, val in enumerate(self.plots_list):
+            if val == "summary":
+                if (
+                    self.style == "dark_background"
+                    and self.plots[index]["color_dict"] == "black"
+                ):
+                    self.plots[index]["color_dict"] = "white"
+                elif (
+                    self.style == "default"
+                    and self.plots[index]["color_dict"] == "white"
+                ):
+                    self.plots[index]["color_dict"] = "black"
 
         if not self.inplace:
             return self
@@ -639,7 +641,7 @@ class CategoricalPlot:
             "transform": transform,
             "unique_id": unique_id,
         }
-        self.plots["jitter"] = jitter_plot
+        self.plots.append(jitter_plot)
         self.plot_list.append("jitter")
 
         if not self.inplace:
@@ -678,7 +680,7 @@ class CategoricalPlot:
             "unique_id": unique_id,
             "duplicate_offset": duplicate_offset,
         }
-        self.plots["jitteru"] = jitteru_plot
+        self.plots.append(jitteru_plot)
         self.plot_list.append("jitteru")
 
         if not self.inplace:
@@ -712,7 +714,7 @@ class CategoricalPlot:
             "transform": transform,
             "color_dict": color_dict,
         }
-        self.plots["summary"] = summary_plot
+        self.plots.append(summary_plot)
         self.plot_list.append("summary")
 
         if not self.inplace:
@@ -750,7 +752,7 @@ class CategoricalPlot:
             "alpha": alpha,
             "line_alpha": line_alpha,
         }
-        self.plots["boxplot"] = boxplot
+        self.plots.append(boxplot)
         self.plot_list.append("boxplot")
 
         if not self.inplace:
@@ -783,7 +785,7 @@ class CategoricalPlot:
             "show_medians": show_medians,
             "transform": transform,
         }
-        self.plots["violin"] = violin
+        self.plots.append(violin)
         self.plot_list.append("violin")
 
         if not self.inplace:
@@ -833,7 +835,7 @@ class CategoricalPlot:
             "include_bins": include_bins,
             "unique_id": unique_id,
         }
-        self.plots["percent"] = percent_plot
+        self.plots.append(percent_plot)
         self.plot_list.append("percent")
         if axis_type == "density":
             self.plot_dict["y_lim"] = [0.0, 1.0]
@@ -877,7 +879,7 @@ class CategoricalPlot:
             figsize=self.plot_dict["figsize"],
         )
 
-        for i in self.plot_list:
+        for i, j in zip(self.plot_list, self.plots):
             plot_func = MP_PLOTS[i]
             plot_func(
                 df=self.plot_dict["df"],
@@ -885,7 +887,7 @@ class CategoricalPlot:
                 loc_dict=self.plot_dict["loc_dict"],
                 unique_groups=self.plot_dict["unique_groups"],
                 ax=ax,
-                **self.plots[i],
+                **j,
             )
 
         if self.plot_dict["decimals"] is None:
@@ -1057,3 +1059,45 @@ class CategoricalPlot:
             if filetype == "html":
                 fig.write_html(path)
         return fig
+
+
+class GraphPlot:
+
+    def __init__(self, graph):
+        self.plot_dict = {}
+        self.plot_dict["graph"] = graph
+        self.plots = []
+
+    def graphplot(
+        self,
+        marker_alpha: float = 0.8,
+        line_alpha: float = 0.1,
+        marker_size: int = 2,
+        marker_scale: int = 1,
+        linewidth: int = 1,
+        edge_color: str = "k",
+        marker_color: str = "red",
+        marker_attr: Optional[str] = None,
+        cmap: str = "gray",
+        seed: int = 42,
+        scale: int = 50,
+        plot_max_degree: bool = False,
+        layout: Literal["spring", "circular", "communities"] = "spring",
+    ):
+        graph_plot = {
+            "marker_alpha": marker_alpha,
+            "line_alpha": line_alpha,
+            "marker_size": marker_size,
+            "marker_scale": marker_scale,
+            "linewidth": linewidth,
+            "edge_color": edge_color,
+            "marker_color": marker_color,
+            "marker_attr": marker_attr,
+            "cmap": cmap,
+            "seed": seed,
+            "scale": scale,
+            "layout": layout,
+            "plot_max_degree": plot_max_degree,
+        }
+
+        self.plots.append(graph_plot)
