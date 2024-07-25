@@ -174,7 +174,7 @@ class LinePlot:
         self.style = style
 
         # Quick check just for dark and default backgrounds
-        for index, val in enumerate(self.plots_list):
+        for index, val in enumerate(self.plot_list):
             if val == "line":
                 if (
                     self.style == "dark_background"
@@ -592,7 +592,7 @@ class CategoricalPlot:
         self.style = style
 
         # Quick check just for dark and default backgrounds
-        for index, val in enumerate(self.plots_list):
+        for index, val in enumerate(self.plot_list):
             if val == "summary":
                 if (
                     self.style == "dark_background"
@@ -688,13 +688,14 @@ class CategoricalPlot:
 
     def summary(
         self,
-        func="mean",
-        capsize=0,
-        capstyle="round",
-        bar_width=1.0,
-        err_func="sem",
-        linewidth=2,
+        func: str = "mean",
+        capsize: int = 0,
+        capstyle: str = "round",
+        bar_width: float = 1.0,
+        err_func: str = "sem",
+        linewidth: int = 2,
         color: ColorDict = "black",
+        alpha: float = 1.0,
         transform=None,
     ):
         if self.style == "dark_background" and color == "black":

@@ -174,6 +174,7 @@ def _summary_plot(
     err_func,
     linewidth,
     color_dict,
+    alpha,
     transform=None,
     ax=None,
 ):
@@ -198,6 +199,7 @@ def _summary_plot(
             fmt="none",
             linewidth=linewidth,
             capsize=capsize,
+            alpha=alpha,
         )
         for cap in caplines:
             cap.set_solid_capstyle(capstyle)
@@ -210,7 +212,7 @@ def _summary_plot(
             y=tdata,
             xerr=bar_width / 2,
             # yerr=err_data,
-            c=color_dict[i],
+            c=to_rgba(color_dict[i], alpha=alpha),
             fmt="none",
             linewidth=linewidth,
         )
