@@ -1,9 +1,32 @@
-This is a simple plotting and stats package written in Python and intend for scientific publications (i.e. plotting data that would be used in t-test or one/two-way ANOVAs). Some of the plots can utilize Matplotlib or Plotly backend. It is currently in development so there may be bugs. See below for install and some simple examples.
+This is a simple plotting and stats package written in Python and intend for scientific publications (i.e. plotting data that would be used in t-test or one/two-way ANOVAs). There is a strong focus on plotting clustered data within groups. This is particularly useful for studies where many neurons are measured per mouse. Some of the plots can utilize Matplotlib or Plotly backend. Data can be transformed (log10, inverse, etc) or aggregated (mean, median, circular mean, etc). Space between groups is easy to specify using width or jitter. It is currently in development so there may be bugs. See below for install some simple examples.
 
 Install
 ```bash
 pip install git+https://github.com/LarsHenrikNelson/StatsAndPlots.git
 ```
+
+## Example plots
+
+### Jitter with unique id (i.e. animal, data, etc) setting marker type and summary (mean) overlayed.
+<img src="examples/jitter-example-1.png">
+
+### Jitteru with unique id (i.e. animal, data, etc). Each unique id is given a column within the group column. With summary overlayed.
+<img src="examples/jitteru-example-1.png">
+
+### Jitteru with unique id (i.e. animal, data, etc). Each unique id is given a column within the group column. With summary overlayed.
+<img src="examples/jitteru-example-2.png">
+
+### Percent plot where the y-axis represents fraction of samples below and above a cutoff (i.e. p-value cutoff).
+<img src="examples/percent-example-1.png">
+
+### Percent plot with unique id where the y-axis represents fraction of samples below and above a cutoff (i.e. p-value cutoff).
+<img src="examples/percent-example-2.png">
+
+### Percent plot with unique on top of percent plot.
+<img src="examples/percent-example-3.png">
+
+### Summary plot (mean of group).
+<img src="examples/summary-example-1.png">
 
 <br/>
 
