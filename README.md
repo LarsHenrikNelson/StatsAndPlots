@@ -6,29 +6,268 @@ pip install git+https://github.com/LarsHenrikNelson/StatsAndPlots.git
 ```
 
 ## Example plots
+Some example plots with the code used below the plot.
 
 ### Jitter with unique id (i.e. animal, data, etc) setting marker type and summary (mean) overlayed.
 <img src="examples/jitter-example-1.png">
 
-### Jitteru with unique id (i.e. animal, data, etc). Each unique id is given a column within the group column. With summary overlayed.
-<img src="examples/jitteru-example-1.png">
+```python
+path = r"path/to/save/data"
+fig = (
+    CategoricalPlot(
+        df=df_lhn.dropna(subset=columns[column]),
+        y="Membrane resistance,
+        y_label="Membrane resistance",
+        group="genotype",
+        group_order=[r"Shank3B+/+", r"Shank3B-/-"],
+        group_spacing=1.25,
+        title="",
+        inplace=False,
+    )
+    .jitter(
+        unique_id="date",
+        color={r"Shank3B+/+": "orange", r"Shank3B-/-": "orchid"},
+        edgecolor="white",
+        alpha=0.5,
+        jitter=0.8,
+        transform=None,
+        marker_size=7,
+    )
+    .summary(
+        func="mean",
+        capsize=0,
+        capstyle="round",
+        bar_width=0.8,
+        err_func="sem",
+        linewidth=2,
+        transform=None,
+        color="black",
+    )
+    .plot_settings(
+        style="default",
+        # y_lim=[0, 8],
+        y_scale="linear",
+        steps=5,
+        margins=0.1,
+        aspect=1,
+        figsize=None,
+        labelsize=22,
+        linewidth=2,
+        ticksize=2,
+        ticklabel=20,
+        decimals=2,
+    )
+    .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
+)
+```
 
 ### Jitteru with unique id (i.e. animal, data, etc). Each unique id is given a column within the group column. With summary overlayed.
 <img src="examples/jitteru-example-2.png">
 
+```python
+
+path = r"path/to/save/data"
+column = "sttc_5ms"
+temp = (
+    CategoricalPlot(
+        df=df,
+        y=column,
+        y_label="STTC 5ms",
+        group="genotype",
+        group_order=[r"WT", r"KO"],
+        subgroup="cell_type_short",
+        subgroup_order=["PS", "PL", "I"],
+        group_spacing=1.0,
+        subgroup_spacing=1.4,
+        title="",
+        inplace=False,
+    ).jitteru(
+        unique_id="id",
+        edgecolor="none",
+        width=0.55,
+        alpha=0.5,
+        color={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+            "IB": "purple",
+            "IS": "orange",
+        },
+    )
+    .summary(
+        func="mean",
+        capsize=0,
+        capstyle="round",
+        bar_width=0.8,
+        err_func="ci",
+        linewidth=2,
+        alpha=0.8,
+        color={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+    )
+)
+temp.plot(savefig=True, path=path, filetype="png", backend="matplotlib")
+```
+
 ### Percent plot where the y-axis represents fraction of samples below and above a cutoff (i.e. p-value cutoff).
 <img src="examples/percent-example-1.png">
+
+```python
+
+path = r"path/to/save/folder"
+column = "beta_rayleigh_pval"
+temp = (
+    CategoricalPlot(
+        df=df,
+        y=column,
+        y_label=column,
+        group="genotype",
+        group_order=[r"WT", r"KO"],
+        subgroup="cell_type_short",
+        subgroup_order=["PS", "PL", "I", "J", "K"],
+        group_spacing=1.0,
+        subgroup_spacing=1.0,
+        title="",
+        inplace=False,
+    )
+    .percent(
+        cutoff=0.05,
+        include_bins=[True, True],
+        fill=False,
+        hatch=True,
+        linecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+            "J": "orchid",
+            "K": "darkorange"
+        },
+        alpha=0.3,
+        bar_width=0.8,
+        linewidth=0,
+    )
+    .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
+)
+```
 
 ### Percent plot with unique id where the y-axis represents fraction of samples below and above a cutoff (i.e. p-value cutoff).
 <img src="examples/percent-example-2.png">
 
+```python
+
+path = r"path/to/save/folder"
+column = "beta_rayleigh_pval"
+temp = (
+    CategoricalPlot(
+        df=df,
+        y=column,
+        y_label=column,
+        group="genotype",
+        group_order=[r"WT", r"KO"],
+        subgroup="cell_type_short",
+        subgroup_order=["PS", "PL", "I"],
+        group_spacing=1.0,
+        subgroup_spacing=1.0,
+        title="",
+        inplace=False,
+    )
+    .percent(
+        cutoff=0.05,
+        include_bins=[True, False],
+        fill=True,
+        hatch=None,
+        unique_id="id",
+        linecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+        facecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+        alpha=0.6,
+        bar_width=0.8,
+        linewidth=1,
+    )
+    .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
+)
+```
+
 ### Percent plot with unique on top of percent plot.
 <img src="examples/percent-example-3.png">
+
+```python
+
+path = r"path/to/save/folder"
+column = "beta_rayleigh_pval"
+temp = (
+    CategoricalPlot(
+        df=df,
+        y=column,
+        y_label=column,
+        group="genotype",
+        group_order=[r"WT", r"KO"],
+        subgroup="cell_type_short",
+        subgroup_order=["PS", "PL", "I"],
+        group_spacing=1.0,
+        subgroup_spacing=1.0,
+        title="",
+        inplace=False,
+    )
+    .percent(
+        cutoff=0.05,
+        include_bins=[True, False],
+        fill=True,
+        hatch=None,
+        linecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+        facecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+        alpha=0.3,
+        bar_width=0.8,
+        linewidth=0,
+    )
+    .percent(
+        cutoff=0.05,
+        include_bins=[True, False],
+        fill=True,
+        hatch=None,
+        unique_id="id",
+        linecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+        facecolor={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+        },
+        alpha=0.6,
+        bar_width=0.8,
+        linewidth=1,
+    )
+    .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
+)
+```
 
 ### Summary plot (mean of group).
 <img src="examples/summary-example-1.png">
 
 <br/>
+
+## More example code using a random dataset
 
 Import packages
 ```python
