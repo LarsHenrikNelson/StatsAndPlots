@@ -19,12 +19,11 @@ def kde(
         "cosine",
     ] = "gaussian",
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
-    tol: float = 3,
+    tol: float = 1e-3,
 ):
     data = np.asarray(data)
     kde_obj = KDEpy.FFTKDE(kernel=kernel, bw=bw).fit(data)
-    width = np.cov(data) * kde_obj.bw**2
-    width = np.sqrt(width)
+    width = np.sqrt(np.cov(data) * kde_obj.bw**2)
     min_data = data.min() - width * tol
     max_data = data.max() + width * tol
     power2 = int(np.ceil(np.log2(len(data))))

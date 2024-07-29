@@ -143,6 +143,7 @@ class LinePlot:
         ticksize: int = 2,
         ticklabel: int = 20,
         steps: int = 5,
+        tick_style: Literal["all", "middle"] = "middle",
         y_decimals: int = None,
         x_decimals: int = None,
     ):
@@ -167,6 +168,7 @@ class LinePlot:
             "y_decimals": y_decimals,
             "x_decimals": x_decimals,
             "steps": steps,
+            "tick_style": tick_style,
         }
         self.plot_dict.update(plot_settings)
 
@@ -235,7 +237,7 @@ class LinePlot:
             "cosine",
         ] = "gaussian",
         bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
-        tol: Union[float, int] = 3.0,
+        tol: Union[float, int] = 1e-3,
         common_norm: bool = True,
         line_color: ColorDict = "black",
         linestyle: str = "-",
@@ -431,10 +433,15 @@ class LinePlot:
             i.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
             if "/" in self.plot_dict["y"]:
                 self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
+
             if self.plot_dict["y_scale"] not in ["log", "symlog"]:
                 ticks = i.get_yticks()
                 lim, ticks = get_ticks(
-                    self.plot_dict["y_lim"], ticks, self.plot_dict["steps"], y_decimals
+                    self.plot_dict["y_lim"],
+                    ticks,
+                    self.plot_dict["steps"],
+                    y_decimals,
+                    tick_style=self.plot_dict["tick_style"],
                 )
                 i.set_ylim(bottom=lim[0], top=lim[1])
                 i.set_yticks(ticks)
@@ -448,7 +455,11 @@ class LinePlot:
             if self.plot_dict["x_scale"] not in ["log", "symlog"]:
                 ticks = i.get_xticks()
                 lim, ticks = get_ticks(
-                    self.plot_dict["x_lim"], ticks, self.plot_dict["steps"], x_decimals
+                    self.plot_dict["x_lim"],
+                    ticks,
+                    self.plot_dict["steps"],
+                    x_decimals,
+                    tick_style=self.plot_dict["tick_style"],
                 )
                 i.set_xlim(left=lim[0], right=lim[1])
                 i.set_xticks(ticks)

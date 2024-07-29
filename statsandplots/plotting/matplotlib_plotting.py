@@ -378,7 +378,7 @@ def _kde_plot(
         "cosine",
     ] = "gaussian",
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
-    tol: Union[float, int] = 3.0,
+    tol: Union[float, int] = 1e-3,
     common_norm: bool = True,
     axis="y",
     unique_id=None,
