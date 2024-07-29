@@ -67,7 +67,7 @@ class LinePlot:
         x_label: str = "",
         title: str = "",
         facet: bool = False,
-        facet_title: bool = True,
+        facet_title: bool = False,
         cols_rows: Optional[tuple[int]] = None,
         inplace: bool = False,
     ):
