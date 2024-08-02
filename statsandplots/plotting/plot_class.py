@@ -141,9 +141,9 @@ class LinePlot:
         labelsize: int = 20,
         linewidth: int = 2,
         ticksize: int = 2,
-        ticklabel: int = 20,
-        steps: int = 5,
-        tick_style: Literal["all", "middle"] = "middle",
+        ticklabel: int = 12,
+        steps: int = 7,
+        tick_style: Literal["all", "middle"] = "all",
         y_decimals: int = None,
         x_decimals: int = None,
     ):
@@ -725,6 +725,7 @@ class CategoricalPlot:
             "linewidth": linewidth,
             "transform": transform,
             "color_dict": color_dict,
+            "alpha": alpha,
         }
         self.plots.append(summary_plot)
         self.plot_list.append("summary")

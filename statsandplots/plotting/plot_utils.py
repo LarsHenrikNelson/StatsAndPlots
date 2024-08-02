@@ -57,7 +57,7 @@ def _process_groups(df, group, subgroup, group_order, subgroup_order):
     if group is None:
         return ["none"], [""]
     if group_order is None:
-        group_order = df[group].unique()
+        group_order = sorted(df[group].unique())
     else:
         if len(group_order) != len(df[group].unique()):
             raise AttributeError(
@@ -65,7 +65,7 @@ def _process_groups(df, group, subgroup, group_order, subgroup_order):
             )
     if subgroup is not None:
         if subgroup_order is None:
-            subgroup_order = df[subgroup].unique()
+            subgroup_order = sorted(df[subgroup].unique())
         elif len(subgroup_order) != len(df[subgroup].unique()):
             raise AttributeError(
                 "The number subgroups does not match the number in subgroup_order"
@@ -126,15 +126,21 @@ def sem(a, axis=None):
 
 
 def ci(a):
-    ci_interval = stats.t.interval(
-        confidence=0.95, df=len(a) - 1, loc=np.mean(a), scale=stats.sem(a)
-    )
-    return ci_interval[1] - ci_interval[0]
+    t_critical = stats.t.ppf(1 - 0.05 / 2, len(a) - 1)
+    margin_of_error = t_critical * (np.std(a, ddof=1) / np.sqrt(len(a)))
+    return margin_of_error
+
+
+def ci_bca(a):
+    res = stats.bootstrap(a, np.mean)
+    print(res.confidence_interval)
+    return np.array([res.confidence_interval.low, res.confidence_interval.high])
 
 
 FUNC_DICT = {
     "sem": sem,
     "ci": ci,
+    "ci_bca": ci_bca,
     "mean": np.mean,
     "preiodic_mean": periodic_mean,
     "periodic_std": periodic_std,
