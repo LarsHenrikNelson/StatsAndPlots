@@ -896,10 +896,13 @@ def _count_plot(
             )[0]
             bottoms.append(0)
             tops.append(
-                sub_indexes.size / indexes.size
-                if axis_type == "density"
-                else sub_indexes.size
-            ) * multiplier
+                (
+                    sub_indexes.size / indexes.size
+                    if axis_type != "count"
+                    else sub_indexes.size
+                )
+                * multiplier
+            )
             fillcolors.append(to_rgba(color_dict[ui_group], alpha=alpha))
             edgecolors.append(to_rgba(linecolor_dict[ui_group], alpha=line_alpha))
             x_loc.append(loc_dict[gr] + dist[index])
