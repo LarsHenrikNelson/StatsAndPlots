@@ -880,7 +880,7 @@ class CategoricalPlot:
         linewidth=1,
         alpha: float = 1.0,
         line_alpha=1.0,
-        axis_type: Literal["density", "count"] = "density",
+        axis_type: Literal["density", "count", "percent"] = "density",
     ):
         # color_dict = process_args(
         #     facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
