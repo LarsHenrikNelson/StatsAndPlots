@@ -122,6 +122,7 @@ def _jitteru_plot(
     alpha=1,
     duplicate_offset=0.0,
     marker_size=2,
+    agg_func=None,
     transform=None,
     ax=None,
 ):
@@ -151,8 +152,8 @@ def _jitteru_plot(
                 )
                 x += output
             ax.plot(
-                x,
-                transform(df[y].iloc[sub_indexes]),
+                get_func(agg_func)(x),
+                get_func(agg_func)(transform(df[y].iloc[sub_indexes])),
                 marker_dict[i],
                 markerfacecolor=color_dict[i],
                 markeredgecolor=edgecolor_dict[i],

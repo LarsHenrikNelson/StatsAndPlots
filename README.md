@@ -112,6 +112,56 @@ temp = (
 temp.plot(savefig=True, path=path, filetype="png", backend="matplotlib")
 ```
 
+### Jitteru using an aggregate func
+<img src="examples/jitteru-aggregate-example.png">
+
+```python
+path = r"path/to/save/folder"
+temp = (
+    CategoricalPlot(
+        df=df,
+        y=column,
+        y_label="Waveform width",
+        group="genotype",
+        group_order=[r"WT", r"KO"],
+        subgroup="cell_type_short",
+        # subgroup_order=["PS", "PL", "I"],
+        subgroup_order=["PS", "PL", "I", "IB", "IS"],
+        group_spacing=1.0,
+        subgroup_spacing=1.4,
+        title="",
+        inplace=False,
+    )
+    .jitteru(
+        unique_id="id",
+        edgecolor="none",
+        marker=".",
+        width=0.55,
+        marker_size=2,
+        alpha=0.8,
+        color={
+            "PS": "green",
+            "PL": "grey",
+            "I": "royalblue",
+            "IB": "purple",
+            "IS": "orange",
+        },
+    )
+    .jitteru(
+        unique_id="id",
+        edgecolor="black",
+        jitter=0.0,
+        width=0.55,
+        alpha=0.9,
+        color="black",
+        agg_func="mean",
+        marker_size=2,
+        marker="o"
+    )
+)
+temp.plot(savefig=True, path=path, filetype="png", backend="matplotlib")
+```
+
 ### Percent plot where the y-axis represents fraction of samples below and above a cutoff (i.e. p-value cutoff).
 <img src="examples/percent-example-1.png">
 

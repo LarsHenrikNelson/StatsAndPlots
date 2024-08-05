@@ -669,6 +669,7 @@ class CategoricalPlot:
         duplicate_offset=0.0,
         marker_size: float = 2.0,
         transform: Union[None, str] = None,
+        agg_func: Union[None, str] = None,
     ):
         marker_dict = process_args(
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -690,6 +691,7 @@ class CategoricalPlot:
             "transform": transform,
             "unique_id": unique_id,
             "duplicate_offset": duplicate_offset,
+            "agg_func": agg_func,
         }
         self.plots.append(jitteru_plot)
         self.plot_list.append("jitteru")
