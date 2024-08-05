@@ -317,6 +317,28 @@ temp = (
 
 <br/>
 
+### Count plot (similar to a histogram of non-numeric data, splitting categorically similar to other categorical plots)
+<img src="examples/count-example.png">
+
+```python
+column = "group"
+temp = (
+    CategoricalPlot(
+        df=df_output,
+        y=column,
+        y_label="Proportion of units",
+        group="genotype",
+        group_order=["WT", "KO"],
+        group_spacing=1.0,
+        title="",
+        inplace=False,
+    ).count(
+        bar_width=0.8, facecolor=color_mapping, axis_type="density", linecolor="black"
+    )
+    .plot()
+)
+```
+
 ## More example code using a random dataset
 
 Import packages

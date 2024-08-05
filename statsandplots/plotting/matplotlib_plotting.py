@@ -49,6 +49,32 @@ HATCHES = [
 ]
 
 
+def _add_rectangles(
+    tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth, ax
+):
+    patches = []
+    for t, b, x, width, fc, ec, h, lw in zip(
+        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth
+    ):
+        left = x - width / 2
+        r = mpatches.Rectangle(
+            xy=(left, b),
+            width=width,
+            height=t,
+            facecolor=fc,
+            edgecolor=ec,
+            hatch=h,
+            linewidth=lw,
+        )
+        # r._internal_update()
+        r.get_path()._interpolation_steps = 100
+        r.sticky_edges.y.append(b)
+        ax.add_patch(r)
+        patches.append(r)
+    bar_container = BarContainer(patches, datavalues=tops)
+    return bar_container, ax
+
+
 def _jitter_plot(
     df,
     y,
@@ -71,11 +97,12 @@ def _jitter_plot(
     transform = get_func(transform)
 
     rng = default_rng(seed)
-    jitter_values = rng.random(unique_groups.size)
+    jitter_values = rng.random(len(unique_groups))
     jitter_values *= width
     jitter_values -= width / 2
 
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
         if unique_id is None:
             x = np.array([loc_dict[i]] * indexes.size)
@@ -132,7 +159,8 @@ def _jitteru_plot(
     transform = get_func(transform)
     temp = width / 2
 
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
         unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
         if len(unique_ids_sub) > 1:
@@ -184,7 +212,8 @@ def _summary_plot(
 
     transform = get_func(transform)
 
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
         tdata = get_func(func)(transform(df[y].iloc[indexes]))
         if err_func is not None:
@@ -244,7 +273,8 @@ def _boxplot(
 
     transform = get_func(transform)
 
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         props = {
             "boxprops": {
                 "facecolor": mpl.colors.to_rgba(color_dict[i], alpha=alpha),
@@ -302,7 +332,8 @@ def _violin_plot(
 
     transform = get_func(transform)
 
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
         indexes = indexes
 
@@ -343,7 +374,8 @@ def _hist_plot(
 ):
     if ax is None:
         ax = plt.gca()
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
         temp = df[y].iloc[indexes]
         ax[facet_dict[i]].hist(
@@ -434,7 +466,8 @@ def _ecdf(
     if ax is None:
         ax = plt.gca()
 
-    for i in unique_groups.unique():
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
         temp = df[y].iloc[indexes]
         ax[facet_dict[i]].ecdf(
@@ -475,10 +508,11 @@ def _poly_hist(
         if err_func is not None:
             err_func = get_func(err_func)
         x = np.linspace(bin[0], bin[1], num=steps)
-        for i in unique_groups.unique():
+        ugrp = np.unique(unique_groups)
+        for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
             temp_df = df.iloc[indexes]
-            uids = temp_df[unique_id].unique()
+            uids = np.unique(temp_df[unique_id])
             temp_list = np.zeros((len(uids), steps))
             for index, j in enumerate(uids):
                 temp = np.where(df[unique_id] == j)[0]
@@ -502,7 +536,8 @@ def _poly_hist(
                     color=color_dict[i],
                 )
     else:
-        for i in unique_groups.unique():
+        ugrp = np.unique(unique_groups)
+        for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
             temp = df[y].iloc[indexes].sort_values()
             poly = bin_data(temp, bins)
@@ -539,10 +574,11 @@ def _line_plot(
         func = get_func(func)
         if err_func is not None:
             err_func = get_func(err_func)
-        for i in unique_groups.unique():
+        ugrp = np.unique(unique_groups)
+        for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
             temp_df = df.iloc[indexes]
-            uids = temp_df[unique_id].unique()
+            uids = np.unique(temp_df[unique_id])
             temp_list_y = None
             temp_list_x = None
             for index, j in enumerate(uids):
@@ -580,7 +616,8 @@ def _line_plot(
                     color=color_dict[i],
                 )
     else:
-        for i in unique_groups.unique():
+        ugrp = np.unique(unique_groups)
+        for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
             temp_y = df[y].iloc[temp].to_numpy()
             temp_x = df[x].iloc[temp].to_numpy()
@@ -619,11 +656,11 @@ def biplot(
 
     if plot_pca:
         if group_order is None:
-            group_order = df[group].unique()
+            group_order = np.unique(df[group])
         if subgroup is None:
             subgroup_order = [""]
         if subgroup_order is None:
-            subgroup_order = df[subgroup].unique()
+            subgroup_order = np.unique(df[subgroup])
 
         unique_groups = []
         for i in group_order:
@@ -710,7 +747,6 @@ def _percent_plot(
     linecolor_dict,
     cutoff: Union[float, int, list[Union[float, int]]],
     include_bins: list[bool],
-    fill: bool = True,
     bar_width: float = 1.0,
     linewidth=1,
     alpha: float = 1.0,
@@ -729,7 +765,7 @@ def _percent_plot(
     for i in range(len(cutoff)):
         bins[i + 2] = cutoff[i]
 
-    groups = unique_groups.unique()
+    groups = np.unique(unique_groups)
     plot_bins = sum(include_bins)
 
     if unique_id is not None:
@@ -746,7 +782,6 @@ def _percent_plot(
     tops = []
     bottoms = []
     linewidth = [linewidth] * multiplier
-    fill = [fill] * multiplier
     edgecolors = []
     fillcolors = []
     x_loc = []
@@ -809,27 +844,72 @@ def _percent_plot(
                 x_s = [loc_dict[gr] + dist[index]] * plot_bins
                 x_loc.extend(x_s)
                 hatches.extend(hs)
-    patches = []
-    for t, b, x, width, fc, ec, h, lw in zip(
-        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth
-    ):
-        left = x - width / 2
-        r = mpatches.Rectangle(
-            xy=(left, b),
-            width=width,
-            height=t,
-            facecolor=fc,
-            edgecolor=ec,
-            hatch=h,
-            linewidth=lw,
-        )
-        # r._internal_update()
-        r.get_path()._interpolation_steps = 100
-        r.sticky_edges.y.append(b)
-        ax.add_patch(r)
-        patches.append(r)
-    bar_container = BarContainer(patches, datavalues=tops)
-    ax.add_container(bar_container)
+
+    _, ax = _add_rectangles(
+        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth, ax
+    )
+    return ax
+
+
+def _count_plot(
+    df,
+    y,
+    unique_groups,
+    loc_dict,
+    color_dict,
+    linecolor_dict,
+    hatch,
+    bar_width,
+    linewidth,
+    alpha,
+    line_alpha,
+    axis_type,
+    ax=None,
+):
+    groups = np.unique(unique_groups)
+
+    bw = []
+    bottoms = []
+    tops = []
+    fillcolors = []
+    edgecolors = []
+    x_loc = []
+    hatches = []
+    lws = []
+
+    multiplier = 100 if axis_type == "percent" else 1
+    for gr in groups:
+        indexes = np.where(unique_groups == gr)[0]
+        unique_ids_sub = np.unique(df[y].iloc[indexes])
+        temp_width = bar_width / len(unique_ids_sub)
+        if len(unique_ids_sub) > 1:
+            dist = np.linspace(
+                -bar_width / 2, bar_width / 2, num=len(unique_ids_sub) + 1
+            )
+            dist = (dist[1:] + dist[:-1]) / 2
+        else:
+            dist = [0]
+        bw.extend([temp_width] * len(unique_ids_sub))
+        for index, ui_group in enumerate(unique_ids_sub):
+            sub_indexes = np.where(
+                np.logical_and(df[y] == ui_group, unique_groups == gr)
+            )[0]
+            bottoms.append(0)
+            tops.append(
+                sub_indexes.size / indexes.size
+                if axis_type == "density"
+                else sub_indexes.size
+            ) * multiplier
+            fillcolors.append(to_rgba(color_dict[ui_group], alpha=alpha))
+            edgecolors.append(to_rgba(linecolor_dict[ui_group], alpha=line_alpha))
+            x_loc.append(loc_dict[gr] + dist[index])
+            hatches.append(HATCHES[index] if hatch else None)
+            lws.append(linewidth)
+
+    _, ax = _add_rectangles(
+        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, lws, ax
+    )
+    ax.autoscale()
     return ax
 
 

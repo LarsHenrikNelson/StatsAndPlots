@@ -39,6 +39,7 @@ MP_PLOTS = {
     "kde": mp._kde_plot,
     "percent": mp._percent_plot,
     "ecdf": mp._ecdf,
+    "count": mp._count_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -513,7 +514,7 @@ class CategoricalPlot:
         self,
         df: pd.DataFrame,
         y: Union[str, int, float],
-        group: Union[str, int, float],
+        group: Union[str, int, float] = None,
         subgroup: Union[str, int, float] = None,
         group_order: Union[None, list[Union[str, int, float]]] = None,
         subgroup_order: Union[None, list[Union[str, int, float]]] = None,
@@ -529,21 +530,33 @@ class CategoricalPlot:
         self.style = "default"
 
         if subgroup is not None:
+            if group not in df.columns:
+                raise ValueError(f"{group} must be supplied if subgroup is used")
             unique_groups = df[group].astype(str) + df[subgroup].astype(str)
         else:
-            unique_groups = df[group].astype(str) + ""
+            if group is None:
+                unique_groups = pd.Series([""] * df.shape[0])
+            else:
+                unique_groups = df[group].astype(str) + ""
 
-        group_order, subgroup_order = _process_groups(
-            df, group, subgroup, group_order, subgroup_order
-        )
+        if group is not None:
+            group_order, subgroup_order = _process_groups(
+                df, group, subgroup, group_order, subgroup_order
+            )
 
-        loc_dict, width = _process_positions(
-            subgroup=subgroup,
-            group_order=group_order,
-            subgroup_order=subgroup_order,
-            group_spacing=group_spacing,
-            subgroup_spacing=subgroup_spacing,
-        )
+            loc_dict, width = _process_positions(
+                subgroup=subgroup,
+                group_order=group_order,
+                subgroup_order=subgroup_order,
+                group_spacing=group_spacing,
+                subgroup_spacing=subgroup_spacing,
+            )
+        else:
+            group_order = [""]
+            subgroup_order = [""]
+            loc_dict = {}
+            loc_dict[""] = 0.0
+            width = 1
 
         x_ticks = [group_spacing * index for index, _ in enumerate(group_order)]
         self.plot_dict = {
@@ -811,7 +824,6 @@ class CategoricalPlot:
         unique_id=None,
         facecolor="none",
         linecolor: ColorDict = "black",
-        fill: bool = False,
         hatch=None,
         bar_width: float = 1.0,
         linewidth=1,
@@ -841,7 +853,6 @@ class CategoricalPlot:
             "color_dict": color_dict,
             "linecolor_dict": linecolor_dict,
             "cutoff": cutoff,
-            "fill": fill,
             "hatch": hatch,
             "bar_width": bar_width * self.plot_dict["width"],
             "linewidth": linewidth,
@@ -856,6 +867,44 @@ class CategoricalPlot:
             self.plot_dict["y_lim"] = [0.0, 1.0]
         else:
             self.plot_dict["y_lim"] = [0, 100]
+
+        if not self.inplace:
+            return self
+
+    def count(
+        self,
+        facecolor: ColorDict = "none",
+        linecolor: ColorDict = "black",
+        hatch=None,
+        bar_width: float = 1.0,
+        linewidth=1,
+        alpha: float = 1.0,
+        line_alpha=1.0,
+        axis_type: Literal["density", "count"] = "density",
+    ):
+        # color_dict = process_args(
+        #     facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        # )
+        if isinstance(facecolor, str):
+            unique_ids_sub = self.plot_dict["df"][self.plot_dict["y"]].unique()
+            facecolor = {key: facecolor for key in unique_ids_sub}
+
+        if isinstance(linecolor, str):
+            unique_ids_sub = self.plot_dict["df"][self.plot_dict["y"]].unique()
+            linecolor = {key: linecolor for key in unique_ids_sub}
+
+        count_plot = {
+            "color_dict": facecolor,
+            "linecolor_dict": linecolor,
+            "hatch": hatch,
+            "bar_width": bar_width * self.plot_dict["width"],
+            "linewidth": linewidth,
+            "alpha": alpha,
+            "line_alpha": line_alpha,
+            "axis_type": axis_type,
+        }
+        self.plots.append(count_plot)
+        self.plot_list.append("count")
 
         if not self.inplace:
             return self
@@ -905,7 +954,9 @@ class CategoricalPlot:
                 **j,
             )
 
-        if self.plot_dict["decimals"] is None:
+        if "count" in self.plot_list:
+            decimals = None
+        elif self.plot_dict["decimals"] is None:
 
             # No better way around this mess at the moment
             decimals = (
@@ -940,14 +991,21 @@ class CategoricalPlot:
             ax.set_ylim(
                 bottom=self.plot_dict["y_lim"][0], top=self.plot_dict["y_lim"][1]
             )
-            ticks = np.round(
-                np.linspace(
+            if decimals is not None:
+                ticks = np.round(
+                    np.linspace(
+                        self.plot_dict["y_lim"][0],
+                        self.plot_dict["y_lim"][1],
+                        self.plot_dict["steps"],
+                    ),
+                    decimals=decimals,
+                )
+            else:
+                ticks = np.linspace(
                     self.plot_dict["y_lim"][0],
                     self.plot_dict["y_lim"][1],
                     self.plot_dict["steps"],
-                ),
-                decimals=decimals,
-            )
+                )
             ax.set_yticks(ticks)
         else:
             ax.set_yscale(self.plot_dict["y_scale"])
