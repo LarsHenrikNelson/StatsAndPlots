@@ -15,6 +15,9 @@ from .plot_utils import (
     decimals,
     get_ticks,
     process_args,
+    AGGREGATE,
+    ERROR,
+    TRANSFORM,
 )
 
 
@@ -433,7 +436,7 @@ class LinePlot:
             i.spines["top"].set_visible(False)
             i.spines["left"].set_linewidth(self.plot_dict["linewidth"])
             i.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
-            if "/" in self.plot_dict["y"]:
+            if "/" in str(self.plot_dict["y"]):
                 self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
 
             if self.plot_dict["y_scale"] not in ["log", "symlog"]:
@@ -573,6 +576,7 @@ class CategoricalPlot:
             "width": width,
             "y_label": y_label,
             "title": title,
+            "transform": None,
         }
         self.plots = []
         self.plot_list = []
@@ -633,6 +637,12 @@ class CategoricalPlot:
         if not self.inplace:
             return self
 
+    def transform(self, transform: Optional[TRANSFORM] = (None,)):
+        self.plot_dict["transform"] = transform
+
+        if not self.inplace:
+            return self
+
     def jitter(
         self,
         color: ColorDict = "black",
@@ -642,7 +652,6 @@ class CategoricalPlot:
         jitter: Union[float, int] = 1.0,
         seed: int = 42,
         marker_size: float = 2.0,
-        transform: Union[None, str] = None,
         unique_id: Union[None] = None,
     ):
         marker_dict = process_args(
@@ -663,7 +672,6 @@ class CategoricalPlot:
             "width": jitter * self.plot_dict["width"],
             "seed": seed,
             "marker_size": marker_size,
-            "transform": transform,
             "unique_id": unique_id,
         }
         self.plots.append(jitter_plot)
@@ -682,8 +690,7 @@ class CategoricalPlot:
         width: Union[float, int] = 1.0,
         duplicate_offset=0.0,
         marker_size: float = 2.0,
-        transform: Union[None, str] = None,
-        agg_func: Union[None, str] = None,
+        agg_func: Optional[AGGREGATE] = None,
     ):
         marker_dict = process_args(
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -702,7 +709,6 @@ class CategoricalPlot:
             "alpha": alpha,
             "width": width * self.plot_dict["width"],
             "marker_size": marker_size,
-            "transform": transform,
             "unique_id": unique_id,
             "duplicate_offset": duplicate_offset,
             "agg_func": agg_func,
@@ -715,15 +721,14 @@ class CategoricalPlot:
 
     def summary(
         self,
-        func: str = "mean",
+        func: AGGREGATE = "mean",
         capsize: int = 0,
         capstyle: str = "round",
         bar_width: float = 1.0,
-        err_func: str = "sem",
+        err_func: ERROR = "sem",
         linewidth: int = 2,
         color: ColorDict = "black",
         alpha: float = 1.0,
-        transform=None,
     ):
         if self.style == "dark_background" and color == "black":
             color = "white"
@@ -739,7 +744,6 @@ class CategoricalPlot:
             "bar_width": bar_width * self.plot_dict["width"],
             "err_func": err_func,
             "linewidth": linewidth,
-            "transform": transform,
             "color_dict": color_dict,
             "alpha": alpha,
         }
@@ -755,7 +759,6 @@ class CategoricalPlot:
         linecolor: ColorDict = "black",
         fliers="",
         box_width: float = 1.0,
-        transform=None,
         linewidth=1,
         alpha: AlphaRange = 1.0,
         line_alpha: AlphaRange = 1.0,
@@ -776,7 +779,6 @@ class CategoricalPlot:
             "box_width": box_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_ci": show_ci,
-            "transform": transform,
             "linewidth": linewidth,
             "alpha": alpha,
             "line_alpha": line_alpha,
@@ -796,7 +798,6 @@ class CategoricalPlot:
         violin_width: float = 1.0,
         show_means: bool = True,
         show_medians: bool = False,
-        transform=None,
     ):
         color_dict = process_args(
             facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -812,7 +813,6 @@ class CategoricalPlot:
             "violin_width": violin_width * self.plot_dict["width"],
             "show_means": show_means,
             "show_medians": show_medians,
-            "transform": transform,
         }
         self.plots.append(violin)
         self.plot_list.append("violin")
@@ -952,6 +952,7 @@ class CategoricalPlot:
                 loc_dict=self.plot_dict["loc_dict"],
                 unique_groups=self.plot_dict["unique_groups"],
                 ax=ax,
+                transform=self.plot_dict["transform"],
                 **j,
             )
 

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from scipy import stats
 import numpy as np
 
@@ -137,12 +139,18 @@ def ci_bca(a):
     return np.array([res.confidence_interval.low, res.confidence_interval.high])
 
 
+TRANSFORM = Literal["log10", "log2", "ln", "inverse", "ninverse"]
+AGGREGATE = Literal["mean", "periodic_mean", "nanmean", "median"]
+ERROR = Literal[
+    "sem", "ci", "periodic_std", "periodic_sem", "std", "nanstd", "var", "nanvar"
+]
+
 FUNC_DICT = {
     "sem": sem,
     "ci": ci,
     "ci_bca": ci_bca,
     "mean": np.mean,
-    "preiodic_mean": periodic_mean,
+    "periodic_mean": periodic_mean,
     "periodic_std": periodic_std,
     "periodic_sem": periodic_sem,
     "nanmean": np.nanmean,

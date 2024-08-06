@@ -754,6 +754,7 @@ def _percent_plot(
     hatch=None,
     unique_id=None,
     ax=None,
+    tranform=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -865,6 +866,7 @@ def _count_plot(
     line_alpha,
     axis_type,
     ax=None,
+    tranform=None,
 ):
     groups = np.unique(unique_groups)
 
