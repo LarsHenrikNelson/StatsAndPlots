@@ -73,7 +73,7 @@ class LinePlot:
         inplace: bool = False,
     ):
         self.inplace = inplace
-        self.plots = {}
+        self.plots = []
         self.plot_list = []
         self._plot_settings_run = False
 
@@ -218,7 +218,7 @@ class LinePlot:
             "x": x,
             "alpha": alpha,
         }
-        self.plots["line_plot"] = line_plot
+        self.plots.append(line_plot)
         self.plot_list.append("line_plot")
 
         if not self.inplace:
@@ -278,7 +278,7 @@ class LinePlot:
             "common_norm": common_norm,
         }
 
-        self.plots["kde"] = kde_plot
+        self.plots.append(kde_plot)
         self.plot_list.append("kde")
 
         if not self.inplace:
@@ -316,7 +316,7 @@ class LinePlot:
             "fit_func": fit_func,
             "alpha": alpha,
         }
-        self.plots["poly_hist"] = poly_hist
+        self.plots.append(poly_hist)
         self.plot_list.append("poly_hist")
 
         if not self.inplace:
@@ -342,7 +342,7 @@ class LinePlot:
             "linewidth": linewidth,
             "alpha": alpha,
         }
-        self.plots["ecdf"] = ecdf
+        self.plots.append(ecdf)
         self.plot_list.append("ecdf")
 
         if not self.inplace:
@@ -396,7 +396,7 @@ class LinePlot:
                 figsize=self.plot_dict["figsize"],
             )
             ax = [ax]
-        for i in self.plot_list:
+        for i, j in zip(self.plot_list, self.plots):
             plot_func = MP_PLOTS[i]
             plot_func(
                 df=self.plot_dict["df"],
@@ -405,7 +405,7 @@ class LinePlot:
                 unique_id=self.plot_dict["unique_id"],
                 facet_dict=self.plot_dict["facet_dict"],
                 ax=ax,
-                **self.plots[i],
+                **j,
             )
 
         if self.plot_dict["y_decimals"] is None:
@@ -421,12 +421,13 @@ class LinePlot:
             if "kde" in self.plot_list and all(
                 v is None for v in self.plot_dict["y_lim"]
             ):
-                if self.plots["kde"]["axis"] == "y":
+                if j["axis"] == "y":
                     self.plot_dict["y_lim"] = [0, None]
             if "kde" in self.plot_list and all(
                 v is None for v in self.plot_dict["x_lim"]
             ):
-                if self.plots["kde"]["axis"] == "x":
+                index = self.plot_list.index("kde")
+                if self.plots[index]["axis"] == "x":
                     self.plot_dict["x_lim"] = [0, None]
             i.spines["right"].set_visible(False)
             i.spines["top"].set_visible(False)
