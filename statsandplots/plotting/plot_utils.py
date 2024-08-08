@@ -31,7 +31,7 @@ def get_ticks(
     ticks,
     steps,
     n_decimals,
-    tick_style=None,
+    tickstyle=None,
 ):
     if lim[0] is None:
         lim[0] = ticks[0]
@@ -45,7 +45,7 @@ def get_ticks(
         ),
         decimals=n_decimals,
     )
-    if tick_style == "middle":
+    if tickstyle == "middle":
         ticks = ticks[1:-1]
     return lim, ticks
 

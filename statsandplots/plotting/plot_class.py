@@ -67,8 +67,8 @@ class LinePlot:
         group_order: Optional[list[str]] = None,
         subgroup_order: Optional[list[str]] = None,
         unique_id: Optional[str] = None,
-        y_label: str = "",
-        x_label: str = "",
+        ylabel: str = "",
+        xlabel: str = "",
         title: str = "",
         facet: bool = False,
         facet_title: bool = False,
@@ -122,8 +122,8 @@ class LinePlot:
             "group_order": group_order,
             "subgroup_order": subgroup_order,
             "unique_groups": unique_groups,
-            "y_label": y_label,
-            "x_label": x_label,
+            "ylabel": ylabel,
+            "xlabel": xlabel,
             "title": title,
             "facet": facet,
             "facet_dict": facet_dict,
@@ -135,10 +135,10 @@ class LinePlot:
     def plot_settings(
         self,
         style: str = "default",
-        y_lim: Optional[list] = None,
-        x_lim: Optional[list] = None,
-        y_scale: Literal["linear", "log", "symlog"] = "linear",
-        x_scale: Literal["linear", "log", "symlog"] = "linear",
+        ylim: Optional[list] = None,
+        xlim: Optional[list] = None,
+        yscale: Literal["linear", "log", "symlog"] = "linear",
+        xscale: Literal["linear", "log", "symlog"] = "linear",
         margins: float = 0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
@@ -147,19 +147,19 @@ class LinePlot:
         ticksize: int = 2,
         ticklabel: int = 12,
         steps: int = 7,
-        tick_style: Literal["all", "middle"] = "all",
+        tickstyle: Literal["all", "middle"] = "all",
         y_decimals: int = None,
         x_decimals: int = None,
     ):
         self._plot_settings_run = True
-        if y_lim is None:
-            y_lim = [None, None]
-        if x_lim is None:
-            x_lim = [None, None]
+        if ylim is None:
+            ylim = [None, None]
+        if xlim is None:
+            xlim = [None, None]
 
         plot_settings = {
-            "y_scale": y_scale,
-            "x_scale": x_scale,
+            "yscale": yscale,
+            "xscale": xscale,
             "margins": margins,
             "aspect": aspect,
             "figsize": figsize,
@@ -167,12 +167,12 @@ class LinePlot:
             "ticksize": ticksize,
             "ticklabel": ticklabel,
             "linewidth": linewidth,
-            "y_lim": y_lim,
-            "x_lim": x_lim,
+            "ylim": ylim,
+            "xlim": xlim,
             "y_decimals": y_decimals,
             "x_decimals": x_decimals,
             "steps": steps,
-            "tick_style": tick_style,
+            "tickstyle": tickstyle,
         }
         self.plot_dict.update(plot_settings)
 
@@ -422,16 +422,16 @@ class LinePlot:
         num_plots = len(self.plot_dict["group_order"])
         for index, i in enumerate(ax[:num_plots]):
             if "kde" in self.plot_list and all(
-                v is None for v in self.plot_dict["y_lim"]
+                v is None for v in self.plot_dict["ylim"]
             ):
                 if j["axis"] == "y":
-                    self.plot_dict["y_lim"] = [0, None]
+                    self.plot_dict["ylim"] = [0, None]
             if "kde" in self.plot_list and all(
-                v is None for v in self.plot_dict["x_lim"]
+                v is None for v in self.plot_dict["xlim"]
             ):
                 index = self.plot_list.index("kde")
                 if self.plots[index]["axis"] == "x":
-                    self.plot_dict["x_lim"] = [0, None]
+                    self.plot_dict["xlim"] = [0, None]
             i.spines["right"].set_visible(False)
             i.spines["top"].set_visible(False)
             i.spines["left"].set_linewidth(self.plot_dict["linewidth"])
@@ -439,45 +439,43 @@ class LinePlot:
             if "/" in str(self.plot_dict["y"]):
                 self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
 
-            if self.plot_dict["y_scale"] not in ["log", "symlog"]:
+            if self.plot_dict["yscale"] not in ["log", "symlog"]:
                 ticks = i.get_yticks()
                 lim, ticks = get_ticks(
-                    self.plot_dict["y_lim"],
+                    self.plot_dict["ylim"],
                     ticks,
                     self.plot_dict["steps"],
                     y_decimals,
-                    tick_style=self.plot_dict["tick_style"],
+                    tickstyle=self.plot_dict["tickstyle"],
                 )
                 i.set_ylim(bottom=lim[0], top=lim[1])
                 i.set_yticks(ticks)
             else:
-                i.set_yscale(self.plot_dict["y_scale"])
+                i.set_yscale(self.plot_dict["yscale"])
                 ticks = i.get_yticks()
                 lim, _ = get_ticks(
-                    self.plot_dict["y_lim"], ticks, self.plot_dict["steps"], y_decimals
+                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], y_decimals
                 )
                 i.set_ylim(bottom=lim[0], top=lim[1])
-            if self.plot_dict["x_scale"] not in ["log", "symlog"]:
+            if self.plot_dict["xscale"] not in ["log", "symlog"]:
                 ticks = i.get_xticks()
                 lim, ticks = get_ticks(
-                    self.plot_dict["x_lim"],
+                    self.plot_dict["xlim"],
                     ticks,
                     self.plot_dict["steps"],
                     x_decimals,
-                    tick_style=self.plot_dict["tick_style"],
+                    tickstyle=self.plot_dict["tickstyle"],
                 )
                 i.set_xlim(left=lim[0], right=lim[1])
                 i.set_xticks(ticks)
             else:
-                i.set_xscale(self.plot_dict["x_scale"])
+                i.set_xscale(self.plot_dict["xscale"])
                 ticks = i.get_xticks()
                 lim, _ = get_ticks(
-                    self.plot_dict["x_lim"], ticks, self.plot_dict["steps"], x_decimals
+                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], x_decimals
                 )
                 i.set_xlim(left=lim[0], right=lim[1])
-            i.set_ylabel(
-                self.plot_dict["y_label"], fontsize=self.plot_dict["labelsize"]
-            )
+            i.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
             if self.plot_dict["facet_title"]:
                 i.set_title(
                     self.plot_dict["group_order"][index],
@@ -524,7 +522,7 @@ class CategoricalPlot:
         subgroup_order: Union[None, list[Union[str, int, float]]] = None,
         group_spacing: Union[float, int] = 1.0,
         subgroup_spacing: Union[float, int] = 0.6,
-        y_label: str = "",
+        ylabel: str = "",
         title: str = "",
         inplace: bool = True,
     ):
@@ -574,7 +572,7 @@ class CategoricalPlot:
             "x_ticks": x_ticks,
             "loc_dict": loc_dict,
             "width": width,
-            "y_label": y_label,
+            "ylabel": ylabel,
             "title": title,
             "transform": None,
         }
@@ -584,8 +582,8 @@ class CategoricalPlot:
     def plot_settings(
         self,
         style: str = "default",
-        y_lim: Optional[list] = None,
-        y_scale: Literal["linear", "log", "symlog"] = "linear",
+        ylim: Optional[list] = None,
+        yscale: Literal["linear", "log", "symlog"] = "linear",
         steps: int = 5,
         margins=0.05,
         aspect: Union[int, float] = 1,
@@ -597,14 +595,14 @@ class CategoricalPlot:
         decimals: int = None,
     ):
         self._plot_settings_run = True
-        if "y_lim" in self.plot_dict:
-            y_lim = self.plot_dict["y_lim"]
-        elif y_lim is None:
-            y_lim = [None, None]
+        if "ylim" in self.plot_dict:
+            ylim = self.plot_dict["ylim"]
+        elif ylim is None:
+            ylim = [None, None]
 
         plot_settings = {
-            "y_lim": y_lim,
-            "y_scale": y_scale,
+            "ylim": ylim,
+            "yscale": yscale,
             "steps": steps,
             "margins": margins,
             "aspect": aspect,
@@ -865,9 +863,9 @@ class CategoricalPlot:
         self.plots.append(percent_plot)
         self.plot_list.append("percent")
         if axis_type == "density":
-            self.plot_dict["y_lim"] = [0.0, 1.0]
+            self.plot_dict["ylim"] = [0.0, 1.0]
         else:
-            self.plot_dict["y_lim"] = [0, 100]
+            self.plot_dict["ylim"] = [0, 100]
 
         if not self.inplace:
             return self
@@ -984,42 +982,38 @@ class CategoricalPlot:
         ax.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
         if "/" in self.plot_dict["y"]:
             self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
-        if self.plot_dict["y_scale"] not in ["log", "symlog"]:
+        if self.plot_dict["yscale"] not in ["log", "symlog"]:
             ticks = ax.get_yticks()
-            if self.plot_dict["y_lim"][0] is None:
-                self.plot_dict["y_lim"][0] = ticks[0]
-            if self.plot_dict["y_lim"][1] is None:
-                self.plot_dict["y_lim"][1] = ticks[-1]
-            ax.set_ylim(
-                bottom=self.plot_dict["y_lim"][0], top=self.plot_dict["y_lim"][1]
-            )
+            if self.plot_dict["ylim"][0] is None:
+                self.plot_dict["ylim"][0] = ticks[0]
+            if self.plot_dict["ylim"][1] is None:
+                self.plot_dict["ylim"][1] = ticks[-1]
+            ax.set_ylim(bottom=self.plot_dict["ylim"][0], top=self.plot_dict["ylim"][1])
             if decimals is not None:
                 ticks = np.round(
                     np.linspace(
-                        self.plot_dict["y_lim"][0],
-                        self.plot_dict["y_lim"][1],
+                        self.plot_dict["ylim"][0],
+                        self.plot_dict["ylim"][1],
                         self.plot_dict["steps"],
                     ),
                     decimals=decimals,
                 )
             else:
                 ticks = np.linspace(
-                    self.plot_dict["y_lim"][0],
-                    self.plot_dict["y_lim"][1],
+                    self.plot_dict["ylim"][0],
+                    self.plot_dict["ylim"][1],
                     self.plot_dict["steps"],
                 )
             ax.set_yticks(ticks)
         else:
-            ax.set_yscale(self.plot_dict["y_scale"])
+            ax.set_yscale(self.plot_dict["yscale"])
             ticks = ax.get_yticks()
-            if self.plot_dict["y_lim"][0] is None:
-                self.plot_dict["y_lim"][0] = ticks[0]
-            if self.plot_dict["y_lim"][1] is None:
-                self.plot_dict["y_lim"][1] = ticks[-1]
-            ax.set_ylim(
-                bottom=self.plot_dict["y_lim"][0], top=self.plot_dict["y_lim"][1]
-            )
-        ax.set_ylabel(self.plot_dict["y_label"], fontsize=self.plot_dict["labelsize"])
+            if self.plot_dict["ylim"][0] is None:
+                self.plot_dict["ylim"][0] = ticks[0]
+            if self.plot_dict["ylim"][1] is None:
+                self.plot_dict["ylim"][1] = ticks[-1]
+            ax.set_ylim(bottom=self.plot_dict["ylim"][0], top=self.plot_dict["ylim"][1])
+        ax.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
         ax.set_title(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
         ax.tick_params(
             axis="both",
@@ -1072,18 +1066,18 @@ class CategoricalPlot:
         else:
             decimals = self.plot_dict["decimals"]
 
-        if self.plot_dict["y_lim"][0] is None:
-            self.plot_dict["y_lim"][0] = (
+        if self.plot_dict["ylim"][0] is None:
+            self.plot_dict["ylim"][0] = (
                 self.plot_dict["df"][self.plot_dict["y"]].min() * 0.9
             )
-        if self.plot_dict["y_lim"][1] is None:
-            self.plot_dict["y_lim"][1] = (
+        if self.plot_dict["ylim"][1] is None:
+            self.plot_dict["ylim"][1] = (
                 self.plot_dict["df"][self.plot_dict["y"]].max() * 1.1
             )
         ticks = np.round(
             np.linspace(
-                self.plot_dict["y_lim"][0],
-                self.plot_dict["y_lim"][1],
+                self.plot_dict["ylim"][0],
+                self.plot_dict["ylim"][1],
                 self.plot_dict["steps"],
             ),
             decimals=decimals,
@@ -1105,7 +1099,7 @@ class CategoricalPlot:
             ),
             yaxis=dict(
                 titlefont=dict(size=self.plot_dict["labelsize"]),
-                title=dict(text=self.plot_dict["y_label"]),
+                title=dict(text=self.plot_dict["ylabel"]),
                 nticks=self.plot_dict["steps"],
                 showline=True,
                 tickmode="array",

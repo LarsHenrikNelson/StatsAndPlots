@@ -25,7 +25,7 @@ fig = (
     CategoricalPlot(
         df=df_lhn.dropna(subset=columns[column]),
         y="Membrane resistance,
-        y_label="Membrane resistance",
+        ylabel="Membrane resistance",
         group="genotype",
         group_order=[r"Shank3B+/+", r"Shank3B-/-"],
         group_spacing=1.25,
@@ -80,7 +80,7 @@ temp = (
     CategoricalPlot(
         df=df,
         y=column,
-        y_label="STTC 5ms",
+        ylabel="STTC 5ms",
         group="genotype",
         group_order=[r"WT", r"KO"],
         subgroup="cell_type_short",
@@ -129,7 +129,7 @@ temp = (
     CategoricalPlot(
         df=df,
         y=column,
-        y_label="Waveform width",
+        ylabel="Waveform width",
         group="genotype",
         group_order=[r"WT", r"KO"],
         subgroup="cell_type_short",
@@ -181,7 +181,7 @@ temp = (
     CategoricalPlot(
         df=df,
         y=column,
-        y_label=column,
+        ylabel=column,
         group="genotype",
         group_order=[r"WT", r"KO"],
         subgroup="cell_type_short",
@@ -222,7 +222,7 @@ temp = (
     CategoricalPlot(
         df=df,
         y=column,
-        y_label=column,
+        ylabel=column,
         group="genotype",
         group_order=[r"WT", r"KO"],
         subgroup="cell_type_short",
@@ -267,7 +267,7 @@ temp = (
     CategoricalPlot(
         df=df,
         y=column,
-        y_label=column,
+        ylabel=column,
         group="genotype",
         group_order=[r"WT", r"KO"],
         subgroup="cell_type_short",
@@ -334,7 +334,7 @@ temp = (
     CategoricalPlot(
         df=df_output,
         y=column,
-        y_label="Proportion of units",
+        ylabel="Proportion of units",
         group="genotype",
         group_order=["WT", "KO"],
         group_spacing=1.0,
