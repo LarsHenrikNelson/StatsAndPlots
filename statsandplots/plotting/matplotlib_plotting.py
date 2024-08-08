@@ -86,7 +86,7 @@ def _jitter_plot(
     edgecolor_dict,
     alpha=1,
     seed=42,
-    marker_size=2,
+    markersize=2,
     transform=None,
     ax=None,
     unique_id=None,
@@ -114,7 +114,7 @@ def _jitter_plot(
                 markerfacecolor=color_dict[i],
                 markeredgecolor=edgecolor_dict[i],
                 alpha=alpha,
-                markersize=marker_size,
+                markersize=markersize,
             )
         else:
             unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
@@ -131,7 +131,7 @@ def _jitter_plot(
                     markerfacecolor=color_dict[i],
                     markeredgecolor=edgecolor_dict[i],
                     alpha=alpha,
-                    markersize=marker_size,
+                    markersize=markersize,
                 )
     return ax
 
@@ -148,7 +148,7 @@ def _jitteru_plot(
     edgecolor_dict,
     alpha=1,
     duplicate_offset=0.0,
-    marker_size=2,
+    markersize=2,
     agg_func=None,
     transform=None,
     ax=None,
@@ -186,7 +186,7 @@ def _jitteru_plot(
                 markerfacecolor=color_dict[i],
                 markeredgecolor=edgecolor_dict[i],
                 alpha=alpha,
-                markersize=marker_size,
+                markersize=markersize,
             )
     return ax
 
@@ -199,7 +199,7 @@ def _summary_plot(
     func,
     capsize,
     capstyle,
-    bar_width,
+    barwidth,
     err_func,
     linewidth,
     color_dict,
@@ -240,7 +240,7 @@ def _summary_plot(
         _, _, bars = ax.errorbar(
             x=loc_dict[i],
             y=tdata,
-            xerr=bar_width / 2,
+            xerr=barwidth / 2,
             # yerr=err_data,
             c=to_rgba(color_dict[i], alpha=alpha),
             fmt="none",
@@ -261,7 +261,7 @@ def _boxplot(
     fliers="",
     box_width: float = 1.0,
     linewidth=1,
-    show_means: bool = False,
+    showmeans: bool = False,
     show_ci: bool = False,
     alpha: float = 1.0,
     line_alpha=1.0,
@@ -290,7 +290,7 @@ def _boxplot(
                 "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
             },
         }
-        if show_means:
+        if showmeans:
             props["meanprops"] = {
                 "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
             }
@@ -302,8 +302,8 @@ def _boxplot(
             widths=box_width,
             notch=show_ci,
             patch_artist=True,
-            showmeans=show_means,
-            meanline=show_means,
+            showmeans=showmeans,
+            meanline=showmeans,
             **props,
         )
         for i in bplot["boxes"]:
@@ -322,8 +322,8 @@ def _violin_plot(
     alpha=1,
     showextrema: bool = False,
     violin_width: float = 1.0,
-    show_means: bool = True,
-    show_medians: bool = False,
+    showmeans: bool = True,
+    showmedians: bool = False,
     transform=None,
     ax=None,
 ):
@@ -341,17 +341,17 @@ def _violin_plot(
             transform(df[y].iloc[indexes]),
             positions=[loc_dict[i]],
             widths=violin_width,
-            showmeans=show_means,
-            showmedians=show_medians,
+            showmeans=showmeans,
+            showmedians=showmedians,
             showextrema=showextrema,
         )
         for body in parts["bodies"]:
             body.set_alpha(alpha)
             body.set_facecolor(color_dict[i])
             body.set_edgecolor(edge_dict[i])
-        if show_means:
+        if showmeans:
             parts["cmeans"].set_color(edge_dict[i])
-        if show_medians:
+        if showmedians:
             parts["cmedians"].set_color(edge_dict[i])
 
     return ax
@@ -392,13 +392,13 @@ def _kde_plot(
     df,
     y,
     unique_groups,
-    line_color_dict,
+    linecolor_dict,
     facet_dict,
     linestyle_dict,
     linewidth,
     alpha,
     fill_under,
-    fill_color_dict,
+    fillcolor_dict,
     kernel: Literal[
         "gaussian",
         "exponential",
@@ -439,14 +439,14 @@ def _kde_plot(
         ax[facet_dict[i]].plot(
             x_kde,
             y_kde,
-            c=line_color_dict[i],
+            c=linecolor_dict[i],
             linestyle=linestyle_dict[i],
             alpha=alpha,
             linewidth=linewidth,
         )
         if fill_under:
             ax[facet_dict[i]].fill_between(
-                x_kde, y_kde, color=fill_color_dict[i], alpha=alpha
+                x_kde, y_kde, color=fillcolor_dict[i], alpha=alpha
             )
     return ax
 
@@ -747,14 +747,14 @@ def _percent_plot(
     linecolor_dict,
     cutoff: Union[float, int, list[Union[float, int]]],
     include_bins: list[bool],
-    bar_width: float = 1.0,
+    barwidth: float = 1.0,
     linewidth=1,
     alpha: float = 1.0,
     line_alpha=1.0,
     hatch=None,
     unique_id=None,
     ax=None,
-    tranform=None,
+    transform=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -792,8 +792,8 @@ def _percent_plot(
     for gr in groups:
         indexes = np.where(unique_groups == gr)[0]
         if unique_id is None:
-            bar_width = [bar_width] * multiplier
-            bw.extend(bar_width)
+            barwidth = [barwidth] * multiplier
+            bw.extend(barwidth)
             temp = df[y].iloc[indexes].sort_values()
             binned_data = bin_data(temp, bins)
             binned_data = binned_data / binned_data.sum()
@@ -814,10 +814,10 @@ def _percent_plot(
             hatches.extend(hs)
         else:
             unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
-            temp_width = bar_width / len(unique_ids_sub)
+            temp_width = barwidth / len(unique_ids_sub)
             if len(unique_ids_sub) > 1:
                 dist = np.linspace(
-                    -bar_width / 2, bar_width / 2, num=len(unique_ids_sub) + 1
+                    -barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1
                 )
                 dist = (dist[1:] + dist[:-1]) / 2
             else:
@@ -860,13 +860,13 @@ def _count_plot(
     color_dict,
     linecolor_dict,
     hatch,
-    bar_width,
+    barwidth,
     linewidth,
     alpha,
     line_alpha,
     axis_type,
     ax=None,
-    tranform=None,
+    transform=None,
 ):
     groups = np.unique(unique_groups)
 
@@ -883,10 +883,10 @@ def _count_plot(
     for gr in groups:
         indexes = np.where(unique_groups == gr)[0]
         unique_ids_sub = np.unique(df[y].iloc[indexes])
-        temp_width = bar_width / len(unique_ids_sub)
+        temp_width = barwidth / len(unique_ids_sub)
         if len(unique_ids_sub) > 1:
             dist = np.linspace(
-                -bar_width / 2, bar_width / 2, num=len(unique_ids_sub) + 1
+                -barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1
             )
             dist = (dist[1:] + dist[:-1]) / 2
         else:
@@ -922,7 +922,7 @@ def _plot_network(
     graph,
     marker_alpha: float = 0.8,
     line_alpha: float = 0.1,
-    marker_size: int = 2,
+    markersize: int = 2,
     marker_scale: int = 1,
     linewidth: int = 1,
     edge_color: str = "k",
@@ -963,8 +963,8 @@ def _plot_network(
             )
 
     nodelist = list(Gcc)
-    marker_size = np.array([Gcc.degree(i) for i in nodelist])
-    marker_size = marker_size * marker_scale
+    markersize = np.array([Gcc.degree(i) for i in nodelist])
+    markersize = markersize * marker_scale
     xy = np.asarray([pos[v] for v in nodelist])
 
     edgelist = list(Gcc.edges(data=True))
@@ -1001,7 +1001,7 @@ def _plot_network(
         mcolor = marker_color
 
     path_collection = ax.scatter(
-        xy[:, 0], xy[:, 1], s=marker_size, alpha=marker_alpha, c=mcolor
+        xy[:, 0], xy[:, 1], s=markersize, alpha=marker_alpha, c=mcolor
     )
     path_collection.set_zorder(1)
     ax.axis("off")

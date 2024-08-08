@@ -39,13 +39,13 @@ fig = (
         alpha=0.5,
         jitter=0.8,
         transform=None,
-        marker_size=7,
+        markersize=7,
     )
     .summary(
         func="mean",
         capsize=0,
         capstyle="round",
-        bar_width=0.8,
+        barwidth=0.8,
         err_func="sem",
         linewidth=2,
         transform=None,
@@ -106,7 +106,7 @@ temp = (
         func="mean",
         capsize=0,
         capstyle="round",
-        bar_width=0.8,
+        barwidth=0.8,
         err_func="ci",
         linewidth=2,
         alpha=0.8,
@@ -145,7 +145,7 @@ temp = (
         edgecolor="none",
         marker=".",
         width=0.55,
-        marker_size=2,
+        markersize=2,
         alpha=0.8,
         color={
             "PS": "green",
@@ -163,7 +163,7 @@ temp = (
         alpha=0.9,
         color="black",
         agg_func="mean",
-        marker_size=2,
+        markersize=2,
         marker="o"
     )
 )
@@ -204,7 +204,7 @@ temp = (
             "K": "darkorange"
         },
         alpha=0.3,
-        bar_width=0.8,
+        barwidth=0.8,
         linewidth=0,
     )
     .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
@@ -249,7 +249,7 @@ temp = (
             "I": "royalblue",
         },
         alpha=0.6,
-        bar_width=0.8,
+        barwidth=0.8,
         linewidth=1,
     )
     .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
@@ -293,7 +293,7 @@ temp = (
             "I": "royalblue",
         },
         alpha=0.3,
-        bar_width=0.8,
+        barwidth=0.8,
         linewidth=0,
     )
     .percent(
@@ -313,7 +313,7 @@ temp = (
             "I": "royalblue",
         },
         alpha=0.6,
-        bar_width=0.8,
+        barwidth=0.8,
         linewidth=1,
     )
     .plot(savefig=True, path=path, filetype="png", backend="matplotlib")
@@ -341,7 +341,7 @@ temp = (
         title="",
         inplace=False,
     ).count(
-        bar_width=0.8, facecolor=color_mapping, axis_type="density", linecolor="black"
+        barwidth=0.8, facecolor=color_mapping, axis_type="density", linecolor="black"
     )
     .plot()
 )

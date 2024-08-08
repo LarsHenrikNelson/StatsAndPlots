@@ -243,37 +243,37 @@ class LinePlot:
         bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
         tol: Union[float, int] = 1e-3,
         common_norm: bool = True,
-        line_color: ColorDict = "black",
+        linecolor: ColorDict = "black",
         linestyle: str = "-",
         linewidth: int = 2,
         fill_under: bool = False,
-        fill_color: ColorDict = "black",
+        fillcolor: ColorDict = "black",
         alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
     ):
-        line_color_dict = process_args(
-            line_color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        linecolor_dict = process_args(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         if fill_under:
-            fill_color_dict = process_args(
-                fill_color,
+            fillcolor_dict = process_args(
+                fillcolor,
                 self.plot_dict["group_order"],
                 self.plot_dict["subgroup_order"],
             )
         else:
-            fill_color_dict = {}
+            fillcolor_dict = {}
 
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
 
         kde_plot = {
-            "line_color_dict": line_color_dict,
+            "linecolor_dict": linecolor_dict,
             "linestyle_dict": linestyle_dict,
             "linewidth": linewidth,
             "alpha": alpha,
             "fill_under": fill_under,
-            "fill_color_dict": fill_color_dict,
+            "fillcolor_dict": fillcolor_dict,
             "axis": axis,
             "kernel": kernel,
             "bw": bw,
@@ -651,7 +651,7 @@ class CategoricalPlot:
         alpha: AlphaRange = 1.0,
         jitter: Union[float, int] = 1.0,
         seed: int = 42,
-        marker_size: float = 2.0,
+        markersize: float = 2.0,
         unique_id: Union[None] = None,
     ):
         marker_dict = process_args(
@@ -671,7 +671,7 @@ class CategoricalPlot:
             "alpha": alpha,
             "width": jitter * self.plot_dict["width"],
             "seed": seed,
-            "marker_size": marker_size,
+            "markersize": markersize,
             "unique_id": unique_id,
         }
         self.plots.append(jitter_plot)
@@ -689,7 +689,7 @@ class CategoricalPlot:
         alpha: AlphaRange = 1.0,
         width: Union[float, int] = 1.0,
         duplicate_offset=0.0,
-        marker_size: float = 2.0,
+        markersize: float = 2.0,
         agg_func: Optional[AGGREGATE] = None,
     ):
         marker_dict = process_args(
@@ -708,7 +708,7 @@ class CategoricalPlot:
             "edgecolor_dict": edgecolor_dict,
             "alpha": alpha,
             "width": width * self.plot_dict["width"],
-            "marker_size": marker_size,
+            "markersize": markersize,
             "unique_id": unique_id,
             "duplicate_offset": duplicate_offset,
             "agg_func": agg_func,
@@ -724,7 +724,7 @@ class CategoricalPlot:
         func: AGGREGATE = "mean",
         capsize: int = 0,
         capstyle: str = "round",
-        bar_width: float = 1.0,
+        barwidth: float = 1.0,
         err_func: ERROR = "sem",
         linewidth: int = 2,
         color: ColorDict = "black",
@@ -741,7 +741,7 @@ class CategoricalPlot:
             "func": func,
             "capsize": capsize,
             "capstyle": capstyle,
-            "bar_width": bar_width * self.plot_dict["width"],
+            "barwidth": barwidth * self.plot_dict["width"],
             "err_func": err_func,
             "linewidth": linewidth,
             "color_dict": color_dict,
@@ -762,7 +762,7 @@ class CategoricalPlot:
         linewidth=1,
         alpha: AlphaRange = 1.0,
         line_alpha: AlphaRange = 1.0,
-        show_means: bool = False,
+        showmeans: bool = False,
         show_ci: bool = False,
     ):
         color_dict = process_args(
@@ -777,7 +777,7 @@ class CategoricalPlot:
             "linecolor_dict": linecolor_dict,
             "fliers": fliers,
             "box_width": box_width * self.plot_dict["width"],
-            "show_means": show_means,
+            "showmeans": showmeans,
             "show_ci": show_ci,
             "linewidth": linewidth,
             "alpha": alpha,
@@ -796,8 +796,8 @@ class CategoricalPlot:
         alpha: AlphaRange = 1.0,
         showextrema: bool = False,
         violin_width: float = 1.0,
-        show_means: bool = True,
-        show_medians: bool = False,
+        showmeans: bool = True,
+        showmedians: bool = False,
     ):
         color_dict = process_args(
             facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -811,8 +811,8 @@ class CategoricalPlot:
             "alpha": alpha,
             "showextrema": showextrema,
             "violin_width": violin_width * self.plot_dict["width"],
-            "show_means": show_means,
-            "show_medians": show_medians,
+            "showmeans": showmeans,
+            "showmedians": showmedians,
         }
         self.plots.append(violin)
         self.plot_list.append("violin")
@@ -826,7 +826,7 @@ class CategoricalPlot:
         facecolor="none",
         linecolor: ColorDict = "black",
         hatch=None,
-        bar_width: float = 1.0,
+        barwidth: float = 1.0,
         linewidth=1,
         alpha: float = 1.0,
         line_alpha=1.0,
@@ -855,7 +855,7 @@ class CategoricalPlot:
             "linecolor_dict": linecolor_dict,
             "cutoff": cutoff,
             "hatch": hatch,
-            "bar_width": bar_width * self.plot_dict["width"],
+            "barwidth": barwidth * self.plot_dict["width"],
             "linewidth": linewidth,
             "alpha": alpha,
             "line_alpha": line_alpha,
@@ -877,7 +877,7 @@ class CategoricalPlot:
         facecolor: ColorDict = "none",
         linecolor: ColorDict = "black",
         hatch=None,
-        bar_width: float = 1.0,
+        barwidth: float = 1.0,
         linewidth=1,
         alpha: float = 1.0,
         line_alpha=1.0,
@@ -898,7 +898,7 @@ class CategoricalPlot:
             "color_dict": facecolor,
             "linecolor_dict": linecolor,
             "hatch": hatch,
-            "bar_width": bar_width * self.plot_dict["width"],
+            "barwidth": barwidth * self.plot_dict["width"],
             "linewidth": linewidth,
             "alpha": alpha,
             "line_alpha": line_alpha,
@@ -1147,11 +1147,11 @@ class GraphPlot:
         self,
         marker_alpha: float = 0.8,
         line_alpha: float = 0.1,
-        marker_size: int = 2,
-        marker_scale: int = 1,
+        markersize: int = 2,
+        markerscale: int = 1,
         linewidth: int = 1,
-        edge_color: str = "k",
-        marker_color: str = "red",
+        edgecolor: str = "k",
+        markercolor: str = "red",
         marker_attr: Optional[str] = None,
         cmap: str = "gray",
         seed: int = 42,
@@ -1162,11 +1162,11 @@ class GraphPlot:
         graph_plot = {
             "marker_alpha": marker_alpha,
             "line_alpha": line_alpha,
-            "marker_size": marker_size,
-            "marker_scale": marker_scale,
+            "markersize": markersize,
+            "markerscale": markerscale,
             "linewidth": linewidth,
-            "edge_color": edge_color,
-            "marker_color": marker_color,
+            "edgecolor": edgecolor,
+            "markercolor": markercolor,
             "marker_attr": marker_attr,
             "cmap": cmap,
             "seed": seed,
