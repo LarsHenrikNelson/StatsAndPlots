@@ -521,7 +521,6 @@ class CategoricalPlot:
         group_order: Union[None, list[Union[str, int, float]]] = None,
         subgroup_order: Union[None, list[Union[str, int, float]]] = None,
         group_spacing: Union[float, int] = 1.0,
-        subgroup_spacing: Union[float, int] = 0.6,
         ylabel: str = "",
         title: str = "",
         inplace: bool = True,
@@ -551,7 +550,6 @@ class CategoricalPlot:
                 group_order=group_order,
                 subgroup_order=subgroup_order,
                 group_spacing=group_spacing,
-                subgroup_spacing=subgroup_spacing,
             )
         else:
             group_order = [""]
@@ -582,6 +580,8 @@ class CategoricalPlot:
     def plot_settings(
         self,
         style: str = "default",
+        legend_loc: tuple = "upper left",
+        legend_anchor: tuple = (1, 1),
         ylim: Optional[list] = None,
         yscale: Literal["linear", "log", "symlog"] = "linear",
         steps: int = 5,
@@ -612,6 +612,8 @@ class CategoricalPlot:
             "ticklabel": ticklabel,
             "decimals": decimals,
             "linewidth": linewidth,
+            "legend_loc": legend_loc,
+            "legend_anchor": legend_anchor,
         }
         self.plot_dict.update(plot_settings)
 
@@ -651,6 +653,7 @@ class CategoricalPlot:
         seed: int = 42,
         markersize: float = 2.0,
         unique_id: Union[None] = None,
+        legend: bool = False,
     ):
         marker_dict = process_args(
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -675,6 +678,9 @@ class CategoricalPlot:
         self.plots.append(jitter_plot)
         self.plot_list.append("jitter")
 
+        if legend:
+            self.plot_dict["legend_dict"] = (color, alpha)
+
         if not self.inplace:
             return self
 
@@ -689,6 +695,7 @@ class CategoricalPlot:
         duplicate_offset=0.0,
         markersize: float = 2.0,
         agg_func: Optional[AGGREGATE] = None,
+        legend: bool = False,
     ):
         marker_dict = process_args(
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -714,6 +721,9 @@ class CategoricalPlot:
         self.plots.append(jitteru_plot)
         self.plot_list.append("jitteru")
 
+        if legend:
+            self.plot_dict["legend_dict"] = (color, alpha)
+
         if not self.inplace:
             return self
 
@@ -727,6 +737,7 @@ class CategoricalPlot:
         linewidth: int = 2,
         color: ColorDict = "black",
         alpha: float = 1.0,
+        legend: bool = False,
     ):
         if self.style == "dark_background" and color == "black":
             color = "white"
@@ -748,6 +759,9 @@ class CategoricalPlot:
         self.plots.append(summary_plot)
         self.plot_list.append("summary")
 
+        if legend:
+            self.plot_dict["legend_dict"] = (color, alpha)
+
         if not self.inplace:
             return self
 
@@ -762,6 +776,7 @@ class CategoricalPlot:
         line_alpha: AlphaRange = 1.0,
         showmeans: bool = False,
         show_ci: bool = False,
+        legend: bool = False,
     ):
         color_dict = process_args(
             facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -784,6 +799,9 @@ class CategoricalPlot:
         self.plots.append(boxplot)
         self.plot_list.append("boxplot")
 
+        if legend:
+            self.plot_dict["legend_dict"] = (facecolor, alpha)
+
         if not self.inplace:
             return self
 
@@ -796,6 +814,7 @@ class CategoricalPlot:
         violin_width: float = 1.0,
         showmeans: bool = True,
         showmedians: bool = False,
+        legend: bool = False,
     ):
         color_dict = process_args(
             facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -815,6 +834,9 @@ class CategoricalPlot:
         self.plots.append(violin)
         self.plot_list.append("violin")
 
+        if legend:
+            self.plot_dict["legend_dict"] = (facecolor, alpha)
+
         if not self.inplace:
             return self
 
@@ -831,6 +853,7 @@ class CategoricalPlot:
         axis_type: Literal["density", "percent"] = "density",
         cutoff: Union[None, float, int, list[Union[float, int]]] = None,
         include_bins: Optional[list[bool]] = None,
+        legend: bool = False,
     ):
         if isinstance(cutoff, (float, int)):
             cutoff = [cutoff]
@@ -867,6 +890,9 @@ class CategoricalPlot:
         else:
             self.plot_dict["ylim"] = [0, 100]
 
+        if legend:
+            self.plot_dict["legend_dict"] = (facecolor, alpha)
+
         if not self.inplace:
             return self
 
@@ -880,6 +906,7 @@ class CategoricalPlot:
         alpha: float = 1.0,
         line_alpha=1.0,
         axis_type: Literal["density", "count", "percent"] = "density",
+        legend: bool = False,
     ):
         # color_dict = process_args(
         #     facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -905,8 +932,26 @@ class CategoricalPlot:
         self.plots.append(count_plot)
         self.plot_list.append("count")
 
+        if legend:
+            self.plot_dict["legend_dict"] = (facecolor, alpha)
+
         if not self.inplace:
             return self
+
+    def plot_legend(self):
+        fig, ax = plt.subplots()
+
+        handles = mp._make_legend_patches(
+            color_dict=self.plot_dict["legend_dict"][0],
+            alpha=self.plot_dict["legend_dict"][1],
+            group=self.plot_dict["group_order"],
+            subgroup=self.plot_dict["subgroup_order"],
+        )
+        ax.plot()
+        print(handles)
+        ax.axis("off")
+        ax.legend(handles=handles, frameon=False)
+        return fig, ax
 
     def plot(
         self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
@@ -1022,6 +1067,21 @@ class CategoricalPlot:
             width=self.plot_dict["ticksize"],
         )
         ax.margins(x=self.plot_dict["margins"])
+
+        if "legend_dict" in self.plot_dict:
+            handles = mp._make_legend_patches(
+                color_dict=self.plot_dict["legend_dict"][0],
+                alpha=self.plot_dict["legend_dict"][1],
+                group=self.plot_dict["group_order"],
+                subgroup=self.plot_dict["subgroup_order"],
+            )
+            ax.legend(
+                handles=handles,
+                bbox_to_anchor=self.plot_dict["legend_anchor"],
+                loc=self.plot_dict["legend_loc"],
+                frameon=False,
+            )
+
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in MPL_SAVE_TYPES:

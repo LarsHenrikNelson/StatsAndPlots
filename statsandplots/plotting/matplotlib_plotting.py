@@ -1,4 +1,4 @@
-from typing import Literal, Union, Optional
+from typing import Literal, Optional, Union
 
 import matplotlib as mpl
 import matplotlib.patches as mpatches
@@ -47,6 +47,23 @@ HATCHES = [
     ".",
     "x",
 ]
+
+
+def _make_legend_patches(color_dict, alpha, group, subgroup):
+    print("color_dict")
+    legend_patches = []
+    for j in group:
+        if j in color_dict:
+            legend_patches.append(
+                mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
+            )
+    for j in subgroup:
+        print(j)
+        if j in color_dict:
+            legend_patches.append(
+                mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
+            )
+    return legend_patches
 
 
 def _add_rectangles(
@@ -885,9 +902,7 @@ def _count_plot(
         unique_ids_sub = np.unique(df[y].iloc[indexes])
         temp_width = barwidth / len(unique_ids_sub)
         if len(unique_ids_sub) > 1:
-            dist = np.linspace(
-                -barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1
-            )
+            dist = np.linspace(-barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1)
             dist = (dist[1:] + dist[:-1]) / 2
         else:
             dist = [0]

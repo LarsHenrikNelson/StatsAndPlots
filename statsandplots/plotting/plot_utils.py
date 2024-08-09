@@ -175,15 +175,13 @@ def get_func(input):
         return lambda a, axis=None: a
 
 
-def _process_positions(
-    group_spacing, group_order, subgroup, subgroup_order, subgroup_spacing
-):
-    group_loc = {key: group_spacing * index for index, key in enumerate(group_order)}
+def _process_positions(group_spacing, group_order, subgroup, subgroup_order):
+    group_loc = {key: index for index, key in enumerate(group_order)}
     if subgroup is not None:
-        no_overlap_min = group_spacing / (len(group_order) + 2) * subgroup_spacing
-        temp_loc = np.linspace(-no_overlap_min, no_overlap_min, len(subgroup_order))
-        width = temp_loc[1] - temp_loc[0]
-        subgroup_loc = {key: value for key, value in zip(subgroup_order, temp_loc)}
+        width = group_spacing / len(subgroup_order)
+        start = (group_spacing / 2) - (width / 2)
+        sub_loc = np.linspace(-start, start, len(subgroup_order))
+        subgroup_loc = {key: value for key, value in zip(subgroup_order, sub_loc)}
 
     else:
         subgroup_loc = {key: 0 for key in subgroup_order}

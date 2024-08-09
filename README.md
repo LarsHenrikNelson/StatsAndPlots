@@ -28,7 +28,7 @@ fig = (
         ylabel="Membrane resistance",
         group="genotype",
         group_order=[r"Shank3B+/+", r"Shank3B-/-"],
-        group_spacing=1.25,
+        group_spacing=0.8,
         title="",
         inplace=False,
     )
@@ -86,7 +86,6 @@ temp = (
         subgroup="cell_type_short",
         subgroup_order=["PS", "PL", "I"],
         group_spacing=1.0,
-        subgroup_spacing=1.4,
         title="",
         inplace=False,
     ).jitteru(
@@ -136,7 +135,6 @@ temp = (
         # subgroup_order=["PS", "PL", "I"],
         subgroup_order=["PS", "PL", "I", "IB", "IS"],
         group_spacing=1.0,
-        subgroup_spacing=1.4,
         title="",
         inplace=False,
     )
@@ -187,14 +185,12 @@ temp = (
         subgroup="cell_type_short",
         subgroup_order=["PS", "PL", "I", "J", "K"],
         group_spacing=1.0,
-        subgroup_spacing=1.0,
         title="",
         inplace=False,
     )
     .percent(
         cutoff=0.05,
         include_bins=[True, True],
-        fill=False,
         hatch=True,
         linecolor={
             "PS": "green",
@@ -228,14 +224,12 @@ temp = (
         subgroup="cell_type_short",
         subgroup_order=["PS", "PL", "I"],
         group_spacing=1.0,
-        subgroup_spacing=1.0,
         title="",
         inplace=False,
     )
     .percent(
         cutoff=0.05,
         include_bins=[True, False],
-        fill=True,
         hatch=None,
         unique_id="id",
         linecolor={
@@ -273,14 +267,12 @@ temp = (
         subgroup="cell_type_short",
         subgroup_order=["PS", "PL", "I"],
         group_spacing=1.0,
-        subgroup_spacing=1.0,
         title="",
         inplace=False,
     )
     .percent(
         cutoff=0.05,
         include_bins=[True, False],
-        fill=True,
         hatch=None,
         linecolor={
             "PS": "green",
@@ -299,7 +291,6 @@ temp = (
     .percent(
         cutoff=0.05,
         include_bins=[True, False],
-        fill=True,
         hatch=None,
         unique_id="id",
         linecolor={
@@ -362,3 +353,13 @@ LinePlot(df=df_acc, y="me_time", group="genotype").kde(
     bw="ISJ", line_color={"WT": "darkorange", "KO": "magenta"}, alpha=0.5, common_norm=False
 ).plot()
 ```
+
+## Overview of plotting arguments
+1. Every group is plotted at a consecutive integer number. If you have two groups WT and KO then WT will be plotted at 0 and KO will be plotted at 1.
+2. Group spacing controls the how much space is between groups by multiplying the width of each group by group_spacing. That means a group_spacing of 1.0 means a group will
+go from -0.5 to 0.5. A group spacing of 0.8 will go from -0.4 to 0.4. This effectively controls the width.
+3. On top of group spacing you can also set the width of individual elements such as barwdith or jitter or width. If you only provide a
+group category and no subgroup category then width and group spacing will interact. So if you have a group_spacing of 1.0 and a jitter of 0.8 then there will effectively be a
+distance of 0.2 between your groups. If group_spacing is 0.8 and jitter is 0.8 then spacing of your groups will be larger than your group will go from -0.32 to 0.32 plus an integer
+number which the group is located at. If you supply a subgroup then the jitter, barwidth, etc will apply width to the subgroups within the group since the group space is divide into
+smaller portions to fitt the subgroups.
