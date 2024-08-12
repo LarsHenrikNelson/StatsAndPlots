@@ -23,7 +23,7 @@ Some example plots with the code used below the plot.
 path = r"path/to/save/data"
 fig = (
     CategoricalPlot(
-        df=df_lhn.dropna(subset=columns[column]),
+        data=df.dropna(subset=columns[column]),
         y="Membrane resistance,
         ylabel="Membrane resistance",
         group="genotype",
@@ -78,7 +78,7 @@ path = r"path/to/save/data"
 column = "sttc_5ms"
 temp = (
     CategoricalPlot(
-        df=df,
+        data=df,
         y=column,
         ylabel="STTC 5ms",
         group="genotype",
@@ -126,7 +126,7 @@ temp.plot(savefig=True, path=path, filetype="png", backend="matplotlib")
 path = r"path/to/save/folder"
 temp = (
     CategoricalPlot(
-        df=df,
+        data=df,
         y=column,
         ylabel="Waveform width",
         group="genotype",
@@ -177,7 +177,7 @@ path = r"path/to/save/folder"
 column = "beta_rayleigh_pval"
 temp = (
     CategoricalPlot(
-        df=df,
+        data=df,
         y=column,
         ylabel=column,
         group="genotype",
@@ -216,7 +216,7 @@ path = r"path/to/save/folder"
 column = "beta_rayleigh_pval"
 temp = (
     CategoricalPlot(
-        df=df,
+        data=df,
         y=column,
         ylabel=column,
         group="genotype",
@@ -259,7 +259,7 @@ path = r"path/to/save/folder"
 column = "beta_rayleigh_pval"
 temp = (
     CategoricalPlot(
-        df=df,
+        data=df,
         y=column,
         ylabel=column,
         group="genotype",
@@ -323,7 +323,7 @@ temp = (
 column = "group"
 temp = (
     CategoricalPlot(
-        df=df_output,
+        data=df_output,
         y=column,
         ylabel="Proportion of units",
         group="genotype",
@@ -341,7 +341,7 @@ temp = (
 <img src="examples/kde-example-1.png">
 
 ```python
-LinePlot(df=df_acc, y="me_time").kde(bw="ISJ", line_color="darkorange", alpha=0.5).kde(
+LinePlot(data=df_acc, y="me_time").kde(bw="ISJ", line_color="darkorange", alpha=0.5).kde(
     bw="silverman", alpha=0.5, line_color="grey"
 ).kde(bw="scott", alpha=0.5, line_color="magenta", linestyle="dotted").plot()
 ```
@@ -349,17 +349,12 @@ LinePlot(df=df_acc, y="me_time").kde(bw="ISJ", line_color="darkorange", alpha=0.
 <img src="examples/kde-example-2.png">
 
 ```python
-LinePlot(df=df_acc, y="me_time", group="genotype").kde(
+LinePlot(data=df_acc, y="me_time", group="genotype").kde(
     bw="ISJ", line_color={"WT": "darkorange", "KO": "magenta"}, alpha=0.5, common_norm=False
 ).plot()
 ```
 
 ## Overview of plotting arguments
 1. Every group is plotted at a consecutive integer number. If you have two groups WT and KO then WT will be plotted at 0 and KO will be plotted at 1.
-2. Group spacing controls the how much space is between groups by multiplying the width of each group by group_spacing. That means a group_spacing of 1.0 means a group will
-go from -0.5 to 0.5. A group spacing of 0.8 will go from -0.4 to 0.4. This effectively controls the width.
-3. On top of group spacing you can also set the width of individual elements such as barwdith or jitter or width. If you only provide a
-group category and no subgroup category then width and group spacing will interact. So if you have a group_spacing of 1.0 and a jitter of 0.8 then there will effectively be a
-distance of 0.2 between your groups. If group_spacing is 0.8 and jitter is 0.8 then spacing of your groups will be larger than your group will go from -0.32 to 0.32 plus an integer
-number which the group is located at. If you supply a subgroup then the jitter, barwidth, etc will apply width to the subgroups within the group since the group space is divide into
-smaller portions to fitt the subgroups.
+2. Group spacing controls the how much space is between groups by multiplying the width of each group (width of 1, spacing -0.5 to 0.5) by group_spacing. That means a group_spacing of 1.0 means a group will go from -0.5 to 0.5. A group spacing of 0.8 will go from -0.4 to 0.4. This effectively controls the width.
+3. On top of group spacing you can also set the width of individual elements such as barwdith or jitter or width. If you only provide a group category and no subgroup category then width and group spacing will interact. So if you have a group_spacing of 1.0 and a jitter of 0.8 then there will effectively be a distance of 0.2 between your groups. If group_spacing is 0.8 and jitter is 0.8 then spacing of your groups will be larger than your group will go from -0.32 to 0.32 plus an integer number which the group is located at. If you supply a subgroup then the jitter, barwidth, etc will apply width to the subgroups within the group since the group space is divided into smaller portions to fitt the subgroups.

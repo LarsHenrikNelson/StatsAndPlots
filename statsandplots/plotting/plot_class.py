@@ -20,6 +20,8 @@ from .plot_utils import (
     TRANSFORM,
 )
 
+from ..utils import DataHolder
+
 
 @dataclass
 class ValueRange:
@@ -59,7 +61,7 @@ PLOTLY_SAVE_TYPES = {"html"}
 class LinePlot:
     def __init__(
         self,
-        df: pd.DataFrame,
+        data: pd.DataFrame,
         y: str,
         group: Optional[str] = None,
         x: Optional[str] = None,
@@ -80,16 +82,18 @@ class LinePlot:
         self.plot_list = []
         self._plot_settings_run = False
 
+        data = DataHolder(data)
+
         if group is None:
-            unique_groups = np.array(["none"] * df.shape[0])
+            unique_groups = np.array(["none"] * data.shape[0])
         else:
             if subgroup is not None:
-                unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+                unique_groups = data[group].astype(str) + data[subgroup].astype(str)
             else:
-                unique_groups = df[group].astype(str) + ""
+                unique_groups = data[group].astype(str) + ""
 
         group_order, subgroup_order = _process_groups(
-            df, group, subgroup, group_order, subgroup_order
+            data, group, subgroup, group_order, subgroup_order
         )
         # if isinstance(title, str) and not facet:
         #     title = [title]
@@ -115,7 +119,7 @@ class LinePlot:
         )
 
         self.plot_dict = {
-            "df": df,
+            "data": data,
             "y": y,
             "group": group,
             "subgroup": subgroup,
@@ -402,7 +406,7 @@ class LinePlot:
         for i, j in zip(self.plot_list, self.plots):
             plot_func = MP_PLOTS[i]
             plot_func(
-                df=self.plot_dict["df"],
+                data=self.plot_dict["data"],
                 y=self.plot_dict["y"],
                 unique_groups=self.plot_dict["unique_groups"],
                 unique_id=self.plot_dict["unique_id"],
@@ -412,11 +416,11 @@ class LinePlot:
             )
 
         if self.plot_dict["y_decimals"] is None:
-            y_decimals = decimals(self.plot_dict["df"][self.plot_dict["y"]])
+            y_decimals = decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             y_decimals = self.plot_dict["y_decimals"]
         if self.plot_dict["x_decimals"] is None:
-            x_decimals = decimals(self.plot_dict["df"][self.plot_dict["y"]])
+            x_decimals = decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             x_decimals = self.plot_dict["x_decimals"]
         num_plots = len(self.plot_dict["group_order"])
@@ -514,7 +518,7 @@ class LinePlot:
 class CategoricalPlot:
     def __init__(
         self,
-        df: pd.DataFrame,
+        data: Union[pd.DataFrame, np.ndarray, dict],
         y: Union[str, int, float],
         group: Union[str, int, float] = None,
         subgroup: Union[str, int, float] = None,
@@ -530,19 +534,21 @@ class CategoricalPlot:
         self.inplace = inplace
         self.style = "default"
 
+        data = DataHolder(data)
+
         if subgroup is not None:
-            if group not in df.columns:
+            if group not in data:
                 raise ValueError(f"{group} must be supplied if subgroup is used")
-            unique_groups = df[group].astype(str) + df[subgroup].astype(str)
+            unique_groups = data[group].astype(str) + data[subgroup].astype(str)
         else:
             if group is None:
-                unique_groups = pd.Series([""] * df.shape[0])
+                unique_groups = pd.Series([""] * data.shape[0])
             else:
-                unique_groups = df[group].astype(str) + ""
+                unique_groups = data[group].astype(str) + ""
 
         if group is not None:
             group_order, subgroup_order = _process_groups(
-                df, group, subgroup, group_order, subgroup_order
+                data, group, subgroup, group_order, subgroup_order
             )
 
             loc_dict, width = _process_positions(
@@ -560,7 +566,7 @@ class CategoricalPlot:
 
         x_ticks = [group_spacing * index for index, _ in enumerate(group_order)]
         self.plot_dict = {
-            "df": df,
+            "data": data,
             "y": y,
             "group": group,
             "subgroup": subgroup,
@@ -866,7 +872,7 @@ class CategoricalPlot:
             linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         if cutoff is None:
-            cutoff = [self.plot_dict["df"][self.plot_dict["y"]].mean()]
+            cutoff = [self.plot_dict["data"][self.plot_dict["y"]].mean()]
 
         if include_bins is None:
             include_bins = [True] * (len(cutoff) + 1)
@@ -912,11 +918,11 @@ class CategoricalPlot:
         #     facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         # )
         if isinstance(facecolor, str):
-            unique_ids_sub = self.plot_dict["df"][self.plot_dict["y"]].unique()
+            unique_ids_sub = self.plot_dict["data"][self.plot_dict["y"]].unique()
             facecolor = {key: facecolor for key in unique_ids_sub}
 
         if isinstance(linecolor, str):
-            unique_ids_sub = self.plot_dict["df"][self.plot_dict["y"]].unique()
+            unique_ids_sub = self.plot_dict["data"][self.plot_dict["y"]].unique()
             linecolor = {key: linecolor for key in unique_ids_sub}
 
         count_plot = {
@@ -990,7 +996,7 @@ class CategoricalPlot:
         for i, j in zip(self.plot_list, self.plots):
             plot_func = MP_PLOTS[i]
             plot_func(
-                df=self.plot_dict["df"],
+                data=self.plot_dict["data"],
                 y=self.plot_dict["y"],
                 loc_dict=self.plot_dict["loc_dict"],
                 unique_groups=self.plot_dict["unique_groups"],
@@ -1010,7 +1016,7 @@ class CategoricalPlot:
                         np.max(
                             np.round(
                                 np.log10(
-                                    np.abs(self.plot_dict["df"][self.plot_dict["y"]])
+                                    np.abs(self.plot_dict["data"][self.plot_dict["y"]])
                                 )
                             )
                         )
@@ -1101,7 +1107,7 @@ class CategoricalPlot:
         for i in self.plot_list:
             plot_func = PLP_PLOTS[i]
             plot_func(
-                df=self.plot_dict["df"],
+                data=self.plot_dict["data"],
                 y=self.plot_dict["y"],
                 loc_dict=self.plot_dict["loc_dict"],
                 unique_groups=self.plot_dict["unique_groups"],
@@ -1115,7 +1121,7 @@ class CategoricalPlot:
                         np.max(
                             np.round(
                                 np.log10(
-                                    np.abs(self.plot_dict["df"][self.plot_dict["y"]])
+                                    np.abs(self.plot_dict["data"][self.plot_dict["y"]])
                                 )
                             )
                         )
@@ -1128,11 +1134,11 @@ class CategoricalPlot:
 
         if self.plot_dict["ylim"][0] is None:
             self.plot_dict["ylim"][0] = (
-                self.plot_dict["df"][self.plot_dict["y"]].min() * 0.9
+                self.plot_dict["data"][self.plot_dict["y"]].min() * 0.9
             )
         if self.plot_dict["ylim"][1] is None:
             self.plot_dict["ylim"][1] = (
-                self.plot_dict["df"][self.plot_dict["y"]].max() * 1.1
+                self.plot_dict["data"][self.plot_dict["y"]].max() * 1.1
             )
         ticks = np.round(
             np.linspace(

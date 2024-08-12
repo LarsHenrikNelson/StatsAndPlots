@@ -14,6 +14,8 @@ from sklearn import decomposition, preprocessing
 
 from ..stats import kde
 from .plot_utils import bin_data, get_func, process_args, process_duplicates
+from ..utils import DataHolder
+
 
 # Reorder the filled matplotlib markers to choose the most different
 MARKERS = [
@@ -93,7 +95,7 @@ def _add_rectangles(
 
 
 def _jitter_plot(
-    df,
+    data,
     y,
     unique_groups,
     loc_dict,
@@ -126,7 +128,7 @@ def _jitter_plot(
             x += jitter_values[indexes]
             ax.plot(
                 x,
-                transform(df[y].iloc[indexes]),
+                transform(data[indexes, y]),
                 marker_dict[i],
                 markerfacecolor=color_dict[i],
                 markeredgecolor=edgecolor_dict[i],
@@ -134,16 +136,16 @@ def _jitter_plot(
                 markersize=markersize,
             )
         else:
-            unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+            unique_ids_sub = np.unique(data[indexes, unique_id])
             for index, ui_group in enumerate(unique_ids_sub):
                 sub_indexes = np.where(
-                    np.logical_and(df[unique_id] == ui_group, unique_groups == i)
+                    np.logical_and(data[unique_id] == ui_group, unique_groups == i)
                 )[0]
                 x = np.array([loc_dict[i]] * sub_indexes.size)
                 x += jitter_values[sub_indexes]
                 ax.plot(
                     x,
-                    transform(df[y].iloc[sub_indexes]),
+                    transform(data[sub_indexes, y]),
                     MARKERS[index],
                     markerfacecolor=color_dict[i],
                     markeredgecolor=edgecolor_dict[i],
@@ -154,7 +156,7 @@ def _jitter_plot(
 
 
 def _jitteru_plot(
-    df,
+    data,
     y,
     unique_groups,
     unique_id,
@@ -179,26 +181,24 @@ def _jitteru_plot(
     ugrp = np.unique(unique_groups)
     for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
-        unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+        unique_ids_sub = np.unique(data[indexes, unique_id])
         if len(unique_ids_sub) > 1:
             dist = np.linspace(-temp, temp, num=len(unique_ids_sub))
         else:
             dist = [0]
         for index, ui_group in enumerate(unique_ids_sub):
             sub_indexes = np.where(
-                np.logical_and(df[unique_id] == ui_group, unique_groups == i)
+                np.logical_and(data[unique_id] == ui_group, unique_groups == i)
             )[0]
             x = np.full(sub_indexes.size, loc_dict[i]) + dist[index]
             if duplicate_offset > 0.0:
                 output = (
-                    process_duplicates(df[y].iloc[sub_indexes])
-                    * duplicate_offset
-                    * temp
+                    process_duplicates(data[sub_indexes, y]) * duplicate_offset * temp
                 )
                 x += output
             ax.plot(
                 get_func(agg_func)(x),
-                get_func(agg_func)(transform(df[y].iloc[sub_indexes])),
+                get_func(agg_func)(transform(data[sub_indexes, y])),
                 marker_dict[i],
                 markerfacecolor=color_dict[i],
                 markeredgecolor=edgecolor_dict[i],
@@ -209,7 +209,7 @@ def _jitteru_plot(
 
 
 def _summary_plot(
-    df,
+    data,
     y,
     unique_groups,
     loc_dict,
@@ -232,9 +232,9 @@ def _summary_plot(
     ugrp = np.unique(unique_groups)
     for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
-        tdata = get_func(func)(transform(df[y].iloc[indexes]))
+        tdata = get_func(func)(transform(data[indexes, y]))
         if err_func is not None:
-            err_data = get_func(err_func)(transform(df[y].iloc[indexes]))
+            err_data = get_func(err_func)(transform(data[indexes, y]))
         else:
             err_data = None
         _, caplines, bars = ax.errorbar(
@@ -269,7 +269,7 @@ def _summary_plot(
 
 
 def _boxplot(
-    df,
+    data,
     y,
     unique_groups,
     loc_dict,
@@ -313,7 +313,7 @@ def _boxplot(
             }
         indexes = np.where(unique_groups == i)[0]
         bplot = ax.boxplot(
-            transform(df[y].iloc[indexes]),
+            transform(data[indexes, y]),
             positions=[loc_dict[i]],
             sym=fliers,
             widths=box_width,
@@ -330,7 +330,7 @@ def _boxplot(
 
 
 def _violin_plot(
-    df,
+    data,
     y,
     unique_groups,
     loc_dict,
@@ -355,7 +355,7 @@ def _violin_plot(
         indexes = indexes
 
         parts = ax.violinplot(
-            transform(df[y].iloc[indexes]),
+            transform(data[indexes, y]),
             positions=[loc_dict[i]],
             widths=violin_width,
             showmeans=showmeans,
@@ -379,7 +379,7 @@ def paired_plot():
 
 
 def _hist_plot(
-    df,
+    data,
     y,
     unique_groups,
     color_dict,
@@ -394,7 +394,7 @@ def _hist_plot(
     ugrp = np.unique(unique_groups)
     for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
-        temp = df[y].iloc[indexes]
+        temp = data[indexes, y]
         ax[facet_dict[i]].hist(
             x=temp,
             histtype=hist_type,
@@ -406,7 +406,7 @@ def _hist_plot(
 
 
 def _kde_plot(
-    df,
+    data,
     y,
     unique_groups,
     linecolor_dict,
@@ -438,14 +438,14 @@ def _kde_plot(
         ax = plt.gca()
         ax = [ax]
     ugroups = np.unique(unique_groups)
-    size = df[y].size
+    size = data.shape[0]
     for i in ugroups:
         if i == "none" and ugroups == 1:
-            y_values = df[y].to_numpy.flatten()
+            y_values = data[y].to_numpy.flatten()
             temp_size = size
         else:
             indexes = np.where(unique_groups == i)[0]
-            y_values = df[y].iloc[indexes].to_numpy().flatten()
+            y_values = data[indexes, y].to_numpy().flatten()
             temp_size = indexes.size
         x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol)
         if common_norm:
@@ -469,7 +469,7 @@ def _kde_plot(
 
 
 def _ecdf(
-    df,
+    data,
     y,
     unique_groups,
     unique_id,
@@ -486,8 +486,8 @@ def _ecdf(
     ugrp = np.unique(unique_groups)
     for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
-        temp = df[y].iloc[indexes]
-        ax[facet_dict[i]].ecdf(
+        temp = data[indexes, y]
+        ax[facet_dict[i]].ecdata(
             x=temp,
             color=color_dict[i],
             alpha=alpha,
@@ -497,7 +497,7 @@ def _ecdf(
 
 
 def _poly_hist(
-    df,
+    data,
     y,
     unique_groups,
     color_dict,
@@ -514,7 +514,7 @@ def _poly_hist(
     ax=None,
 ):
     if bin is None:
-        bins = np.linspace(df[y].min(), df[y].max(), num=steps + 1)
+        bins = np.linspace(data.min(y), data.max(y), num=steps + 1)
     else:
         bins = np.linspace(bin[0], bin[1], num=steps + 1)
     if ax is None:
@@ -528,12 +528,12 @@ def _poly_hist(
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp_df = df.iloc[indexes]
-            uids = np.unique(temp_df[unique_id])
+            temp_data = data[indexes, y]
+            uids = np.unique(temp_data[unique_id])
             temp_list = np.zeros((len(uids), steps))
             for index, j in enumerate(uids):
-                temp = np.where(df[unique_id] == j)[0]
-                temp_data = df[y].iloc[temp].to_numpy()
+                temp = np.where(data[unique_id] == j)[0]
+                temp_data = data[temp, y].to_numpy()
                 poly = bin_data(np.sort(temp_data), bins)
                 if density:
                     poly = poly / poly.sum()
@@ -556,7 +556,7 @@ def _poly_hist(
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp = df[y].iloc[indexes].sort_values()
+            temp = data[indexes, y].sort_values()
             poly = bin_data(temp, bins)
             if fit_func is not None:
                 poly = fit_func(x, poly)
@@ -567,7 +567,7 @@ def _poly_hist(
 
 
 def _line_plot(
-    df,
+    data,
     y,
     x,
     unique_groups,
@@ -594,14 +594,14 @@ def _line_plot(
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp_df = df.iloc[indexes]
-            uids = np.unique(temp_df[unique_id])
+            temp_data = data[indexes, y]
+            uids = np.unique(temp_data[unique_id])
             temp_list_y = None
             temp_list_x = None
             for index, j in enumerate(uids):
-                temp = np.where(df[unique_id] == j)[0]
-                temp_y = df[y].iloc[temp].to_numpy()
-                temp_x = df[x].iloc[temp].to_numpy()
+                temp = np.where(data[unique_id] == j)[0]
+                temp_y = data[temp, y].to_numpy()
+                temp_x = data[temp, x].to_numpy()
                 if temp_list_y is None:
                     temp_list_y = np.zeros((len(uids), temp_x.size))
                 if temp_list_x is None:
@@ -636,8 +636,8 @@ def _line_plot(
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp_y = df[y].iloc[temp].to_numpy()
-            temp_x = df[x].iloc[temp].to_numpy()
+            temp_y = data[temp, y].to_numpy()
+            temp_x = data[temp, x].to_numpy()
             if fit_func is not None:
                 temp_y = fit_func(temp_x, temp_y)
             ax[facet_dict[i]].plot(
@@ -647,7 +647,7 @@ def _line_plot(
 
 
 def biplot(
-    df,
+    data,
     columns,
     group,
     subgroup=None,
@@ -664,7 +664,7 @@ def biplot(
 ):
     if components is None:
         components = (0, 1)
-    X = preprocessing.scale(df[columns])
+    X = preprocessing.scale(data[columns])
     pca = decomposition.PCA(n_components=np.max(components) + 1)
     X = pca.fit_transform(X)
     loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
@@ -673,20 +673,20 @@ def biplot(
 
     if plot_pca:
         if group_order is None:
-            group_order = np.unique(df[group])
+            group_order = np.unique(data[group])
         if subgroup is None:
             subgroup_order = [""]
         if subgroup_order is None:
-            subgroup_order = np.unique(df[subgroup])
+            subgroup_order = np.unique(data[subgroup])
 
         unique_groups = []
         for i in group_order:
             for j in subgroup_order:
                 unique_groups.append(i + j)
         if subgroup is None:
-            ug_list = df[group]
+            ug_list = data[group]
         else:
-            ug_list = df[group] + df[subgroup]
+            ug_list = data[group] + data[subgroup]
 
         marker_dict = process_args(marker, group_order, subgroup_order)
         color_dict = process_args(color, group_order, subgroup_order)
@@ -756,7 +756,7 @@ def biplot(
 
 
 def _percent_plot(
-    df,
+    data: DataHolder,
     y,
     unique_groups,
     loc_dict,
@@ -777,9 +777,9 @@ def _percent_plot(
         ax = plt.gca()
 
     bins = np.zeros(len(cutoff) + 3)
-    bins[0] = df[y].min() - 1
-    bins[1] = df[y].min()
-    bins[-1] = df[y].max() + 1
+    bins[0] = data.min() - 1
+    bins[1] = data.min()
+    bins[-1] = data.max() + 1
     for i in range(len(cutoff)):
         bins[i + 2] = cutoff[i]
 
@@ -787,7 +787,7 @@ def _percent_plot(
     plot_bins = sum(include_bins)
 
     if unique_id is not None:
-        uids = np.unique(df[unique_id])
+        uids = np.unique(data[unique_id])
         multiplier = len(groups) * len(uids)
     else:
         multiplier = len(groups) * plot_bins
@@ -811,7 +811,7 @@ def _percent_plot(
         if unique_id is None:
             barwidth = [barwidth] * multiplier
             bw.extend(barwidth)
-            temp = df[y].iloc[indexes].sort_values()
+            temp = np.sort(data[indexes])
             binned_data = bin_data(temp, bins)
             binned_data = binned_data / binned_data.sum()
             top = binned_data[1:]
@@ -830,7 +830,7 @@ def _percent_plot(
             x_loc.extend(x_s)
             hatches.extend(hs)
         else:
-            unique_ids_sub = np.unique(df[unique_id].iloc[indexes])
+            unique_ids_sub = np.unique(data[indexes, unique_id])
             temp_width = barwidth / len(unique_ids_sub)
             if len(unique_ids_sub) > 1:
                 dist = np.linspace(
@@ -842,9 +842,9 @@ def _percent_plot(
             bw.extend([temp_width] * len(unique_ids_sub))
             for index, ui_group in enumerate(unique_ids_sub):
                 sub_indexes = np.where(
-                    np.logical_and(df[unique_id] == ui_group, unique_groups == gr)
+                    np.logical_and(data[unique_id] == ui_group, unique_groups == gr)
                 )[0]
-                temp = df[y].iloc[sub_indexes].sort_values()
+                temp = data[sub_indexes, y].sort_values()
                 binned_data = bin_data(temp, bins)
                 binned_data = binned_data / binned_data.sum()
                 top = binned_data[1:]
@@ -870,7 +870,7 @@ def _percent_plot(
 
 
 def _count_plot(
-    df,
+    data,
     y,
     unique_groups,
     loc_dict,
@@ -899,7 +899,7 @@ def _count_plot(
     multiplier = 100 if axis_type == "percent" else 1
     for gr in groups:
         indexes = np.where(unique_groups == gr)[0]
-        unique_ids_sub = np.unique(df[y].iloc[indexes])
+        unique_ids_sub = np.unique(data[indexes, y])
         temp_width = barwidth / len(unique_ids_sub)
         if len(unique_ids_sub) > 1:
             dist = np.linspace(-barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1)
@@ -909,7 +909,7 @@ def _count_plot(
         bw.extend([temp_width] * len(unique_ids_sub))
         for index, ui_group in enumerate(unique_ids_sub):
             sub_indexes = np.where(
-                np.logical_and(df[y] == ui_group, unique_groups == gr)
+                np.logical_and(data[y] == ui_group, unique_groups == gr)
             )[0]
             bottoms.append(0)
             tops.append(
