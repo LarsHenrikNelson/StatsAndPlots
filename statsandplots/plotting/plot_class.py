@@ -143,6 +143,7 @@ class LinePlot:
         xlim: Optional[list] = None,
         yscale: Literal["linear", "log", "symlog"] = "linear",
         xscale: Literal["linear", "log", "symlog"] = "linear",
+        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
         margins: float = 0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
@@ -164,6 +165,7 @@ class LinePlot:
         plot_settings = {
             "yscale": yscale,
             "xscale": xscale,
+            "xlabel_rotation": xlabel_rotation,
             "margins": margins,
             "aspect": aspect,
             "figsize": figsize,
@@ -590,6 +592,7 @@ class CategoricalPlot:
         legend_anchor: tuple = (1, 1),
         ylim: Optional[list] = None,
         yscale: Literal["linear", "log", "symlog"] = "linear",
+        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
         steps: int = 5,
         margins=0.05,
         aspect: Union[int, float] = 1,
@@ -616,6 +619,7 @@ class CategoricalPlot:
             "labelsize": labelsize,
             "ticksize": ticksize,
             "ticklabel": ticklabel,
+            "xlabel_rotation": xlabel_rotation,
             "decimals": decimals,
             "linewidth": linewidth,
             "legend_loc": legend_loc,
@@ -1026,7 +1030,11 @@ class CategoricalPlot:
             )
         else:
             decimals = self.plot_dict["decimals"]
-        ax.set_xticks(self.plot_dict["x_ticks"], self.plot_dict["group_order"])
+        ax.set_xticks(
+            ticks=self.plot_dict["x_ticks"],
+            labels=self.plot_dict["group_order"],
+            rotation=self.plot_dict["xlabel_rotation"],
+        )
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
