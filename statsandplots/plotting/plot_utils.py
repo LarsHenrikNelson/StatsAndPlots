@@ -145,6 +145,14 @@ ERROR = Literal[
     "sem", "ci", "periodic_std", "periodic_sem", "std", "nanstd", "var", "nanvar"
 ]
 
+BACK_TRANSFORM_DICT = {
+    "log10": lambda x: 10**x,
+    "log2": lambda x: 2**x,
+    "ninverse": lambda x: -1 / x,
+    "inverse": lambda x: 1 / x,
+    "ln": lambda x: np.e**x,
+}
+
 FUNC_DICT = {
     "sem": sem,
     "ci": ci,

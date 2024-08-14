@@ -18,6 +18,7 @@ from .plot_utils import (
     AGGREGATE,
     ERROR,
     TRANSFORM,
+    BACK_TRANSFORM_DICT,
 )
 
 from ..utils import DataHolder
@@ -647,8 +648,13 @@ class CategoricalPlot:
         if not self.inplace:
             return self
 
-    def transform(self, transform: Optional[TRANSFORM] = (None,)):
+    def transform(
+        self,
+        transform: Optional[TRANSFORM] = (None,),
+        back_transform_ticks: bool = False,
+    ):
         self.plot_dict["transform"] = transform
+        self.plot_dict["back_transform_ticks"] = back_transform_ticks
 
         if not self.inplace:
             return self
@@ -1063,7 +1069,11 @@ class CategoricalPlot:
                     self.plot_dict["ylim"][1],
                     self.plot_dict["steps"],
                 )
-            ax.set_yticks(ticks)
+            if self.plot_dict["back_transform_ticks"]:
+                tick_labels = BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks)
+            else:
+                tick_labels = ticks
+            ax.set_yticks(ticks, labels=tick_labels)
         else:
             ax.set_yscale(self.plot_dict["yscale"])
             ticks = ax.get_yticks()
