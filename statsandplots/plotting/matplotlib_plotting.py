@@ -1,6 +1,5 @@
 from typing import Literal, Optional, Union
 
-import matplotlib as mpl
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -301,23 +300,15 @@ def _boxplot(
     for i in ugrp:
         props = {
             "boxprops": {
-                "facecolor": mpl.colors.to_rgba(color_dict[i], alpha=alpha),
-                "edgecolor": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha),
+                "facecolor": to_rgba(color_dict[i], alpha=alpha),
+                "edgecolor": to_rgba(linecolor_dict[i], alpha=line_alpha),
             },
-            "medianprops": {
-                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
-            },
-            "whiskerprops": {
-                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
-            },
-            "capprops": {
-                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
-            },
+            "medianprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
+            "whiskerprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
+            "capprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
         }
         if showmeans:
-            props["meanprops"] = {
-                "color": mpl.colors.to_rgba(linecolor_dict[i], alpha=line_alpha)
-            }
+            props["meanprops"] = {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)}
         indexes = np.where(unique_groups == i)[0]
         bplot = ax.boxplot(
             transform(data[indexes, y]),
@@ -392,25 +383,51 @@ def _hist_plot(
     color_dict,
     facet_dict,
     hist_type: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
+    alpha=1,
+    unique_id=None,
     bins=None,
     density=True,
     ax=None,
     xtransform=None,
     ytransform=None,
+    agg_func=None,
 ):
     if ax is None:
         ax = plt.gca()
     ugrp = np.unique(unique_groups)
     for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        temp = data[indexes, y]
-        ax[facet_dict[i]].hist(
-            x=temp,
-            histtype=hist_type,
-            bins=bins,
-            color=color_dict[i],
-            density=density,
-        )
+        uids = np.unique(data[unique_groups == i, unique_id])
+        if agg_func is not None:
+            temp_list = np.zeros((len(uids), bins))
+        else:
+            temp_list = []
+        for index, j in enumerate(uids):
+            temp = np.where(data[unique_id] == j)[0]
+            temp_data = np.sort(data[temp, y])
+            poly, _ = np.histogram(temp_data, bins)
+            if density:
+                poly = poly / poly.sum()
+            if agg_func is not None:
+                temp_list[index] = temp_list
+            else:
+                _add_rectangles(
+                    poly,
+                    np.zeros(len(poly)),
+                    bins[:-1],
+                    np.full(
+                        len(poly),
+                        bins[1] - bins[0],
+                    ),
+                    [to_rgba(color_dict[i], alpha)] * len(poly),
+                    ["none"] * len(poly),
+                    ["none"] * len(poly),
+                    [3] * len(poly),
+                    ax,
+                )
+    # ax.autoscale()
+    ax.set_rmax(ax.dataLim.ymax * 1.1)
+    ticks = ax.get_yticks()
+    ax.set_rticks(ticks[::3])
     return ax
 
 
@@ -520,7 +537,7 @@ def _poly_hist(
     unique_id=None,
     density=True,
     bin=None,
-    steps=50,
+    bins=50,
     func="mean",
     err_func="sem",
     fit_func=None,
@@ -532,14 +549,14 @@ def _poly_hist(
     ytransform = get_func(ytransform)
     if bin is None:
         bins = np.linspace(
-            ytransform(data[y]).min(), ytransform(data[y]).max(), num=steps + 1
+            ytransform(data[y]).min(), ytransform(data[y]).max(), num=bins + 1
         )
         bins[0] = bins[0]
         bins[-1] = bins[-1]
-        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=steps)
+        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=bins)
     else:
-        x = np.linspace(bin[0], bin[1], num=steps)
-        bins = np.linspace(bin[0], bin[1], num=steps + 1)
+        x = np.linspace(bin[0], bin[1], num=bins)
+        bins = np.linspace(bin[0], bin[1], num=bins + 1)
     if ax is None:
         ax = plt.gca()
         ax = [ax]
@@ -552,7 +569,7 @@ def _poly_hist(
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
             uids = np.unique(data[indexes, unique_id])
-            temp_list = np.zeros((len(uids), steps))
+            temp_list = np.zeros((len(uids), bins))
             for index, j in enumerate(uids):
                 temp = np.where(data[unique_id] == j)[0]
                 temp_data = np.sort(ytransform(data[temp, y]))
