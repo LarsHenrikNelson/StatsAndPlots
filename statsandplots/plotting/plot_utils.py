@@ -76,7 +76,9 @@ def bin_data(data, bins):
     binned_data = np.zeros(bins.size - 1, dtype=int)
     index = 0
     for i in data:
-        if i >= bins[index] and i < bins[int(index + 1)]:
+        if index >= bins.size:
+            binned_data[binned_data.size - 1] += 1
+        elif i >= bins[index] and i < bins[int(index + 1)]:
             binned_data[index] += 1
         else:
             if index < binned_data.size - 1:

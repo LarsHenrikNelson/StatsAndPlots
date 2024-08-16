@@ -5,6 +5,10 @@ import pandas as pd
 class DataHolder:
 
     def __init__(self, data):
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, list):
+                    data[key] = np.array(value)
         self.data = data
         self._container_type = self._get_container_type()
 
@@ -34,7 +38,10 @@ class DataHolder:
 
     def _pandas_index(self, index):
         if isinstance(index, tuple):
-            return self.data.iloc[index[0], self.data.columns.get_loc(index[1])]
+            if pd.api.types.is_bool_dtype(index[0].dtype):
+                return self.data.loc[index[0], index[1]]
+            else:
+                return self.data.iloc[index[0], self.data.columns.get_loc(index[1])]
         elif isinstance(index, str):
             return self.data[index]
 

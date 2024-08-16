@@ -62,6 +62,7 @@ PLOTLY_SAVE_TYPES = {"html"}
 
 # %%
 class LinePlot:
+
     def __init__(
         self,
         data: pd.DataFrame,
@@ -71,13 +72,13 @@ class LinePlot:
         subgroup: Optional[str] = None,
         group_order: Optional[list[str]] = None,
         subgroup_order: Optional[list[str]] = None,
-        unique_id: Optional[str] = None,
         ylabel: str = "",
         xlabel: str = "",
         title: str = "",
         facet: bool = False,
         facet_title: bool = False,
-        cols_rows: Optional[tuple[int]] = None,
+        nrows: int = None,
+        ncols: int = None,
         inplace: bool = False,
     ):
         self.inplace = inplace
@@ -122,9 +123,13 @@ class LinePlot:
             "title": title,
             "facet": facet,
             "facet_dict": facet_dict,
-            "unique_id": unique_id,
-            "cols_rows": cols_rows,
+            "nrows": nrows,
+            "ncols": ncols,
             "facet_title": facet_title,
+            "xtransform": None,
+            "xback_transform_ticks": False,
+            "ytransform": None,
+            "yback_transform_ticks": False,
         }
 
     def plot_settings(
@@ -190,6 +195,21 @@ class LinePlot:
         if not self.inplace:
             return self
 
+    def transform(
+        self,
+        ytransform: Optional[TRANSFORM] = (None,),
+        yback_transform_ticks: bool = False,
+        xtransform: Optional[TRANSFORM] = (None,),
+        xback_transform_ticks: bool = False,
+    ):
+        self.plot_dict["ytransform"] = ytransform
+        self.plot_dict["yback_transform_ticks"] = yback_transform_ticks
+        self.plot_dict["xtransform"] = xtransform
+        self.plot_dict["xback_transform_ticks"] = xback_transform_ticks
+
+        if not self.inplace:
+            return self
+
     def line(
         self,
         x: str,
@@ -200,6 +220,7 @@ class LinePlot:
         err_func: str = "sem",
         fit_func: Optional[Callable[[Union[np.ndarray, pd.Series]], np.ndarray]] = None,
         alpha: AlphaRange = 1.0,
+        unique_id: Optional[str] = None,
     ):
         color_dict = process_args(
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -217,6 +238,7 @@ class LinePlot:
             "fit_func": fit_func,
             "x": x,
             "alpha": alpha,
+            "unique_id": unique_id,
         }
         self.plots.append(line_plot)
         self.plot_list.append("line_plot")
@@ -247,6 +269,7 @@ class LinePlot:
         fillcolor: ColorDict = "black",
         alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
+        unique_id: Optional[str] = None,
     ):
         linecolor_dict = process_args(
             linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -276,6 +299,7 @@ class LinePlot:
             "bw": bw,
             "tol": tol,
             "common_norm": common_norm,
+            "unique_id": unique_id,
         }
 
         self.plots.append(kde_plot)
@@ -296,6 +320,7 @@ class LinePlot:
         err_func="sem",
         fit_func=None,
         alpha: AlphaRange = 1.0,
+        unique_id: Optional[str] = None,
     ):
         color_dict = process_args(
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -314,6 +339,7 @@ class LinePlot:
             "func": func,
             "err_func": err_func,
             "fit_func": fit_func,
+            "unique_id": unique_id,
             "alpha": alpha,
         }
         self.plots.append(poly_hist)
@@ -322,12 +348,16 @@ class LinePlot:
         if not self.inplace:
             return self
 
+    def hist():
+        pass
+
     def ecdf(
         self,
         color: ColorDict = "black",
         linestyle: str = "-",
         linewidth: int = 2,
         alpha: AlphaRange = 1.0,
+        unique_id: Optional[str] = None,
     ):
         color_dict = process_args(
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -341,6 +371,7 @@ class LinePlot:
             "linestyle_dict": linestyle_dict,
             "linewidth": linewidth,
             "alpha": alpha,
+            "unique_id": unique_id,
         }
         self.plots.append(ecdf)
         self.plot_list.append("ecdf")
@@ -376,12 +407,18 @@ class LinePlot:
         filetype: str = "svg",
         transparent=False,
     ):
-        if self.plot_dict["cols_rows"] is None:
+        if self.plot_dict["nrows"] is None and self.plot_dict["ncols"] is None:
             nrows = len(self.plot_dict["group_order"])
             ncols = 1
+        elif self.plot_dict["nrows"] is None:
+            nrows = 1
+            ncols = self.plot_dict["ncols"]
+        elif self.plot_dict["ncols"] is None:
+            nrows = self.plot_dict["nrows"]
+            ncols = 1
         else:
-            nrows = self.plot_dict["cols_rows"][1]
-            ncols = self.plot_dict["cols_rows"][0]
+            nrows = self.plot_dict["nrows"]
+            ncols = self.plot_dict["ncols"]
         if self.plot_dict["facet"]:
             fig, ax = plt.subplots(
                 subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
@@ -402,9 +439,10 @@ class LinePlot:
                 data=self.plot_dict["data"],
                 y=self.plot_dict["y"],
                 unique_groups=self.plot_dict["unique_groups"],
-                unique_id=self.plot_dict["unique_id"],
                 facet_dict=self.plot_dict["facet_dict"],
                 ax=ax,
+                ytransform=self.plot_dict["ytransform"],
+                xtransform=self.plot_dict["xtransform"],
                 **j,
             )
 
@@ -572,6 +610,7 @@ class CategoricalPlot:
             "ylabel": ylabel,
             "title": title,
             "transform": None,
+            "back_transform_ticks": False,
         }
         self.plots = []
         self.plot_list = []
@@ -954,7 +993,6 @@ class CategoricalPlot:
             subgroup=self.plot_dict["subgroup_order"],
         )
         ax.plot()
-        print(handles)
         ax.axis("off")
         ax.legend(handles=handles, frameon=False)
         return fig, ax
@@ -1046,10 +1084,7 @@ class CategoricalPlot:
                     self.plot_dict["ylim"][1],
                     self.plot_dict["steps"],
                 )
-            if (
-                "back_transform_ticks" in self.plot_dict
-                and self.plot_dict["back_transform_ticks"]
-            ):
+            if self.plot_dict["back_transform_ticks"]:
                 tick_labels = np.round(
                     BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks),
                     decimals=decimals,

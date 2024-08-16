@@ -52,7 +52,6 @@ HATCHES = [
 
 
 def _make_legend_patches(color_dict, alpha, group, subgroup):
-    print("color_dict")
     legend_patches = []
     for j in group:
         if j in color_dict:
@@ -60,7 +59,6 @@ def _make_legend_patches(color_dict, alpha, group, subgroup):
                 mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
             )
     for j in subgroup:
-        print(j)
         if j in color_dict:
             legend_patches.append(
                 mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
@@ -397,6 +395,8 @@ def _hist_plot(
     bins=None,
     density=True,
     ax=None,
+    xtransform=None,
+    ytransform=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -442,6 +442,8 @@ def _kde_plot(
     axis="y",
     unique_id=None,
     ax=None,
+    xtransform=None,
+    ytransform=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -488,6 +490,8 @@ def _ecdf(
     linestyle_dict,
     alpha,
     ax,
+    xtransform=None,
+    ytransform=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -512,6 +516,7 @@ def _poly_hist(
     color_dict,
     facet_dict,
     linestyle_dict,
+    linewidth,
     unique_id=None,
     density=True,
     bin=None,
@@ -521,29 +526,37 @@ def _poly_hist(
     fit_func=None,
     alpha=1,
     ax=None,
+    xtransform=None,
+    ytransform=None,
 ):
+    ytransform = get_func(ytransform)
     if bin is None:
-        bins = np.linspace(data.min(y), data.max(y), num=steps + 1)
+        bins = np.linspace(
+            ytransform(data[y]).min(), ytransform(data[y]).max(), num=steps + 1
+        )
+        bins[0] = bins[0]
+        bins[-1] = bins[-1]
+        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=steps)
     else:
+        x = np.linspace(bin[0], bin[1], num=steps)
         bins = np.linspace(bin[0], bin[1], num=steps + 1)
     if ax is None:
         ax = plt.gca()
         ax = [ax]
+
     if unique_id is not None:
         func = get_func(func)
         if err_func is not None:
             err_func = get_func(err_func)
-        x = np.linspace(bin[0], bin[1], num=steps)
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp_data = data[indexes, y]
-            uids = np.unique(temp_data[unique_id])
+            uids = np.unique(data[indexes, unique_id])
             temp_list = np.zeros((len(uids), steps))
             for index, j in enumerate(uids):
                 temp = np.where(data[unique_id] == j)[0]
-                temp_data = data[temp, y].to_numpy()
-                poly = bin_data(np.sort(temp_data), bins)
+                temp_data = np.sort(ytransform(data[temp, y]))
+                poly, _ = np.histogram(temp_data, bins)
                 if density:
                     poly = poly / poly.sum()
                 if fit_func is not None:
@@ -551,7 +564,12 @@ def _poly_hist(
                 temp_list[index] = poly
             mean_data = func(temp_list, axis=0)
             ax[facet_dict[i]].plot(
-                x, mean_data, c=color_dict[i], linestyle=linestyle_dict[i], alpha=alpha
+                x,
+                mean_data,
+                c=color_dict[i],
+                linestyle=linestyle_dict[i],
+                alpha=alpha,
+                linewidth=linewidth,
             )
             if err_func is not None:
                 ax[facet_dict[i]].fill_between(
@@ -565,13 +583,18 @@ def _poly_hist(
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp = data[indexes, y].sort_values()
-            poly = bin_data(temp, bins)
+            temp = np.sort(ytransform(data[indexes, y]))
+            poly, _ = np.histogram(temp, bins)
             if fit_func is not None:
                 poly = fit_func(x, poly)
             if density:
-                poly /= poly.sum()
-            ax[facet_dict[i]].plot(poly, c=color_dict[i], linestyle=linestyle_dict[i])
+                poly = poly / poly.sum()
+            ax[facet_dict[i]].plot(
+                x,
+                poly,
+                c=color_dict[i],
+                linestyle=linestyle_dict[i],
+            )
     return ax
 
 
@@ -786,9 +809,9 @@ def _percent_plot(
         ax = plt.gca()
 
     bins = np.zeros(len(cutoff) + 3)
-    bins[0] = data.min() - 1
-    bins[1] = data.min()
-    bins[-1] = data.max() + 1
+    bins[0] = data[y].min() - 1
+    bins[1] = data[y].min()
+    bins[-1] = data[y].max() + 1
     for i in range(len(cutoff)):
         bins[i + 2] = cutoff[i]
 
@@ -820,7 +843,7 @@ def _percent_plot(
         if unique_id is None:
             barwidth = [barwidth] * multiplier
             bw.extend(barwidth)
-            temp = np.sort(data[indexes])
+            temp = np.sort(data[indexes, y])
             binned_data = bin_data(temp, bins)
             binned_data = binned_data / binned_data.sum()
             top = binned_data[1:]
