@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import default_rng
 
 
-from .plot_utils import get_func
+from ..utils import get_func
 
 MARKERS = [
     "o",

@@ -1,9 +1,4 @@
-from typing import Literal
-
-from scipy import stats
 import numpy as np
-
-from ..stats.circular_stats import periodic_mean, periodic_std, periodic_sem
 
 
 def process_duplicates(values, output=None):
@@ -50,7 +45,7 @@ def get_ticks(
     return lim, ticks
 
 
-def decimals(data):
+def _decimals(data):
     decimals = np.abs(int(np.max(np.round(np.log10(np.abs(data)))))) + 2
     return decimals
 
@@ -117,70 +112,6 @@ def get_valid_kwargs(args_list, **kwargs):
         if i in kwargs:
             output_args[i] = kwargs[i]
     return output_args
-
-
-def sem(a, axis=None):
-    if len(a.shape) == 2:
-        shape = a.shape[1]
-    else:
-        shape = a.size
-    return np.std(a, axis) / np.sqrt(shape)
-
-
-def ci(a):
-    t_critical = stats.t.ppf(1 - 0.05 / 2, len(a) - 1)
-    margin_of_error = t_critical * (np.std(a, ddof=1) / np.sqrt(len(a)))
-    return margin_of_error
-
-
-def ci_bca(a):
-    res = stats.bootstrap(a, np.mean)
-    print(res.confidence_interval)
-    return np.array([res.confidence_interval.low, res.confidence_interval.high])
-
-
-TRANSFORM = Literal["log10", "log2", "ln", "inverse", "ninverse"]
-AGGREGATE = Literal["mean", "periodic_mean", "nanmean", "median"]
-ERROR = Literal[
-    "sem", "ci", "periodic_std", "periodic_sem", "std", "nanstd", "var", "nanvar"
-]
-
-BACK_TRANSFORM_DICT = {
-    "log10": lambda x: 10**x,
-    "log2": lambda x: 2**x,
-    "ninverse": lambda x: -1 / x,
-    "inverse": lambda x: 1 / x,
-    "ln": lambda x: np.e**x,
-}
-
-FUNC_DICT = {
-    "sem": sem,
-    "ci": ci,
-    "ci_bca": ci_bca,
-    "mean": np.mean,
-    "periodic_mean": periodic_mean,
-    "periodic_std": periodic_std,
-    "periodic_sem": periodic_sem,
-    "nanmean": np.nanmean,
-    "nanmedian": np.nanmedian,
-    "median": np.median,
-    "std": np.std,
-    "nanstd": np.nanstd,
-    "log10": np.log10,
-    "log2": np.log2,
-    "ln": np.log,
-    "var": np.var,
-    "nanvar": np.nanvar,
-    "inverse": lambda a, axis=None: 1 / (a + 1e-10),
-    "ninverse": lambda a, axis=None: -1 / (a + 1e-10),
-}
-
-
-def get_func(input):
-    if input in FUNC_DICT:
-        return FUNC_DICT[input]
-    else:
-        return lambda a, axis=None: a
 
 
 def _process_positions(group_spacing, group_order, subgroup, subgroup_order):

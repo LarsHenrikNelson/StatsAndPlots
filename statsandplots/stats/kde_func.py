@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 import KDEpy
 import numpy as np
@@ -19,6 +19,7 @@ def kde(
         "cosine",
     ] = "gaussian",
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
+    x: Optional[np.array] = None,
     tol: float = 1e-3,
 ):
     data = np.asarray(data)
@@ -26,7 +27,8 @@ def kde(
     width = np.sqrt(np.cov(data) * kde_obj.bw**2)
     min_data = data.min() - width * tol
     max_data = data.max() + width * tol
-    power2 = int(np.ceil(np.log2(len(data))))
-    x = np.linspace(min_data, max_data, num=(1 << power2))
+    if x is None:
+        power2 = int(np.ceil(np.log2(len(data))))
+        x = np.linspace(min_data, max_data, num=(1 << power2))
     y = kde_obj.evaluate(x)
     return x, y

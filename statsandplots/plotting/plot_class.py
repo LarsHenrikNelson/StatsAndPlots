@@ -10,18 +10,20 @@ import plotly.graph_objects as go
 from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
 from .plot_utils import (
+    _decimals,
     _process_groups,
     _process_positions,
-    decimals,
     get_ticks,
     process_args,
+)
+
+from ..utils import (
+    DataHolder,
     AGGREGATE,
     ERROR,
     TRANSFORM,
     BACK_TRANSFORM_DICT,
 )
-
-from ..utils import DataHolder
 
 
 @dataclass
@@ -96,18 +98,6 @@ class LinePlot:
         group_order, subgroup_order = _process_groups(
             data, group, subgroup, group_order, subgroup_order
         )
-        # if isinstance(title, str) and not facet:
-        #     title = [title]
-        # elif isinstance(title, str) and facet:
-        #     title = [title] * len(group_order)
-        # elif isinstance(title, list) and facet:
-        #     if len(title) != len(group_order):
-        #         raise ValueError(
-        #             "Number of titles must be the same a the number of groups."
-        #         )
-        #     title = title
-        # else:
-        #     title = group_order
 
         if facet:
             facet_length = list(range(len(group_order)))
@@ -419,11 +409,11 @@ class LinePlot:
             )
 
         if self.plot_dict["y_decimals"] is None:
-            y_decimals = decimals(self.plot_dict["data"][self.plot_dict["y"]])
+            y_decimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             y_decimals = self.plot_dict["y_decimals"]
         if self.plot_dict["x_decimals"] is None:
-            x_decimals = decimals(self.plot_dict["data"][self.plot_dict["y"]])
+            x_decimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             x_decimals = self.plot_dict["x_decimals"]
         num_plots = len(self.plot_dict["group_order"])
@@ -567,7 +557,7 @@ class CategoricalPlot:
             loc_dict[""] = 0.0
             width = 1
 
-        x_ticks = [group_spacing * index for index, _ in enumerate(group_order)]
+        x_ticks = [index for index, _ in enumerate(group_order)]
         self.plot_dict = {
             "data": data,
             "y": y,
@@ -1020,20 +1010,7 @@ class CategoricalPlot:
         elif self.plot_dict["decimals"] is None:
 
             # No better way around this mess at the moment
-            decimals = (
-                np.abs(
-                    int(
-                        np.max(
-                            np.round(
-                                np.log10(
-                                    np.abs(self.plot_dict["data"][self.plot_dict["y"]])
-                                )
-                            )
-                        )
-                    )
-                )
-                + 2
-            )
+            decimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             decimals = self.plot_dict["decimals"]
         ax.set_xticks(
@@ -1069,10 +1046,16 @@ class CategoricalPlot:
                     self.plot_dict["ylim"][1],
                     self.plot_dict["steps"],
                 )
-            if self.plot_dict["back_transform_ticks"]:
-                tick_labels = BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks)
+            if (
+                "back_transform_ticks" in self.plot_dict
+                and self.plot_dict["back_transform_ticks"]
+            ):
+                tick_labels = np.round(
+                    BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks),
+                    decimals=decimals,
+                )
             else:
-                tick_labels = ticks
+                tick_labels = np.round(ticks, decimals=decimals)
             ax.set_yticks(ticks, labels=tick_labels)
         else:
             ax.set_yscale(self.plot_dict["yscale"])

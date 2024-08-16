@@ -13,8 +13,8 @@ from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from ..stats import kde
-from .plot_utils import bin_data, get_func, process_args, process_duplicates
-from ..utils import DataHolder
+from .plot_utils import bin_data, process_args, process_duplicates
+from ..utils import DataHolder, get_func
 
 
 # Reorder the filled matplotlib markers to choose the most different
@@ -221,6 +221,7 @@ def _summary_plot(
     linewidth,
     color_dict,
     alpha,
+    unique_id=None,
     transform=None,
     ax=None,
 ):
@@ -228,25 +229,34 @@ def _summary_plot(
         ax = plt.gca()
 
     transform = get_func(transform)
+    y_data = []
+    errs = []
+    colors = []
+    x_data = []
 
     ugrp = np.unique(unique_groups)
     for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        tdata = get_func(func)(transform(data[indexes, y]))
-        if err_func is not None:
-            err_data = get_func(err_func)(transform(data[indexes, y]))
+        if unique_id is None:
+            indexes = np.where(unique_groups == i)[0]
+            x_data.append(loc_dict[i])
+            colors.append(color_dict[i])
+            y_data.append(get_func(func)(transform(data[indexes, y])))
+            if err_func is not None:
+                errs.append(get_func(err_func)(transform(data[indexes, y])))
+            else:
+                errs.append(None)
         else:
-            err_data = None
+            pass
+
+    for xd, yd, e, c in zip(x_data, y_data, errs, colors):
         _, caplines, bars = ax.errorbar(
-            x=loc_dict[i],
-            y=tdata,
-            # xerr=width,
-            yerr=err_data,
-            c=color_dict[i],
+            x=xd,
+            y=yd,
+            yerr=e,
+            c=to_rgba(c, alpha=alpha),
             fmt="none",
             linewidth=linewidth,
             capsize=capsize,
-            alpha=alpha,
         )
         for cap in caplines:
             cap.set_solid_capstyle(capstyle)
@@ -255,11 +265,10 @@ def _summary_plot(
         for b in bars:
             b.set_capstyle(capstyle)
         _, _, bars = ax.errorbar(
-            x=loc_dict[i],
-            y=tdata,
+            x=xd,
+            y=yd,
             xerr=barwidth / 2,
-            # yerr=err_data,
-            c=to_rgba(color_dict[i], alpha=alpha),
+            c=to_rgba(c, alpha=alpha),
             fmt="none",
             linewidth=linewidth,
         )
