@@ -194,7 +194,7 @@ def _jitteru_plot(
                     process_duplicates(data[sub_indexes, y]) * duplicate_offset * temp
                 )
                 x += output
-            if agg_func is not None:
+            if agg_func is None:
                 x = get_func(agg_func)(x)
             else:
                 x = x[0]
@@ -364,6 +364,7 @@ def _plot_summary(
             x=xd,
             y=yd,
             yerr=e,
+            xerr=w / 2,
             c=to_rgba(c, alpha=alpha),
             fmt="none",
             linewidth=linewidth,
@@ -373,16 +374,6 @@ def _plot_summary(
             cap.set_solid_capstyle(capstyle)
             cap.set_markeredgewidth(linewidth)
             cap._marker._capstyle = CapStyle(capstyle)
-        for b in bars:
-            b.set_capstyle(capstyle)
-        _, _, bars = ax.errorbar(
-            x=xd,
-            y=yd,
-            xerr=w / 2,
-            c=to_rgba(c, alpha=alpha),
-            fmt="none",
-            linewidth=linewidth,
-        )
         for b in bars:
             b.set_capstyle(capstyle)
     return ax
