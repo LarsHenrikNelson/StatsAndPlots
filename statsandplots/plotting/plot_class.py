@@ -43,6 +43,7 @@ MP_PLOTS = {
     "line_plot": mp._line_plot,
     "poly_hist": mp._poly_hist,
     "summary": mp._summary_plot,
+    "summaryu": mp._summaryu_plot,
     "violin": mp._violin_plot,
     "kde": mp._kde_plot,
     "percent": mp._percent_plot,
@@ -803,6 +804,48 @@ class CategoricalPlot:
         }
         self.plots.append(summary_plot)
         self.plot_list.append("summary")
+
+        if legend:
+            self.plot_dict["legend_dict"] = (color, alpha)
+
+        if not self.inplace:
+            return self
+
+    def summaryu(
+        self,
+        unique_id,
+        func: AGGREGATE = "mean",
+        agg_func: AGGREGATE = None,
+        capsize: int = 0,
+        capstyle: str = "round",
+        barwidth: float = 1.0,
+        err_func: ERROR = "sem",
+        linewidth: int = 2,
+        color: ColorDict = "black",
+        alpha: float = 1.0,
+        legend: bool = False,
+    ):
+        if self.style == "dark_background" and color == "black":
+            color = "white"
+
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+
+        summary_plot = {
+            "func": func,
+            "unique_id": unique_id,
+            "agg_func": agg_func,
+            "capsize": capsize,
+            "capstyle": capstyle,
+            "barwidth": barwidth * self.plot_dict["width"],
+            "err_func": err_func,
+            "linewidth": linewidth,
+            "color_dict": color_dict,
+            "alpha": alpha,
+        }
+        self.plots.append(summary_plot)
+        self.plot_list.append("summaryu")
 
         if legend:
             self.plot_dict["legend_dict"] = (color, alpha)

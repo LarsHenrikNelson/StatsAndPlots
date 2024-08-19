@@ -180,7 +180,8 @@ def _jitteru_plot(
         indexes = np.where(unique_groups == i)[0]
         unique_ids_sub = np.unique(data[indexes, unique_id])
         if len(unique_ids_sub) > 1:
-            dist = np.linspace(-temp, temp, num=len(unique_ids_sub))
+            dist = np.linspace(-temp, temp, num=len(unique_ids_sub) + 1)
+            dist = np.round((dist[1:] + dist[:-1]) / 2, 10)
         else:
             dist = [0]
         for index, ui_group in enumerate(unique_ids_sub):
@@ -193,8 +194,12 @@ def _jitteru_plot(
                     process_duplicates(data[sub_indexes, y]) * duplicate_offset * temp
                 )
                 x += output
+            if agg_func is not None:
+                x = get_func(agg_func)(x)
+            else:
+                x = x[0]
             ax.plot(
-                get_func(agg_func)(x),
+                x,
                 get_func(agg_func)(transform(data[sub_indexes, y])),
                 marker_dict[i],
                 markerfacecolor=color_dict[i],
@@ -218,7 +223,6 @@ def _summary_plot(
     linewidth,
     color_dict,
     alpha,
-    unique_id=None,
     transform=None,
     ax=None,
 ):
@@ -235,32 +239,127 @@ def _summary_plot(
     ugrp = np.unique(unique_groups)
     for i in ugrp:
         indexes = np.where(unique_groups == i)[0]
-        if unique_id is None:
-            x_data.append(loc_dict[i])
-            colors.append(color_dict[i])
-            widths.append(barwidth)
-            y_data.append(get_func(func)(transform(data[indexes, y])))
-            if err_func is not None:
-                errs.append(get_func(err_func)(transform(data[indexes, y])))
-            else:
-                errs.append(None)
+        x_data.append(loc_dict[i])
+        colors.append(color_dict[i])
+        widths.append(barwidth)
+        y_data.append(get_func(func)(transform(data[indexes, y])))
+        if err_func is not None:
+            errs.append(get_func(err_func)(transform(data[indexes, y])))
         else:
-            uids = np.unique(data[indexes, unique_id])
+            errs.append(None)
+    ax = _plot_summary(
+        x_data=x_data,
+        y_data=y_data,
+        errs=errs,
+        widths=widths,
+        colors=colors,
+        linewidth=linewidth,
+        alpha=alpha,
+        capstyle=capstyle,
+        capsize=capsize,
+        ax=ax,
+    )
+    return ax
+
+
+def _summaryu_plot(
+    data,
+    y,
+    unique_groups,
+    unique_id,
+    loc_dict,
+    func,
+    capsize,
+    capstyle,
+    barwidth,
+    err_func,
+    linewidth,
+    color_dict,
+    alpha,
+    agg_func=None,
+    transform=None,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+
+    transform = get_func(transform)
+    y_data = []
+    errs = []
+    colors = []
+    x_data = []
+    widths = []
+
+    ugrp = np.unique(unique_groups)
+    for i in ugrp:
+        indexes = np.where(unique_groups == i)[0]
+        uids = np.unique(data[indexes, unique_id])
+        if agg_func is None:
+            temp = barwidth / 2
             if len(uids) > 1:
-                dist = np.linspace(-temp, temp, num=len(uids))
+                dist = np.linspace(-temp, temp, num=len(uids) + 1)
+                centers = np.round((dist[1:] + dist[:-1]) / 2, 10)
             else:
-                dist = [0]
+                centers = [0]
+            w = barwidth / len(uids)
             for index, j in enumerate(uids):
-                vals = transform(data[data[unique_id] == j, y])
-                x_data.append(loc_dict[i] + dist[index])
+                widths.append(w)
+                sub_indexes = np.where(
+                    np.logical_and(data[unique_id] == j, unique_groups == i)
+                )[0]
+                vals = transform(data[sub_indexes, y])
+                x_data.append(loc_dict[i] + centers[index])
                 colors.append(color_dict[i])
                 y_data.append(get_func(func)(vals))
                 if err_func is not None:
                     errs.append(get_func(err_func)(vals))
                 else:
                     errs.append(None)
+        else:
+            temp_vals = []
+            for index, j in enumerate(uids):
+                sub_indexes = np.where(
+                    np.logical_and(data[unique_id] == j, unique_groups == i)
+                )[0]
+                vals = transform(data[sub_indexes, y])
+                temp_vals.append(get_func(func)(vals))
+            x_data.append(loc_dict[i])
+            colors.append(color_dict[i])
+            widths.append(barwidth)
+            y_data.append(get_func(func)(np.array(temp_vals)))
+            if err_func is not None:
+                errs.append(get_func(err_func)(np.array(temp_vals)))
+            else:
+                errs.append(None)
 
-    for xd, yd, e, c in zip(x_data, y_data, errs, colors):
+    ax = _plot_summary(
+        x_data=x_data,
+        y_data=y_data,
+        errs=errs,
+        widths=widths,
+        colors=colors,
+        linewidth=linewidth,
+        alpha=alpha,
+        capstyle=capstyle,
+        capsize=capsize,
+        ax=ax,
+    )
+    return ax
+
+
+def _plot_summary(
+    x_data: list,
+    y_data: list,
+    errs: list,
+    widths: list,
+    colors: list,
+    linewidth: float,
+    alpha: float,
+    capstyle: str,
+    capsize: float,
+    ax,
+):
+    for xd, yd, e, c, w in zip(x_data, y_data, errs, colors, widths):
         _, caplines, bars = ax.errorbar(
             x=xd,
             y=yd,
@@ -274,7 +373,7 @@ def _summary_plot(
             cap.set_solid_capstyle(capstyle)
             cap.set_markeredgewidth(linewidth)
             cap._marker._capstyle = CapStyle(capstyle)
-        for b, w in (bars, widths):
+        for b in bars:
             b.set_capstyle(capstyle)
         _, _, bars = ax.errorbar(
             x=xd,

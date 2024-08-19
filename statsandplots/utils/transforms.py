@@ -14,7 +14,7 @@ def sem(a, axis=None):
     return np.std(a, axis) / np.sqrt(shape)
 
 
-def ci(a, axis):
+def ci(a, axis=None):
     t_critical = stats.t.ppf(1 - 0.05 / 2, len(a) - 1)
     margin_of_error = t_critical * (np.std(a, ddof=1) / np.sqrt(len(a)))
     return margin_of_error
