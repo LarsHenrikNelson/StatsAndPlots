@@ -230,20 +230,35 @@ def _summary_plot(
     errs = []
     colors = []
     x_data = []
+    widths = []
 
     ugrp = np.unique(unique_groups)
     for i in ugrp:
+        indexes = np.where(unique_groups == i)[0]
         if unique_id is None:
-            indexes = np.where(unique_groups == i)[0]
             x_data.append(loc_dict[i])
             colors.append(color_dict[i])
+            widths.append(barwidth)
             y_data.append(get_func(func)(transform(data[indexes, y])))
             if err_func is not None:
                 errs.append(get_func(err_func)(transform(data[indexes, y])))
             else:
                 errs.append(None)
         else:
-            pass
+            uids = np.unique(data[indexes, unique_id])
+            if len(uids) > 1:
+                dist = np.linspace(-temp, temp, num=len(uids))
+            else:
+                dist = [0]
+            for index, j in enumerate(uids):
+                vals = transform(data[data[unique_id] == j, y])
+                x_data.append(loc_dict[i] + dist[index])
+                colors.append(color_dict[i])
+                y_data.append(get_func(func)(vals))
+                if err_func is not None:
+                    errs.append(get_func(err_func)(vals))
+                else:
+                    errs.append(None)
 
     for xd, yd, e, c in zip(x_data, y_data, errs, colors):
         _, caplines, bars = ax.errorbar(
@@ -259,12 +274,12 @@ def _summary_plot(
             cap.set_solid_capstyle(capstyle)
             cap.set_markeredgewidth(linewidth)
             cap._marker._capstyle = CapStyle(capstyle)
-        for b in bars:
+        for b, w in (bars, widths):
             b.set_capstyle(capstyle)
         _, _, bars = ax.errorbar(
             x=xd,
             y=yd,
-            xerr=barwidth / 2,
+            xerr=w / 2,
             c=to_rgba(c, alpha=alpha),
             fmt="none",
             linewidth=linewidth,
