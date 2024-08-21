@@ -277,6 +277,7 @@ def _summaryu_plot(
     color_dict,
     alpha,
     agg_func=None,
+    agg_width=1,
     transform=None,
     ax=None,
 ):
@@ -301,7 +302,7 @@ def _summaryu_plot(
                 centers = np.round((dist[1:] + dist[:-1]) / 2, 10)
             else:
                 centers = [0]
-            w = barwidth / len(uids)
+            w = agg_width / len(uids)
             for index, j in enumerate(uids):
                 widths.append(w)
                 sub_indexes = np.where(

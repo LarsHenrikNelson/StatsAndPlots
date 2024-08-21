@@ -816,6 +816,7 @@ class CategoricalPlot:
         unique_id,
         func: AGGREGATE = "mean",
         agg_func: AGGREGATE = None,
+        agg_width: float = 1.0,
         capsize: int = 0,
         capstyle: str = "round",
         barwidth: float = 1.0,
@@ -843,6 +844,7 @@ class CategoricalPlot:
             "linewidth": linewidth,
             "color_dict": color_dict,
             "alpha": alpha,
+            "agg_width": agg_width,
         }
         self.plots.append(summary_plot)
         self.plot_list.append("summaryu")
