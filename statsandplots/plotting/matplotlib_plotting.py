@@ -564,8 +564,37 @@ def _scatter_plot(
     return ax
 
 
-def _scatter_list():
-    pass
+def _agg_line(
+    data,
+    x,
+    y,
+    unique_groups,
+    agg_func,
+    err_func,
+    facet_dict,
+    fill_between=False,
+    ax=None,
+):
+    ugrps = np.unique(unique_groups)
+    for i in ugrps:
+        indexes = np.where(unique_groups == i)[0]
+        y_data = data[indexes, y]
+        x_data = data[indexes, x]
+        x_grps = np.sort(np.unique(x_data))
+        agg_data = np.zeros(x_grps.size)
+        err_data = np.zeros(x_grps.size)
+        for index, j in enumerate(x_grps):
+            y_temp = y_data[x_data == j]
+            agg_data[index] = get_func(agg_func)(y_temp)
+            if err_func is not None:
+                err_data[index] = get_func(err_func)(y_temp)
+        if not fill_between:
+            ax[facet_dict[i]].errorbar(x_grps, agg_data, yerr=err_data)
+        else:
+            ax[facet_dict[i]].plot(x_grps, agg_data)
+            ax[facet_dict[i]].fill_between(
+                x_grps, agg_data - err_data, agg_data + err_data
+            )
 
 
 def _kde_plot(

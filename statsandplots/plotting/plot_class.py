@@ -248,6 +248,22 @@ class LinePlot:
         if not self.inplace:
             return self
 
+    def errorline(
+        self,
+        x,
+        marker: str = ".",
+        markercolor: Union[ColorDict, tuple[str, str]] = "black",
+        edgecolor: ColorDict = "black",
+        markersize: Union[float, str] = 1,
+        linecolor: ColorDict = "black",
+        linewidth: float = 1.0,
+        alpha: float = 1.0,
+        func="mean",
+        err_func="sem",
+        fill_between=False,
+    ):
+        pass
+
     def kde(
         self,
         kernel: Literal[
