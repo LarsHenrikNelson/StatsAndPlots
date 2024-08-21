@@ -537,6 +537,37 @@ def _hist_plot(
     return ax
 
 
+def _scatter_plot(
+    data,
+    y,
+    x,
+    unique_groups,
+    markers,
+    markercolors,
+    edgecolors,
+    markersizes,
+    ax=None,
+    facet_dict=None,
+    xtransform=None,
+    ytransform=None,
+):
+    if ax is None:
+        ax = plt.gca()
+        ax = [ax]
+    ax[0].scatter(
+        data[x],
+        data[y],
+        marker=markers,
+        color=markercolors,
+        edgecolors=edgecolors,
+    )
+    return ax
+
+
+def _scatter_list():
+    pass
+
+
 def _kde_plot(
     data,
     y,

@@ -15,6 +15,7 @@ from .plot_utils import (
     _process_positions,
     get_ticks,
     process_args,
+    process_scatter_args,
 )
 
 from ..utils import (
@@ -49,6 +50,7 @@ MP_PLOTS = {
     "percent": mp._percent_plot,
     "ecdf": mp._ecdf,
     "count": mp._count_plot,
+    "scatter": mp._scatter_plot,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -69,7 +71,6 @@ class LinePlot:
         data: pd.DataFrame,
         y: str,
         group: Optional[str] = None,
-        x: Optional[str] = None,
         subgroup: Optional[str] = None,
         group_order: Optional[list[str]] = None,
         subgroup_order: Optional[list[str]] = None,
@@ -376,6 +377,84 @@ class LinePlot:
         }
         self.plots.append(ecdf)
         self.plot_list.append("ecdf")
+
+        if not self.inplace:
+            return self
+
+    def scatter(
+        self,
+        x,
+        marker: str = ".",
+        markercolor: Union[ColorDict, tuple[str, str]] = "black",
+        edgecolor: ColorDict = "black",
+        markersize: Union[float, str] = 1,
+        alpha: float = 1.0,
+    ):
+        # if isinstance(marker, tuple):
+        #     marker0 = marker[0]
+        #     marker1 = marker[1]
+        # else:
+        #     marker0 = marker
+        #     marker1 = None
+        if isinstance(markercolor, tuple):
+            markercolor0 = markercolor[0]
+            markercolor1 = markercolor[1]
+        else:
+            markercolor0 = markercolor
+            markercolor1 = None
+
+        if isinstance(edgecolor, tuple):
+            edgecolor0 = edgecolor[0]
+            edgecolor1 = edgecolor[1]
+        else:
+            edgecolor0 = edgecolor
+            edgecolor1 = None
+
+        # markers = process_scatter_args(
+        #     marker0,
+        #     self.plot_dict["data"],
+        #     self.plot_dict["group_order"],
+        #     self.plot_dict["subgroup_order"],
+        #     self.plot_dict["unique_groups"],
+        #     marker1,
+        # )
+        # markers = markers.to_list()
+        colors = process_scatter_args(
+            markercolor0,
+            self.plot_dict["data"],
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
+            self.plot_dict["unique_groups"],
+            markercolor1,
+            alpha=alpha,
+        )
+        edgecolors = process_scatter_args(
+            edgecolor0,
+            self.plot_dict["data"],
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
+            self.plot_dict["unique_groups"],
+            edgecolor1,
+            alpha=alpha,
+        )
+        markersize = process_scatter_args(
+            markersize,
+            self.plot_dict["data"],
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
+            self.plot_dict["unique_groups"],
+            None,
+        )
+        plot_data = {
+            "x": x,
+            "markers": marker,
+            "markercolors": colors,
+            "edgecolors": edgecolors,
+            "markersizes": markersize,
+        }
+
+        self.plot_list.append("scatter")
+        self.plots.append(plot_data)
 
         if not self.inplace:
             return self

@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+import matplotlib as mpl
+from matplotlib.colors import Normalize, to_rgba
 
 
 def process_duplicates(values, output=None):
@@ -106,6 +109,66 @@ def process_args(arg, group_order, subgroup_order):
             else:
                 output_dict[key] = arg[b]
     return output_dict
+
+
+def process_scatter_args(
+    arg, data, group_order, subgroup_order, unique_groups, arg_cycle=None, alpha=None
+):
+    if isinstance(arg_cycle, (np.ndarray, list)):
+        if arg in data:
+            if arg_cycle is not None:
+                output = _discrete_cycler(arg, data, arg_cycle, alpha)
+            else:
+                output = data[arg]
+        elif len(arg) < len(unique_groups):
+            output = arg
+    elif arg_cycle in mpl.colormaps:
+        if arg not in data:
+            raise AttributeError("arg[0] of arg must be in data passed to LinePlot")
+        output = _continuous_cycler(arg, data, arg_cycle, alpha)
+    else:
+        output = process_args(arg, group_order, subgroup_order)
+        if alpha:
+            output = {key: to_rgba(value, alpha) for key, value in output.items()}
+        output = unique_groups.map(output)
+    return output
+
+
+def _discrete_cycler(arg, data, arg_cycle, alpha=None):
+    grps = np.unique(data[arg])
+    ntimes = data.shape[0] // len(arg_cycle)
+    markers = arg_cycle
+    if ntimes > 0:
+        markers = markers * (ntimes + 1)
+        markers = markers[: data.shape[0]]
+    mapping = {key: value for key, value in zip(grps, markers)}
+    if alpha is not None:
+        mapping = {key: to_rgba(value, alpha) for key, value in mapping.items()}
+    output = data[arg].map(mapping)
+    return output
+
+
+def _continuous_cycler(arg, data, arg_cycle, alpha):
+    cmap = mpl.colormaps[arg_cycle]
+    if pd.api.types.is_string_dtype(data[arg]) or pd.api.types.is_object_dtype(
+        data[arg]
+    ):
+        uvals = pd.unique(data[arg])
+        vmin = 0
+        vmax = len(uvals)
+        color_normal = Normalize(vmin=vmin, vmax=vmax)
+        mapping = {
+            key: cmap(color_normal(value), alpha=alpha)
+            for value, key in enumerate(uvals)
+        }
+        colors = data[arg].map(mapping)
+    else:
+        vmin = data[arg].min()
+        vmax = data[arg].max()
+        vals = data[arg]
+        color_normal = Normalize(vmin=vmin, vmax=vmax)
+        colors = [cmap(color_normal(e), alpha=alpha) for e in vals]
+    return colors
 
 
 def get_valid_kwargs(args_list, **kwargs):
