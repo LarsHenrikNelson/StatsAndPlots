@@ -554,13 +554,16 @@ def _scatter_plot(
     if ax is None:
         ax = plt.gca()
         ax = [ax]
-    ax[0].scatter(
-        data[x],
-        data[y],
-        marker=markers,
-        color=markercolors,
-        edgecolors=edgecolors,
-    )
+    for key, value in facet_dict.items():
+        indexes = np.where(unique_groups == key)[0]
+        ax[value].scatter(
+            get_func(xtransform)(data[indexes, x]),
+            get_func(ytransform)(data[indexes, y]),
+            marker=markers,
+            color=[markercolors[i] for i in indexes],
+            edgecolors=[edgecolors[i] for i in indexes],
+            s=[markersizes[i] for i in indexes],
+        )
     return ax
 
 
@@ -569,15 +572,22 @@ def _agg_line(
     x,
     y,
     unique_groups,
+    marker,
+    markercolor,
+    edgecolor,
+    linestyle,
+    linewidth,
+    linecolor,
+    linealpha,
     agg_func,
     err_func,
     facet_dict,
-    fill_between=False,
+    fillbetween=False,
+    fillalpha=1.0,
     ax=None,
 ):
-    ugrps = np.unique(unique_groups)
-    for i in ugrps:
-        indexes = np.where(unique_groups == i)[0]
+    for key, value in facet_dict.item():
+        indexes = np.where(unique_groups == key)[0]
         y_data = data[indexes, y]
         x_data = data[indexes, x]
         x_grps = np.sort(np.unique(x_data))
@@ -588,13 +598,31 @@ def _agg_line(
             agg_data[index] = get_func(agg_func)(y_temp)
             if err_func is not None:
                 err_data[index] = get_func(err_func)(y_temp)
-        if not fill_between:
-            ax[facet_dict[i]].errorbar(x_grps, agg_data, yerr=err_data)
-        else:
-            ax[facet_dict[i]].plot(x_grps, agg_data)
-            ax[facet_dict[i]].fill_between(
-                x_grps, agg_data - err_data, agg_data + err_data
+        if not fillbetween:
+            ax[value].errorbar(
+                x_grps,
+                agg_data,
+                yerr=err_data,
+                marker=marker[key],
+                color=linecolor[key],
             )
+        else:
+            ax[value].plot(
+                x_grps,
+                agg_data,
+                linestyle=linestyle[key],
+                linewidth=linewidth[key],
+                color=linecolor[key],
+                alpha=linealpha[key],
+            )
+            ax[value].fillbetween(
+                x_grps,
+                agg_data - err_data,
+                agg_data + err_data,
+                color=linecolor[key],
+                alpha=fillalpha,
+            )
+    return ax
 
 
 def _kde_plot(
@@ -1097,6 +1125,8 @@ def _count_plot(
     alpha,
     line_alpha,
     axis_type,
+    agg_func=None,
+    err_func=None,
     ax=None,
     transform=None,
 ):

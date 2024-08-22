@@ -51,6 +51,7 @@ MP_PLOTS = {
     "ecdf": mp._ecdf,
     "count": mp._count_plot,
     "scatter": mp._scatter_plot,
+    "aggline": None,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -151,8 +152,8 @@ class LinePlot:
         ticklabel: int = 12,
         steps: int = 7,
         tickstyle: Literal["all", "middle"] = "all",
-        y_decimals: int = None,
-        x_decimals: int = None,
+        ydecimals: int = None,
+        xdecimals: int = None,
     ):
         self._plot_settings_run = True
         if ylim is None:
@@ -173,8 +174,8 @@ class LinePlot:
             "linewidth": linewidth,
             "ylim": ylim,
             "xlim": xlim,
-            "y_decimals": y_decimals,
-            "x_decimals": x_decimals,
+            "ydecimals": ydecimals,
+            "xdecimals": xdecimals,
             "steps": steps,
             "tickstyle": tickstyle,
         }
@@ -248,21 +249,56 @@ class LinePlot:
         if not self.inplace:
             return self
 
-    def errorline(
+    def aggline(
         self,
         x,
-        marker: str = ".",
+        marker: str = "none",
         markercolor: Union[ColorDict, tuple[str, str]] = "black",
         edgecolor: ColorDict = "black",
         markersize: Union[float, str] = 1,
         linecolor: ColorDict = "black",
         linewidth: float = 1.0,
-        alpha: float = 1.0,
+        linestyle: str = "-",
+        linealpha: float = 1.0,
         func="mean",
         err_func="sem",
-        fill_between=False,
+        fillbetween=False,
+        fillalpha: float = 1.0,
+        sort=True,
     ):
-        pass
+        linecolor_dict = process_args(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        linestyle_dict = process_args(
+            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        markercolor_dict = process_args(
+            markercolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        edgecolor_dict = process_args(
+            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        marker_dict = process_args(
+            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        line_plot = {
+            "linecolor": linecolor_dict,
+            "linestyle": linestyle_dict,
+            "linewidth": linewidth,
+            "func": func,
+            "err_func": err_func,
+            "x": x,
+            "linealpha": linealpha,
+            "fillbetween": fillbetween,
+            "fillalpha": fillalpha,
+            "sort": sort,
+            "marker": marker_dict,
+            "markercolor": markercolor_dict,
+            "edgecolor": edgecolor_dict,
+            "markersize": markersize,
+        }
+        self.plots.append(line_plot)
+        self.plot_list.append("aggline")
 
     def kde(
         self,
@@ -542,14 +578,14 @@ class LinePlot:
                 **j,
             )
 
-        if self.plot_dict["y_decimals"] is None:
-            y_decimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
+        if self.plot_dict["ydecimals"] is None:
+            ydecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
-            y_decimals = self.plot_dict["y_decimals"]
-        if self.plot_dict["x_decimals"] is None:
-            x_decimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
+            ydecimals = self.plot_dict["ydecimals"]
+        if self.plot_dict["xdecimals"] is None:
+            xdecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
-            x_decimals = self.plot_dict["x_decimals"]
+            xdecimals = self.plot_dict["xdecimals"]
         num_plots = len(self.plot_dict["group_order"])
         for index, i in enumerate(ax[:num_plots]):
             if "kde" in self.plot_list and all(
@@ -576,7 +612,7 @@ class LinePlot:
                     self.plot_dict["ylim"],
                     ticks,
                     self.plot_dict["steps"],
-                    y_decimals,
+                    ydecimals,
                     tickstyle=self.plot_dict["tickstyle"],
                 )
                 i.set_ylim(bottom=lim[0], top=lim[1])
@@ -585,7 +621,7 @@ class LinePlot:
                 i.set_yscale(self.plot_dict["yscale"])
                 ticks = i.get_yticks()
                 lim, _ = get_ticks(
-                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], y_decimals
+                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], ydecimals
                 )
                 i.set_ylim(bottom=lim[0], top=lim[1])
             if self.plot_dict["xscale"] not in ["log", "symlog"]:
@@ -594,7 +630,7 @@ class LinePlot:
                     self.plot_dict["xlim"],
                     ticks,
                     self.plot_dict["steps"],
-                    x_decimals,
+                    xdecimals,
                     tickstyle=self.plot_dict["tickstyle"],
                 )
                 i.set_xlim(left=lim[0], right=lim[1])
@@ -603,7 +639,7 @@ class LinePlot:
                 i.set_xscale(self.plot_dict["xscale"])
                 ticks = i.get_xticks()
                 lim, _ = get_ticks(
-                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], x_decimals
+                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], xdecimals
                 )
                 i.set_xlim(left=lim[0], right=lim[1])
             i.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
