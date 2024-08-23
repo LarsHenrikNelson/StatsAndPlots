@@ -51,7 +51,7 @@ MP_PLOTS = {
     "ecdf": mp._ecdf,
     "count": mp._count_plot,
     "scatter": mp._scatter_plot,
-    "aggline": None,
+    "aggline": mp._agg_line,
 }
 PLP_PLOTS = {
     "jitter": plp._jitter_plot,
@@ -253,8 +253,8 @@ class LinePlot:
         self,
         x,
         marker: str = "none",
-        markercolor: Union[ColorDict, tuple[str, str]] = "black",
-        edgecolor: ColorDict = "black",
+        markerfacecolor: Union[ColorDict, tuple[str, str]] = "black",
+        markeredgecolor: Union[ColorDict, tuple[str, str]] = "black",
         markersize: Union[float, str] = 1,
         linecolor: ColorDict = "black",
         linewidth: float = 1.0,
@@ -262,24 +262,42 @@ class LinePlot:
         linealpha: float = 1.0,
         func="mean",
         err_func="sem",
-        fillbetween=False,
+        fill_between=False,
         fillalpha: float = 1.0,
         sort=True,
+        colorall: ColorDict = None,
     ):
-        linecolor_dict = process_args(
-            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        if colorall is None:
+            linecolor_dict = process_args(
+                linecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            )
+            markerfacecolor_dict = process_args(
+                markerfacecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            )
+            markeredgecolor_dict = process_args(
+                markeredgecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            )
+        else:
+            temp_dict = process_args(
+                colorall,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            )
+            markeredgecolor_dict = temp_dict
+            markerfacecolor_dict = temp_dict
+            linecolor_dict = temp_dict
+
+        marker_dict = process_args(
+            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
-        markercolor_dict = process_args(
-            markercolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
-        edgecolor_dict = process_args(
-            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
-        marker_dict = process_args(
-            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         line_plot = {
             "linecolor": linecolor_dict,
@@ -289,16 +307,19 @@ class LinePlot:
             "err_func": err_func,
             "x": x,
             "linealpha": linealpha,
-            "fillbetween": fillbetween,
+            "fill_between": fill_between,
             "fillalpha": fillalpha,
             "sort": sort,
             "marker": marker_dict,
-            "markercolor": markercolor_dict,
-            "edgecolor": edgecolor_dict,
+            "markerfacecolor": markerfacecolor_dict,
+            "markeredgecolor": markeredgecolor_dict,
             "markersize": markersize,
         }
         self.plots.append(line_plot)
         self.plot_list.append("aggline")
+
+        if not self.inplace:
+            return self
 
     def kde(
         self,

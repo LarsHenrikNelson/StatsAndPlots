@@ -573,49 +573,62 @@ def _agg_line(
     y,
     unique_groups,
     marker,
-    markercolor,
-    edgecolor,
+    markersize,
+    markerfacecolor,
+    markeredgecolor,
     linestyle,
     linewidth,
     linecolor,
     linealpha,
-    agg_func,
+    func,
     err_func,
     facet_dict,
-    fillbetween=False,
+    fill_between=False,
     fillalpha=1.0,
+    ytransform=None,
+    xtransform=None,
     ax=None,
+    sort=True,
 ):
-    for key, value in facet_dict.item():
+    for key, value in facet_dict.items():
         indexes = np.where(unique_groups == key)[0]
         y_data = data[indexes, y]
         x_data = data[indexes, x]
-        x_grps = np.sort(np.unique(x_data))
+        if sort:
+            x_grps = np.sort(np.unique(x_data))
+        else:
+            x_grps = np.unique(x_data)
         agg_data = np.zeros(x_grps.size)
         err_data = np.zeros(x_grps.size)
         for index, j in enumerate(x_grps):
             y_temp = y_data[x_data == j]
-            agg_data[index] = get_func(agg_func)(y_temp)
+            agg_data[index] = get_func(func)(y_temp)
             if err_func is not None:
                 err_data[index] = get_func(err_func)(y_temp)
-        if not fillbetween:
+        if not fill_between:
             ax[value].errorbar(
                 x_grps,
                 agg_data,
                 yerr=err_data,
                 marker=marker[key],
                 color=linecolor[key],
+                elinewidth=linewidth,
+                linewidth=linewidth,
+                markerfacecolor=markerfacecolor[key],
+                markeredgecolor=markeredgecolor[key],
+                markersize=markersize,
+                alpha=linealpha,
             )
         else:
             ax[value].plot(
                 x_grps,
                 agg_data,
                 linestyle=linestyle[key],
-                linewidth=linewidth[key],
+                linewidth=linewidth,
                 color=linecolor[key],
-                alpha=linealpha[key],
+                alpha=linealpha,
             )
-            ax[value].fillbetween(
+            ax[value].fill_between(
                 x_grps,
                 agg_data - err_data,
                 agg_data + err_data,
