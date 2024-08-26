@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from .transforms import FUNC_DICT
+
 
 class DataHolder:
 
@@ -81,3 +83,18 @@ class DataHolder:
 
     def __len__(self):
         return self.size
+
+    def get_data(self, levels, ids):
+        bool_array = np.full(self.shape[0], True)
+        for i, j in zip(levels, ids):
+            bool_array = bool_array & (self[i] == j)
+        return bool_array
+
+    def groupby(self, y, columns, function):
+        yy = (
+            pd.DataFrame(self.data)[columns + [y]]
+            .groupby(columns)
+            .agg(FUNC_DICT[function])
+            .reset_index()
+        )
+        return yy

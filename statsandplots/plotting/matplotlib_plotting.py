@@ -571,7 +571,8 @@ def _agg_line(
     data,
     x,
     y,
-    unique_groups,
+    levels,
+    groups,
     marker,
     markersize,
     markerfacecolor,
@@ -585,26 +586,31 @@ def _agg_line(
     facet_dict,
     fill_between=False,
     fillalpha=1.0,
+    agg_func=None,
     ytransform=None,
     xtransform=None,
+    unique_id=None,
     ax=None,
     sort=True,
 ):
-    for key, value in facet_dict.items():
-        indexes = np.where(unique_groups == key)[0]
-        y_data = data[indexes, y]
-        x_data = data[indexes, x]
-        if sort:
-            x_grps = np.sort(np.unique(x_data))
-        else:
-            x_grps = np.unique(x_data)
-        agg_data = np.zeros(x_grps.size)
-        err_data = np.zeros(x_grps.size)
-        for index, j in enumerate(x_grps):
-            y_temp = y_data[x_data == j]
-            agg_data[index] = get_func(func)(y_temp)
+    x_grps = np.sort(np.unique(data[x])) if sort else np.unique(data[x])
+    if unique_id is None:
+        new_data = data.groupby(levels + [x, y], get_func(func))
+        if err_func is not None:
+            err_data = data.groupby(levels + [x, y], get_func(err_func))
+    else:
+        agg_data = data.groupby(levels + [x, unique_id, y], func)
+        if agg_func is not None:
+            new_data = (
+                agg_data[levels + [y, x]].groupby([levels + [x]]).agg(get_func(func))
+            )
             if err_func is not None:
-                err_data[index] = get_func(err_func)(y_temp)
+                err_data = (
+                    agg_data[levels + [y, x]]
+                    .groupby([levels + [x]])
+                    .agg(get_func(func))
+                )
+    for i in err_data.shape[0]:
         if not fill_between:
             ax[value].errorbar(
                 x_grps,
@@ -620,6 +626,14 @@ def _agg_line(
                 alpha=linealpha,
             )
         else:
+            ax[value].fill_between(
+                x_grps,
+                agg_data - err_data,
+                agg_data + err_data,
+                color=linecolor[key],
+                alpha=fillalpha,
+                linewidth=0,
+            )
             ax[value].plot(
                 x_grps,
                 agg_data,
@@ -628,14 +642,7 @@ def _agg_line(
                 color=linecolor[key],
                 alpha=linealpha,
             )
-            ax[value].fill_between(
-                x_grps,
-                agg_data - err_data,
-                agg_data + err_data,
-                color=linecolor[key],
-                alpha=fillalpha,
-            )
-    return ax
+        return ax
 
 
 def _kde_plot(

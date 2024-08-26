@@ -1,12 +1,20 @@
 from dataclasses import dataclass
+from itertools import product
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Union, Callable
+from typing import Annotated, Callable, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from ..utils import (
+    AGGREGATE,
+    BACK_TRANSFORM_DICT,
+    ERROR,
+    TRANSFORM,
+    DataHolder,
+)
 from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
 from .plot_utils import (
@@ -16,14 +24,6 @@ from .plot_utils import (
     get_ticks,
     process_args,
     process_scatter_args,
-)
-
-from ..utils import (
-    DataHolder,
-    AGGREGATE,
-    ERROR,
-    TRANSFORM,
-    BACK_TRANSFORM_DICT,
 )
 
 
@@ -103,6 +103,11 @@ class LinePlot:
             data, group, subgroup, group_order, subgroup_order
         )
 
+        ugs = {
+            key: value
+            for key, value in enumerate(list(product(group_order, subgroup_order)))
+        }
+
         if facet:
             facet_length = list(range(len(group_order)))
         else:
@@ -133,6 +138,8 @@ class LinePlot:
             "xback_transform_ticks": False,
             "ytransform": None,
             "yback_transform_ticks": False,
+            "groups": ugs,
+            "levels": [group, subgroup],
         }
 
     def plot_settings(
@@ -266,6 +273,7 @@ class LinePlot:
         fillalpha: float = 1.0,
         sort=True,
         colorall: ColorDict = None,
+        unique_id=None,
     ):
         if colorall is None:
             linecolor_dict = process_args(
@@ -314,6 +322,9 @@ class LinePlot:
             "markerfacecolor": markerfacecolor_dict,
             "markeredgecolor": markeredgecolor_dict,
             "markersize": markersize,
+            "unique_id": unique_id,
+            "levels": self.plot_dict["levels"],
+            "groups": self.plot_dict["groups"],
         }
         self.plots.append(line_plot)
         self.plot_list.append("aggline")

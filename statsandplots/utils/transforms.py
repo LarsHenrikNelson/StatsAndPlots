@@ -26,7 +26,7 @@ def ci_bca(a):
     return np.array([[res.confidence_interval.high], [res.confidence_interval.low]])
 
 
-def mad(a):
+def mad(a, axis=None):
     return np.median(np.abs(a - np.median(a)))
 
 
