@@ -24,6 +24,13 @@ def process_duplicates(values, output=None):
     return output
 
 
+def _invert(array, invert):
+    if invert:
+        return reversed(array)
+    else:
+        return array
+
+
 def get_ticks(
     lim,
     ticks,

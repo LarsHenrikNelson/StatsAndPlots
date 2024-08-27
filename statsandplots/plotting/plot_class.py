@@ -147,6 +147,7 @@ class LinePlot:
             "mapping_dict": mapping_dict,
             "levels": [group, subgroup],
         }
+        self.lines = {}
 
     def plot_settings(
         self,
@@ -225,6 +226,44 @@ class LinePlot:
 
         if not self.inplace:
             return self
+
+    def add_line(
+        self,
+        linetype: Literal["hline", "vline"],
+        lines: list,
+        linestyle="solid",
+        linealpha=1,
+        linecolor="black",
+    ):
+        if linetype not in ["hline", "vline"]:
+            raise AttributeError("linetype must by hline or vline")
+        if isinstance(lines, (float, int)):
+            lines = [lines]
+        self.plot_dict[linetype] = {
+            "line": lines,
+            linestyle: linestyle,
+            linealpha: linealpha,
+            linecolor: linecolor,
+        }
+
+    def _plot_lines(line_dict, ax):
+        for key, item in line_dict.items():
+            for ap in ax:
+                for ll in item["lines"]:
+                    if key == "vline":
+                        ap.axvline(
+                            ll,
+                            linestyle=item["linestyle"],
+                            color=item["linecolor"],
+                            alpha=item["linealpha"],
+                        )
+                    else:
+                        ap.axhline(
+                            ll,
+                            linestyle=item["linestyle"],
+                            color=item["linecolor"],
+                            alpha=item["linealpha"],
+                        )
 
     def line(
         self,
@@ -1114,6 +1153,7 @@ class CategoricalPlot:
         axis_type: Literal["density", "percent"] = "density",
         cutoff: Union[None, float, int, list[Union[float, int]]] = None,
         include_bins: Optional[list[bool]] = None,
+        invert: bool = False,
         legend: bool = False,
     ):
         if isinstance(cutoff, (float, int)):
@@ -1143,6 +1183,7 @@ class CategoricalPlot:
             "line_alpha": line_alpha,
             "include_bins": include_bins,
             "unique_id": unique_id,
+            "invert": invert,
         }
         self.plots.append(percent_plot)
         self.plot_list.append("percent")

@@ -12,7 +12,7 @@ from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from ..stats import kde
-from .plot_utils import bin_data, process_args, process_duplicates
+from .plot_utils import bin_data, process_args, process_duplicates, _invert
 from ..utils import DataHolder, get_func
 
 
@@ -567,6 +567,56 @@ def _scatter_plot(
     return ax
 
 
+def _plot_agg_line(
+    x_data,
+    y_data,
+    ed,
+    value,
+    ax,
+    marker=None,
+    linecolor=None,
+    linewidth=None,
+    linestyle=None,
+    markerfacecolor=None,
+    markeredgecolor=None,
+    fill_between=False,
+    markersize=None,
+    fillalpha=None,
+    linealpha=None,
+):
+    if not fill_between:
+        ax[value].errorbar(
+            x_data,
+            y_data,
+            yerr=ed,
+            marker=marker,
+            color=linecolor,
+            elinewidth=linewidth,
+            linewidth=linewidth,
+            markerfacecolor=markerfacecolor,
+            markeredgecolor=markeredgecolor,
+            markersize=markersize,
+            alpha=linealpha,
+        )
+    else:
+        ax[value].fill_between(
+            x_data,
+            y_data - ed,
+            y_data + ed,
+            color=linecolor,
+            alpha=fillalpha,
+            linewidth=0,
+        )
+        ax[value].plot(
+            x_data,
+            y_data,
+            linestyle=linestyle,
+            linewidth=linewidth,
+            color=linecolor,
+            alpha=linealpha,
+        )
+
+
 def _agg_line(
     data,
     x,
@@ -624,7 +674,6 @@ def _agg_line(
         else list(set(zip(*[new_data[i] for i in levels])))
     )
     temp_levels = (levels + [unique_id]) if unique_id is not None else levels
-    fill_between = True
     for i in ugrps:
         index = ugs[i]
         value = facet_dict[index]
@@ -632,37 +681,54 @@ def _agg_line(
         y_data = new_data[indexes, y]
         x_data = new_data[indexes, x]
         ed = err_data[indexes, y] if err_func is not None else np.zeros(y_data.size)
-        if not fill_between:
-            ax[value].errorbar(
-                x_data,
-                y_data,
-                yerr=ed,
-                marker=marker[index],
-                color=linecolor[index],
-                elinewidth=linewidth,
-                linewidth=linewidth,
-                markerfacecolor=markerfacecolor[index],
-                markeredgecolor=markeredgecolor[index],
-                markersize=markersize,
-                alpha=0.8,
-            )
-        else:
-            ax[value].fill_between(
-                x_data,
-                y_data - ed,
-                y_data + ed,
-                color=linecolor[index],
-                alpha=fillalpha,
-                linewidth=0,
-            )
-            ax[value].plot(
-                x_data,
-                y_data,
-                linestyle=linestyle[index],
-                linewidth=linewidth,
-                color=linecolor[index],
-                alpha=linealpha,
-            )
+        _plot_agg_line(
+            x_data,
+            y_data,
+            ed,
+            value,
+            ax,
+            marker=marker[index],
+            linecolor=linecolor[index],
+            linewidth=linewidth,
+            linestyle=linestyle[index],
+            markerfacecolor=markerfacecolor[index],
+            markeredgecolor=markeredgecolor[index],
+            markersize=markersize,
+            fill_between=fill_between,
+            linealpha=linealpha,
+            fillalpha=fillalpha,
+        )
+        # if not fill_between:
+        #     ax[value].errorbar(
+        #         x_data,
+        #         y_data,
+        #         yerr=ed,
+        #         marker=marker[index],
+        #         color=linecolor[index],
+        #         elinewidth=linewidth,
+        #         linewidth=linewidth,
+        #         markerfacecolor=markerfacecolor[index],
+        #         markeredgecolor=markeredgecolor[index],
+        #         markersize=markersize,
+        #         alpha=linealpha,
+        #     )
+        # else:
+        #     ax[value].fill_between(
+        #         x_data,
+        #         y_data - ed,
+        #         y_data + ed,
+        #         color=linecolor[index],
+        #         alpha=fillalpha,
+        #         linewidth=0,
+        #     )
+        #     ax[value].plot(
+        #         x_data,
+        #         y_data,
+        #         linestyle=linestyle[index],
+        #         linewidth=linewidth,
+        #         color=linecolor[index],
+        #         alpha=linealpha,
+        #     )
     return ax
 
 
@@ -1166,6 +1232,7 @@ def _count_plot(
     alpha,
     line_alpha,
     axis_type,
+    invert=False,
     agg_func=None,
     err_func=None,
     ax=None,
@@ -1213,7 +1280,15 @@ def _count_plot(
             lws.append(linewidth)
 
     _, ax = _add_rectangles(
-        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, lws, ax
+        _invert(tops, invert),
+        _invert(bottoms, invert),
+        _invert(x_loc, invert),
+        _invert(bw, invert),
+        _invert(fillcolors, invert),
+        _invert(edgecolors, invert),
+        _invert(hatches, invert),
+        _invert(lws),
+        ax,
     )
     ax.autoscale()
     return ax
