@@ -111,6 +111,18 @@ def process_args(arg, group_order, subgroup_order):
     return output_dict
 
 
+def process_args_alt(ugs, arg_dict):
+    output_dict = {}
+    if isinstance(arg_dict, dict):
+        for key, value in ugs.items():
+            for key1, value1 in arg_dict.items():
+                if key1 in value:
+                    output_dict[key] = value1
+    else:
+        output_dict = {key: arg_dict for key in ugs.keys()}
+    return output_dict
+
+
 def process_scatter_args(
     arg, data, group_order, subgroup_order, unique_groups, arg_cycle=None, alpha=None
 ):

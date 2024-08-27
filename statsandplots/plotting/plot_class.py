@@ -23,6 +23,7 @@ from .plot_utils import (
     _process_positions,
     get_ticks,
     process_args,
+    process_args_alt,
     process_scatter_args,
 )
 
@@ -105,6 +106,10 @@ class LinePlot:
 
         ugs = {
             key: value
+            for value, key in enumerate(list(product(group_order, subgroup_order)))
+        }
+        mapping_dict = {
+            key: value
             for key, value in enumerate(list(product(group_order, subgroup_order)))
         }
 
@@ -138,7 +143,8 @@ class LinePlot:
             "xback_transform_ticks": False,
             "ytransform": None,
             "yback_transform_ticks": False,
-            "groups": ugs,
+            "ugs": ugs,
+            "mapping_dict": mapping_dict,
             "levels": [group, subgroup],
         }
 
@@ -269,6 +275,7 @@ class LinePlot:
         linealpha: float = 1.0,
         func="mean",
         err_func="sem",
+        agg_func=None,
         fill_between=False,
         fillalpha: float = 1.0,
         sort=True,
@@ -276,37 +283,29 @@ class LinePlot:
         unique_id=None,
     ):
         if colorall is None:
-            linecolor_dict = process_args(
+            linecolor_dict = process_args_alt(
+                self.plot_dict["mapping_dict"],
                 linecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
             )
-            markerfacecolor_dict = process_args(
+            markerfacecolor_dict = process_args_alt(
+                self.plot_dict["mapping_dict"],
                 markerfacecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
             )
-            markeredgecolor_dict = process_args(
-                markeredgecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
+            markeredgecolor_dict = process_args_alt(
+                self.plot_dict["mapping_dict"], markeredgecolor
             )
         else:
-            temp_dict = process_args(
+            temp_dict = process_args_alt(
+                self.plot_dict["mapping_dict"],
                 colorall,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
             )
             markeredgecolor_dict = temp_dict
             markerfacecolor_dict = temp_dict
             linecolor_dict = temp_dict
 
-        marker_dict = process_args(
-            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
-        linestyle_dict = process_args(
-            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
+        marker_dict = process_args_alt(self.plot_dict["mapping_dict"], marker)
+        linestyle_dict = process_args_alt(self.plot_dict["mapping_dict"], linestyle)
+
         line_plot = {
             "linecolor": linecolor_dict,
             "linestyle": linestyle_dict,
@@ -324,8 +323,17 @@ class LinePlot:
             "markersize": markersize,
             "unique_id": unique_id,
             "levels": self.plot_dict["levels"],
-            "groups": self.plot_dict["groups"],
+            "ugs": self.plot_dict["ugs"],
+            "agg_func": agg_func,
         }
+        facet_dict = {
+            key: value for value, key in enumerate(self.plot_dict["group_order"])
+        }
+        facet_dict = process_args_alt(
+            self.plot_dict["mapping_dict"],
+            facet_dict,
+        )
+        self.plot_dict["facet_dict"] = facet_dict
         self.plots.append(line_plot)
         self.plot_list.append("aggline")
 

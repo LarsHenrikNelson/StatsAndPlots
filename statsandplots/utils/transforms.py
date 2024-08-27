@@ -11,7 +11,7 @@ def sem(a, axis=None):
         shape = a.shape[1]
     else:
         shape = a.size
-    return np.std(a, axis) / np.sqrt(shape)
+    return np.std(a, axis) / np.sqrt(shape - 1)
 
 
 def ci(a, axis=None):

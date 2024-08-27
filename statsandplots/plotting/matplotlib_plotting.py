@@ -572,7 +572,7 @@ def _agg_line(
     x,
     y,
     levels,
-    groups,
+    ugs,
     marker,
     markersize,
     markerfacecolor,
@@ -592,57 +592,78 @@ def _agg_line(
     unique_id=None,
     ax=None,
     sort=True,
+    unique_groups=None,
 ):
-    x_grps = np.sort(np.unique(data[x])) if sort else np.unique(data[x])
+    err_data = None
+    new_levels = (levels + [x]) if unique_id is None else (levels + [x, unique_id])
+    new_data = data.groupby(y, new_levels).agg(get_func(func)).reset_index()
     if unique_id is None:
-        new_data = data.groupby(levels + [x, y], get_func(func))
         if err_func is not None:
-            err_data = data.groupby(levels + [x, y], get_func(err_func))
-    else:
-        agg_data = data.groupby(levels + [x, unique_id, y], func)
-        if agg_func is not None:
-            new_data = (
-                agg_data[levels + [y, x]].groupby([levels + [x]]).agg(get_func(func))
+            err_data = DataHolder(
+                data.groupby(y, new_levels).agg(get_func(err_func)).reset_index()
             )
+    else:
+        if agg_func is not None:
             if err_func is not None:
-                err_data = (
-                    agg_data[levels + [y, x]]
-                    .groupby([levels + [x]])
-                    .agg(get_func(func))
+                err_data = DataHolder(
+                    new_data[levels + [x, y]]
+                    .groupby(levels + [x])
+                    .agg(get_func(err_func))
+                    .reset_index()
                 )
-    for i in err_data.shape[0]:
+        new_data = (
+            new_data[levels + [x, y]]
+            .groupby(levels + [x])
+            .agg(get_func(func))
+            .reset_index()
+        )
+    new_data = DataHolder(new_data)
+    ugrps = (
+        list(set(zip(*[new_data[i] for i in levels + [unique_id]])))
+        if unique_id is not None and agg_func is None
+        else list(set(zip(*[new_data[i] for i in levels])))
+    )
+    temp_levels = (levels + [unique_id]) if unique_id is not None else levels
+    fill_between = True
+    for i in ugrps:
+        index = ugs[i]
+        value = facet_dict[index]
+        indexes = new_data.get_data(temp_levels, i)
+        y_data = new_data[indexes, y]
+        x_data = new_data[indexes, x]
+        ed = err_data[indexes, y] if err_func is not None else np.zeros(y_data.size)
         if not fill_between:
             ax[value].errorbar(
-                x_grps,
-                agg_data,
-                yerr=err_data,
-                marker=marker[key],
-                color=linecolor[key],
+                x_data,
+                y_data,
+                yerr=ed,
+                marker=marker[index],
+                color=linecolor[index],
                 elinewidth=linewidth,
                 linewidth=linewidth,
-                markerfacecolor=markerfacecolor[key],
-                markeredgecolor=markeredgecolor[key],
+                markerfacecolor=markerfacecolor[index],
+                markeredgecolor=markeredgecolor[index],
                 markersize=markersize,
-                alpha=linealpha,
+                alpha=0.8,
             )
         else:
             ax[value].fill_between(
-                x_grps,
-                agg_data - err_data,
-                agg_data + err_data,
-                color=linecolor[key],
+                x_data,
+                y_data - ed,
+                y_data + ed,
+                color=linecolor[index],
                 alpha=fillalpha,
                 linewidth=0,
             )
             ax[value].plot(
-                x_grps,
-                agg_data,
-                linestyle=linestyle[key],
+                x_data,
+                y_data,
+                linestyle=linestyle[index],
                 linewidth=linewidth,
-                color=linecolor[key],
+                color=linecolor[index],
                 alpha=linealpha,
             )
-        return ax
+    return ax
 
 
 def _kde_plot(

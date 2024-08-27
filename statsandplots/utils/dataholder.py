@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .transforms import FUNC_DICT
-
 
 class DataHolder:
 
@@ -11,21 +9,21 @@ class DataHolder:
             for key, value in data.items():
                 if isinstance(value, list):
                     data[key] = np.array(value)
-        self.data = data
+        self._data = data._data if isinstance(data, DataHolder) else data
         self._container_type = self._get_container_type()
 
     def __contains__(self, item):
         if self._container_type == "pandas" or self._container_type == "dict":
-            return item in self.data
+            return item in self._data
         elif self._container_type == "numpy":
-            return item < self.data.shape[1]
+            return item < self._data.shape[1]
 
     def _get_container_type(self):
-        if isinstance(self.data, (pd.Series, pd.DataFrame)):
+        if isinstance(self._data, (pd.Series, pd.DataFrame)):
             return "pandas"
-        elif isinstance(self.data, np.ndarray):
+        elif isinstance(self._data, np.ndarray):
             return "numpy"
-        elif isinstance(self.data, dict):
+        elif isinstance(self._data, dict):
             return "dict"
         else:
             raise ValueError(
@@ -34,24 +32,24 @@ class DataHolder:
 
     def _numpy_index(self, index):
         if isinstance(index, tuple):
-            return self.data[index]
+            return self._data[index]
         elif isinstance(index, int):
-            return self.data[:, index]
+            return self._data[:, index]
 
     def _pandas_index(self, index):
         if isinstance(index, tuple):
             if pd.api.types.is_bool_dtype(index[0].dtype):
-                return self.data.loc[index[0], index[1]]
+                return self._data.loc[index[0], index[1]]
             else:
-                return self.data.iloc[index[0], self.data.columns.get_loc(index[1])]
+                return self._data.iloc[index[0], self._data.columns.get_loc(index[1])]
         elif isinstance(index, str):
-            return self.data[index]
+            return self._data[index]
 
     def _dict_index(self, index):
         if isinstance(index, tuple):
-            return self.data[index[1]][index[0]]
+            return self._data[index[1]][index[0]]
         elif isinstance(index, str):
-            return self.data[index]
+            return self._data[index]
 
     def __getitem__(self, index):
         if self._container_type == "numpy":
@@ -70,16 +68,16 @@ class DataHolder:
     @property
     def size(self):
         if self._container_type == "numpy" or self._container_type == "pandas":
-            return self.data.size
+            return self._data.size
         elif self._container_type == "dict":
-            return len(next(iter(self.data.values()))) * len(self.data.keys())
+            return len(next(iter(self._data.values()))) * len(self._data.keys())
 
     @property
     def shape(self):
         if self._container_type == "numpy" or self._container_type == "pandas":
-            return self.data.shape
+            return self._data.shape
         else:
-            return (len(next(iter(self.data.values()))), len(self.data.keys()))
+            return (len(next(iter(self._data.values()))), len(self._data.keys()))
 
     def __len__(self):
         return self.size
@@ -90,11 +88,6 @@ class DataHolder:
             bool_array = bool_array & (self[i] == j)
         return bool_array
 
-    def groupby(self, y, columns, function):
-        yy = (
-            pd.DataFrame(self.data)[columns + [y]]
-            .groupby(columns)
-            .agg(FUNC_DICT[function])
-            .reset_index()
-        )
+    def groupby(self, y, columns):
+        yy = pd.DataFrame(self._data)[columns + [y]].groupby(columns)
         return yy
