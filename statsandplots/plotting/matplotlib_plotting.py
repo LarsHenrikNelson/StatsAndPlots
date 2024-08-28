@@ -488,52 +488,89 @@ def _hist_plot(
     unique_groups,
     color_dict,
     facet_dict,
-    hist_type: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
-    alpha=1,
-    unique_id=None,
-    bins=None,
+    hist_type: Literal["bar", "step", "stepfilled"] = "bar",
+    fillalpha=1.0,
+    linealpha=1.0,
+    bin_limits=None,
+    nbins=None,
     density=True,
     ax=None,
     xtransform=None,
     ytransform=None,
     agg_func=None,
+    projection="rectilinear",
+    unique_id=None,
 ):
     if ax is None:
         ax = plt.gca()
+
+    if bin_limits is None:
+        bins = np.linspace(
+            ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins + 1
+        )
+        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins)
+    else:
+        x = np.linspace(bin[0], bin[1], num=nbins)
+        bins = np.linspace(bin[0], bin[1], num=nbins + 1)
     ugrp = np.unique(unique_groups)
+    bottom = np.zeros(nbins)
+    bw = np.full(
+        nbins,
+        bins[1] - bins[0],
+    )
+    plot_data = []
+    count = 0
+    colors = []
+    axes1 = []
+    edgec = []
     for i in ugrp:
-        uids = np.unique(data[unique_groups == i, unique_id])
-        if agg_func is not None:
-            temp_list = np.zeros((len(uids), bins))
-        else:
-            temp_list = []
-        for index, j in enumerate(uids):
-            temp = np.where(data[unique_id] == j)[0]
-            temp_data = np.sort(data[temp, y])
-            poly, _ = np.histogram(temp_data, bins)
-            if density:
-                poly = poly / poly.sum()
+        if unique_id is not None:
+            uids = np.unique(data[unique_groups == i, unique_id])
             if agg_func is not None:
-                temp_list[index] = temp_list
+                temp_list = np.zeros((len(uids), nbins))
             else:
-                _add_rectangles(
-                    poly,
-                    np.zeros(len(poly)),
-                    bins[:-1],
-                    np.full(
-                        len(poly),
-                        bins[1] - bins[0],
-                    ),
-                    [to_rgba(color_dict[i], alpha)] * len(poly),
-                    ["none"] * len(poly),
-                    ["none"] * len(poly),
-                    [3] * len(poly),
-                    ax,
-                )
-    # ax.autoscale()
-    ax.set_rmax(ax.dataLim.ymax * 1.1)
-    ticks = ax.get_yticks()
-    ax.set_rticks(ticks[::3])
+                temp_list = []
+            for index, j in enumerate(uids):
+                temp = np.where(data[unique_id] == j)[0]
+                temp_data = np.sort(data[temp, y])
+                poly, _ = np.histogram(temp_data, bins)
+                if density:
+                    poly = poly / poly.sum()
+                if agg_func is not None:
+                    temp_list[index] = poly
+                else:
+                    plot_data.append(poly)
+                    colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
+                    axes1.append(ax[facet_dict[i]])
+                    count += 1
+            if agg_func is not None:
+                plot_data.append(get_func(agg_func)(temp_list, axis=0))
+                colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
+                axes1.append(ax[facet_dict[i]])
+                count += 1
+        else:
+            temp_data = np.sort(data[unique_groups == i, y])
+            poly, _ = np.histogram(temp_data, bins)
+            plot_data.append(poly)
+            colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
+            edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
+            axes1.append(ax[facet_dict[i]])
+            count += 1
+    bottom = [bottom for _ in range(count)]
+    bins = [bins[:-1] for _ in range(count)]
+    bw = [bw for _ in range(count)]
+    hatches = [["none"] * nbins] * count
+    linewidth = [np.full(nbins, 0) for _ in range(count)]
+    for d, b, x, w, c, e, h, l, a in zip(
+        plot_data, bottom, bins, bw, colors, edgec, hatches, linewidth, axes1
+    ):
+        _add_rectangles(d, b, x, w, c, e, h, l, a)
+        if projection == "polar":
+            a.set_rmax(a.dataLim.ymax)
+            ticks = a.get_yticks()
+            a.set_yticks(ticks)
+        else:
+            ax.autoscale()
     return ax
 
 
@@ -837,8 +874,8 @@ def _poly_hist(
     linewidth,
     unique_id=None,
     density=True,
-    bin=None,
-    bins=50,
+    bin_limits=None,
+    nbins=50,
     func="mean",
     err_func="sem",
     fit_func=None,
@@ -848,16 +885,14 @@ def _poly_hist(
     ytransform=None,
 ):
     ytransform = get_func(ytransform)
-    if bin is None:
+    if bin_limits is None:
         bins = np.linspace(
-            ytransform(data[y]).min(), ytransform(data[y]).max(), num=bins + 1
+            ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins + 1
         )
-        bins[0] = bins[0]
-        bins[-1] = bins[-1]
-        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=bins)
+        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins)
     else:
-        x = np.linspace(bin[0], bin[1], num=bins)
-        bins = np.linspace(bin[0], bin[1], num=bins + 1)
+        x = np.linspace(bin[0], bin[1], num=nbins)
+        bins = np.linspace(bin[0], bin[1], num=nbins + 1)
     if ax is None:
         ax = plt.gca()
         ax = [ax]
@@ -1123,6 +1158,7 @@ def _percent_plot(
     ax=None,
     transform=None,
     invert=False,
+    axis_type="density",
 ):
     if ax is None:
         ax = plt.gca()
@@ -1165,6 +1201,10 @@ def _percent_plot(
             temp = np.sort(data[indexes, y])
             binned_data = bin_data(temp, bins)
             binned_data = binned_data / binned_data.sum()
+            if axis_type == "percent":
+                binned_data *= 100
+            if invert:
+                binned_data = np.concatenate((binned_data, [0]))[::-1][:-1]
             top = binned_data[1:]
             bottom = binned_data[:-1]
             tops.extend(top[include_bins])
@@ -1198,6 +1238,9 @@ def _percent_plot(
                 temp = data[sub_indexes, y].sort_values()
                 binned_data = bin_data(temp, bins)
                 binned_data = binned_data / binned_data.sum()
+                binned_data = binned_data / binned_data.sum()
+                if axis_type == "percent":
+                    binned_data *= 100
                 if invert:
                     binned_data = np.concatenate((binned_data, [0]))[::-1][:-1]
                 top = binned_data[1:]

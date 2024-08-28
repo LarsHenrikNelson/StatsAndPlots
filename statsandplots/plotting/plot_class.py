@@ -446,9 +446,9 @@ class LinePlot:
         color: ColorDict = "black",
         linestyle: str = "-",
         linewidth: int = 2,
-        bin=None,
+        bin_limits=None,
         density=True,
-        bins=50,
+        nbins=50,
         func="mean",
         err_func="sem",
         fit_func=None,
@@ -462,13 +462,16 @@ class LinePlot:
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
 
+        if bin_limits is not None and len(bin_limits) != 2:
+            raise AttributeError("bin_limits must be length 2")
+
         poly_hist = {
             "color_dict": color_dict,
             "linestyle_dict": linestyle_dict,
             "linewidth": linewidth,
             "density": density,
-            "bin": bin,
-            "bins": bins,
+            "bin_limits": bin_limits,
+            "nbins": nbins,
             "func": func,
             "err_func": err_func,
             "fit_func": fit_func,
@@ -481,8 +484,42 @@ class LinePlot:
         if not self.inplace:
             return self
 
-    def hist():
-        pass
+    def hist(
+        self,
+        hist_type: Literal["bar", "step", "stepfilled"] = "bar",
+        color: ColorDict = "black",
+        linecolor: ColorDict = "black",
+        linewidth: int = 2,
+        fillalpha: float = 1.0,
+        linealpha: float = 1.0,
+        bin_limits=None,
+        density=True,
+        nbins=50,
+        err_func=None,
+        agg_func=None,
+        unique_id=None,
+    ):
+        color_dict = process_args(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        linecolor_dict = process_args(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        )
+        hist = {
+            "color_dict": color_dict,
+            "linecolor_dict": linecolor_dict,
+            "linewidth": linewidth,
+            "density": density,
+            "bin_limits": bin_limits,
+            "nbins": nbins,
+            "agg_func": agg_func,
+            "err_func": err_func,
+            "unique_id": unique_id,
+            "fillalpha": fillalpha,
+            "linealpha": linealpha,
+        }
+        self.plots.append(hist)
+        self.plot_list.append("hist")
 
     def ecdf(
         self,
@@ -1185,6 +1222,7 @@ class CategoricalPlot:
             "include_bins": include_bins,
             "unique_id": unique_id,
             "invert": invert,
+            "axis_type": axis_type,
         }
         self.plots.append(percent_plot)
         self.plot_list.append("percent")
@@ -1322,14 +1360,22 @@ class CategoricalPlot:
                 self.plot_dict["ylim"][1] = ticks[-1]
             ax.set_ylim(bottom=self.plot_dict["ylim"][0], top=self.plot_dict["ylim"][1])
             if decimals is not None:
-                ticks = np.round(
-                    np.linspace(
+                if decimals == -1:
+                    ticks = np.linspace(
                         self.plot_dict["ylim"][0],
                         self.plot_dict["ylim"][1],
                         self.plot_dict["steps"],
-                    ),
-                    decimals=decimals,
-                )
+                        dtype=int,
+                    )
+                else:
+                    ticks = np.round(
+                        np.linspace(
+                            self.plot_dict["ylim"][0],
+                            self.plot_dict["ylim"][1],
+                            self.plot_dict["steps"],
+                        ),
+                        decimals=decimals,
+                    )
             else:
                 ticks = np.linspace(
                     self.plot_dict["ylim"][0],
@@ -1345,8 +1391,6 @@ class CategoricalPlot:
                     tick_labels = tick_labels.astype(int)
                 else:
                     tick_labels = np.round(tick_labels, decimals=decimals)
-            else:
-                tick_labels = ticks
             ax.set_yticks(ticks, labels=tick_labels)
         else:
             ax.set_yscale(self.plot_dict["yscale"])

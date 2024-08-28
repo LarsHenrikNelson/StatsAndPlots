@@ -11,12 +11,16 @@ def sem(a, axis=None):
         shape = a.shape[1]
     else:
         shape = a.size
-    return np.std(a, axis) / np.sqrt(shape - 1)
+    return np.std(a, axis=axis) / np.sqrt(shape - 1)
 
 
 def ci(a, axis=None):
-    t_critical = stats.t.ppf(1 - 0.05 / 2, len(a) - 1)
-    margin_of_error = t_critical * (np.std(a, ddof=1) / np.sqrt(len(a)))
+    if a.ndim == 2:
+        length = a.shape[1] - 1
+    else:
+        length = len(a) - 1
+    t_critical = stats.t.ppf(1 - 0.05 / 2, length)
+    margin_of_error = t_critical * (np.std(a, ddof=1, axis=axis) / np.sqrt(length))
     return margin_of_error
 
 
@@ -27,7 +31,7 @@ def ci_bca(a):
 
 
 def mad(a, axis=None):
-    return np.median(np.abs(a - np.median(a)))
+    return np.median(np.abs(a - np.median(a, axis=axis)))
 
 
 TRANSFORM = Literal["log10", "log2", "ln", "inverse", "ninverse", "sqrt"]
