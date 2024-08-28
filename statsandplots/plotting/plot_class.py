@@ -769,7 +769,7 @@ class CategoricalPlot:
         group_spacing: Union[float, int] = 1.0,
         ylabel: str = "",
         title: str = "",
-        inplace: bool = True,
+        inplace: bool = False,
     ):
 
         self._plot_settings_run = False
@@ -865,6 +865,7 @@ class CategoricalPlot:
             "linewidth": linewidth,
             "legend_loc": legend_loc,
             "legend_anchor": legend_anchor,
+            "integer_axis": False,
         }
         self.plot_dict.update(plot_settings)
 
@@ -1200,7 +1201,7 @@ class CategoricalPlot:
 
     def count(
         self,
-        facecolor: ColorDict = "none",
+        facecolor: ColorDict = "black",
         linecolor: ColorDict = "black",
         hatch=None,
         barwidth: float = 1.0,
@@ -1300,14 +1301,8 @@ class CategoricalPlot:
                 **j,
             )
 
-        if "count" in self.plot_list:
-            decimals = None
-        elif self.plot_dict["decimals"] is None:
+        decimals = self.plot_dict["decimals"]
 
-            # No better way around this mess at the moment
-            decimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
-        else:
-            decimals = self.plot_dict["decimals"]
         ax.set_xticks(
             ticks=self.plot_dict["x_ticks"],
             labels=self.plot_dict["group_order"],
@@ -1342,12 +1337,16 @@ class CategoricalPlot:
                     self.plot_dict["steps"],
                 )
             if self.plot_dict["back_transform_ticks"]:
-                tick_labels = np.round(
-                    BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks),
-                    decimals=decimals,
-                )
+                tick_labels = BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks)
             else:
-                tick_labels = np.round(ticks, decimals=decimals)
+                tick_labels = ticks
+            if decimals is not None:
+                if decimals == -1:
+                    tick_labels = tick_labels.astype(int)
+                else:
+                    tick_labels = np.round(tick_labels, decimals=decimals)
+            else:
+                tick_labels = ticks
             ax.set_yticks(ticks, labels=tick_labels)
         else:
             ax.set_yscale(self.plot_dict["yscale"])

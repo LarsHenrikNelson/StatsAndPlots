@@ -26,7 +26,11 @@ def process_duplicates(values, output=None):
 
 def _invert(array, invert):
     if invert:
-        return reversed(array)
+        if isinstance(array, list):
+            array.reverse()
+        else:
+            array = array[::-1]
+        return array
     else:
         return array
 

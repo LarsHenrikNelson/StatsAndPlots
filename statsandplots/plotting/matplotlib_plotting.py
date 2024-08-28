@@ -12,7 +12,7 @@ from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from ..stats import kde
-from .plot_utils import bin_data, process_args, process_duplicates, _invert
+from .plot_utils import bin_data, process_args, process_duplicates
 from ..utils import DataHolder, get_func
 
 
@@ -1122,6 +1122,7 @@ def _percent_plot(
     unique_id=None,
     ax=None,
     transform=None,
+    invert=False,
 ):
     if ax is None:
         ax = plt.gca()
@@ -1197,6 +1198,8 @@ def _percent_plot(
                 temp = data[sub_indexes, y].sort_values()
                 binned_data = bin_data(temp, bins)
                 binned_data = binned_data / binned_data.sum()
+                if invert:
+                    binned_data = np.concatenate((binned_data, [0]))[::-1][:-1]
                 top = binned_data[1:]
                 bottom = binned_data[:-1]
                 tops.extend(top[include_bins])
@@ -1214,7 +1217,15 @@ def _percent_plot(
                 hatches.extend(hs)
 
     _, ax = _add_rectangles(
-        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth, ax
+        tops,
+        bottoms,
+        x_loc,
+        bw,
+        fillcolors,
+        edgecolors,
+        hatches,
+        linewidth,
+        ax,
     )
     return ax
 
@@ -1280,14 +1291,14 @@ def _count_plot(
             lws.append(linewidth)
 
     _, ax = _add_rectangles(
-        _invert(tops, invert),
-        _invert(bottoms, invert),
-        _invert(x_loc, invert),
-        _invert(bw, invert),
-        _invert(fillcolors, invert),
-        _invert(edgecolors, invert),
-        _invert(hatches, invert),
-        _invert(lws),
+        tops,
+        bottoms,
+        x_loc,
+        bw,
+        fillcolors,
+        edgecolors,
+        hatches,
+        lws,
         ax,
     )
     ax.autoscale()
