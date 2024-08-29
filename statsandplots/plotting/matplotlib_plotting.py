@@ -488,6 +488,7 @@ def _hist_plot(
     unique_groups,
     color_dict,
     facet_dict,
+    hatch=None,
     hist_type: Literal["bar", "step", "stepfilled"] = "bar",
     fillalpha=1.0,
     linealpha=1.0,
@@ -495,23 +496,20 @@ def _hist_plot(
     nbins=None,
     density=True,
     ax=None,
-    xtransform=None,
-    ytransform=None,
     agg_func=None,
     projection="rectilinear",
     unique_id=None,
+    **kwargs,
 ):
     if ax is None:
         ax = plt.gca()
 
     if bin_limits is None:
-        bins = np.linspace(
-            ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins + 1
-        )
-        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins)
+        bins = np.linspace(data[y].min(), data[y].max(), num=nbins + 1)
+        x = np.linspace(data[y].min(), data[y].max(), num=nbins)
     else:
-        x = np.linspace(bin[0], bin[1], num=nbins)
-        bins = np.linspace(bin[0], bin[1], num=nbins + 1)
+        x = np.linspace(bin_limits[0], bin_limits[1], num=nbins)
+        bins = np.linspace(bin_limits[0], bin_limits[1], num=nbins + 1)
     ugrp = np.unique(unique_groups)
     bottom = np.zeros(nbins)
     bw = np.full(
@@ -531,7 +529,7 @@ def _hist_plot(
             else:
                 temp_list = []
             for index, j in enumerate(uids):
-                temp = np.where(data[unique_id] == j)[0]
+                temp = np.where((data[unique_id] == j) & (unique_groups == i))[0]
                 temp_data = np.sort(data[temp, y])
                 poly, _ = np.histogram(temp_data, bins)
                 if density:
@@ -541,11 +539,13 @@ def _hist_plot(
                 else:
                     plot_data.append(poly)
                     colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
+                    edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
                     axes1.append(ax[facet_dict[i]])
                     count += 1
             if agg_func is not None:
                 plot_data.append(get_func(agg_func)(temp_list, axis=0))
                 colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
+                edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
                 axes1.append(ax[facet_dict[i]])
                 count += 1
         else:
@@ -559,18 +559,20 @@ def _hist_plot(
     bottom = [bottom for _ in range(count)]
     bins = [bins[:-1] for _ in range(count)]
     bw = [bw for _ in range(count)]
-    hatches = [["none"] * nbins] * count
+    hatches = [[hatch] * nbins] * count
     linewidth = [np.full(nbins, 0) for _ in range(count)]
-    for d, b, x, w, c, e, h, l, a in zip(
+    for d, b, x, w, c, e, h, ln, sub_ax in zip(
         plot_data, bottom, bins, bw, colors, edgec, hatches, linewidth, axes1
     ):
-        _add_rectangles(d, b, x, w, c, e, h, l, a)
+        _add_rectangles(d, b, x, w, c, e, h, ln, sub_ax)
+
+    for sub_ax in axes1:
         if projection == "polar":
-            a.set_rmax(a.dataLim.ymax)
-            ticks = a.get_yticks()
-            a.set_yticks(ticks)
+            sub_ax.set_rmax(sub_ax.dataLim.ymax)
+            ticks = sub_ax.get_yticks()
+            sub_ax.set_yticks(ticks)
         else:
-            ax.autoscale()
+            sub_ax.autoscale()
     return ax
 
 
@@ -735,37 +737,6 @@ def _agg_line(
             linealpha=linealpha,
             fillalpha=fillalpha,
         )
-        # if not fill_between:
-        #     ax[value].errorbar(
-        #         x_data,
-        #         y_data,
-        #         yerr=ed,
-        #         marker=marker[index],
-        #         color=linecolor[index],
-        #         elinewidth=linewidth,
-        #         linewidth=linewidth,
-        #         markerfacecolor=markerfacecolor[index],
-        #         markeredgecolor=markeredgecolor[index],
-        #         markersize=markersize,
-        #         alpha=linealpha,
-        #     )
-        # else:
-        #     ax[value].fill_between(
-        #         x_data,
-        #         y_data - ed,
-        #         y_data + ed,
-        #         color=linecolor[index],
-        #         alpha=fillalpha,
-        #         linewidth=0,
-        #     )
-        #     ax[value].plot(
-        #         x_data,
-        #         y_data,
-        #         linestyle=linestyle[index],
-        #         linewidth=linewidth,
-        #         color=linecolor[index],
-        #         alpha=linealpha,
-        #     )
     return ax
 
 

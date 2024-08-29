@@ -83,6 +83,7 @@ class LinePlot:
         facet_title: bool = False,
         nrows: int = None,
         ncols: int = None,
+        projection: Literal["rectilinear", "polar"] = "rectilinear",
         inplace: bool = False,
     ):
         self.inplace = inplace
@@ -146,6 +147,7 @@ class LinePlot:
             "ugs": ugs,
             "mapping_dict": mapping_dict,
             "levels": [group, subgroup],
+            "projection": projection,
         }
         self.lines = {}
 
@@ -168,6 +170,7 @@ class LinePlot:
         tickstyle: Literal["all", "middle"] = "all",
         ydecimals: int = None,
         xdecimals: int = None,
+        axis_visible=True,
     ):
         self._plot_settings_run = True
         if ylim is None:
@@ -180,7 +183,7 @@ class LinePlot:
             "xscale": xscale,
             "xlabel_rotation": xlabel_rotation,
             "margins": margins,
-            "aspect": aspect,
+            "aspect": aspect if self.plot_dict["projection"] == "rectilinear" else None,
             "figsize": figsize,
             "labelsize": labelsize,
             "ticksize": ticksize,
@@ -192,6 +195,7 @@ class LinePlot:
             "xdecimals": xdecimals,
             "steps": steps,
             "tickstyle": tickstyle,
+            "axis_visible": axis_visible,
         }
         self.plot_dict.update(plot_settings)
 
@@ -490,6 +494,7 @@ class LinePlot:
         color: ColorDict = "black",
         linecolor: ColorDict = "black",
         linewidth: int = 2,
+        hatch=None,
         fillalpha: float = 1.0,
         linealpha: float = 1.0,
         bin_limits=None,
@@ -509,6 +514,7 @@ class LinePlot:
             "color_dict": color_dict,
             "linecolor_dict": linecolor_dict,
             "linewidth": linewidth,
+            "hatch": hatch,
             "density": density,
             "bin_limits": bin_limits,
             "nbins": nbins,
@@ -517,9 +523,13 @@ class LinePlot:
             "unique_id": unique_id,
             "fillalpha": fillalpha,
             "linealpha": linealpha,
+            "projection": self.plot_dict["projection"],
         }
         self.plots.append(hist)
         self.plot_list.append("hist")
+
+        if not self.inplace:
+            return self
 
     def ecdf(
         self,
@@ -669,7 +679,10 @@ class LinePlot:
             ncols = self.plot_dict["ncols"]
         if self.plot_dict["facet"]:
             fig, ax = plt.subplots(
-                subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
+                subplot_kw=dict(
+                    box_aspect=self.plot_dict["aspect"],
+                    projection=self.plot_dict["projection"],
+                ),
                 figsize=self.plot_dict["figsize"],
                 ncols=ncols,
                 nrows=nrows,
@@ -677,7 +690,10 @@ class LinePlot:
             ax = ax.flatten()
         else:
             fig, ax = plt.subplots(
-                subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
+                subplot_kw=dict(
+                    box_aspect=self.plot_dict["aspect"],
+                    projection=self.plot_dict["projection"],
+                ),
                 figsize=self.plot_dict["figsize"],
             )
             ax = [ax]
@@ -702,8 +718,8 @@ class LinePlot:
             xdecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             xdecimals = self.plot_dict["xdecimals"]
-        num_plots = len(self.plot_dict["group_order"])
-        for index, i in enumerate(ax[:num_plots]):
+        # num_plots = len(self.plot_dict["group_order"])
+        for index, sub_ax in enumerate(ax):
             if "kde" in self.plot_list and all(
                 v is None for v in self.plot_dict["ylim"]
             ):
@@ -715,70 +731,50 @@ class LinePlot:
                 index = self.plot_list.index("kde")
                 if self.plots[index]["axis"] == "x":
                     self.plot_dict["xlim"] = [0, None]
-            i.spines["right"].set_visible(False)
-            i.spines["top"].set_visible(False)
-            i.spines["left"].set_linewidth(self.plot_dict["linewidth"])
-            i.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
+            if self.plot_dict["projection"] == "rectilinear":
+                sub_ax.spines["right"].set_visible(False)
+                sub_ax.spines["top"].set_visible(False)
+                sub_ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
+                sub_ax.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
+
+                self._set_lims(sub_ax, ydecimals, axis="y")
+                self._set_lims(sub_ax, xdecimals, axis="x")
+
+                sub_ax.tick_params(
+                    axis="both",
+                    which="major",
+                    labelsize=self.plot_dict["ticklabel"],
+                    width=self.plot_dict["ticksize"],
+                )
+
+                sub_ax.margins(self.plot_dict["margins"])
+            else:
+                sub_ax.yaxis.grid(linewidth=3)
+                sub_ax.grid(True)
+                sub_ax.spines["polar"].set_visible(self.plot_dict["axis_visible"])
+                sub_ax.spines["polar"].set_linewidth(self.plot_dict["linewidth"])
+
             if "/" in str(self.plot_dict["y"]):
                 self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
 
-            if self.plot_dict["yscale"] not in ["log", "symlog"]:
-                ticks = i.get_yticks()
-                lim, ticks = get_ticks(
-                    self.plot_dict["ylim"],
-                    ticks,
-                    self.plot_dict["steps"],
-                    ydecimals,
-                    tickstyle=self.plot_dict["tickstyle"],
-                )
-                i.set_ylim(bottom=lim[0], top=lim[1])
-                i.set_yticks(ticks)
-            else:
-                i.set_yscale(self.plot_dict["yscale"])
-                ticks = i.get_yticks()
-                lim, _ = get_ticks(
-                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], ydecimals
-                )
-                i.set_ylim(bottom=lim[0], top=lim[1])
-            if self.plot_dict["xscale"] not in ["log", "symlog"]:
-                ticks = i.get_xticks()
-                lim, ticks = get_ticks(
-                    self.plot_dict["xlim"],
-                    ticks,
-                    self.plot_dict["steps"],
-                    xdecimals,
-                    tickstyle=self.plot_dict["tickstyle"],
-                )
-                i.set_xlim(left=lim[0], right=lim[1])
-                i.set_xticks(ticks)
-            else:
-                i.set_xscale(self.plot_dict["xscale"])
-                ticks = i.get_xticks()
-                lim, _ = get_ticks(
-                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], xdecimals
-                )
-                i.set_xlim(left=lim[0], right=lim[1])
-            i.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
+            sub_ax.set_ylabel(
+                self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"]
+            )
             if self.plot_dict["facet_title"]:
-                i.set_title(
+                sub_ax.set_title(
                     self.plot_dict["group_order"][index],
                     fontsize=self.plot_dict["labelsize"],
                 )
             else:
-                i.set_title(
+                sub_ax.set_title(
                     self.plot_dict["title"], fontsize=self.plot_dict["labelsize"]
                 )
 
-            i.tick_params(
-                axis="both",
-                which="major",
-                labelsize=self.plot_dict["ticklabel"],
-                width=self.plot_dict["ticksize"],
-            )
-            i.margins(self.plot_dict["margins"])
         if self.plot_dict["title"] is not None:
             fig.suptitle(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
-        fig.tight_layout()
+
+        if self.plot_dict["projection"] == "rectilinear":
+            fig.tight_layout()
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in MPL_SAVE_TYPES:
@@ -792,6 +788,46 @@ class LinePlot:
                 transparent=transparent,
             )
         return fig, ax
+
+    def _set_lims(self, ax, decimals, axis="x"):
+        if axis == "y":
+            if self.plot_dict["yscale"] not in ["log", "symlog"]:
+                ticks = ax.get_yticks()
+                lim, ticks = get_ticks(
+                    self.plot_dict["ylim"],
+                    ticks,
+                    self.plot_dict["steps"],
+                    decimals,
+                    tickstyle=self.plot_dict["tickstyle"],
+                )
+                ax.set_ylim(bottom=lim[0], top=lim[1])
+                ax.set_yticks(ticks)
+            else:
+                ax.set_yscale(self.plot_dict["yscale"])
+                ticks = ax.get_yticks()
+                lim, _ = get_ticks(
+                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], decimals
+                )
+                ax.set_ylim(bottom=lim[0], top=lim[1])
+        else:
+            if self.plot_dict["xscale"] not in ["log", "symlog"]:
+                ticks = ax.get_xticks()
+                lim, ticks = get_ticks(
+                    self.plot_dict["xlim"],
+                    ticks,
+                    self.plot_dict["steps"],
+                    decimals,
+                    tickstyle=self.plot_dict["tickstyle"],
+                )
+                ax.set_xlim(left=lim[0], right=lim[1])
+                ax.set_xticks(ticks)
+            else:
+                ax.set_xscale(self.plot_dict["xscale"])
+                ticks = ax.get_xticks()
+                lim, _ = get_ticks(
+                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], decimals
+                )
+                ax.set_xlim(left=lim[0], right=lim[1])
 
 
 class CategoricalPlot:
