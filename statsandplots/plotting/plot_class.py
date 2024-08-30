@@ -19,6 +19,7 @@ from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
 from .plot_utils import (
     _decimals,
+    _process_colors,
     _process_groups,
     _process_positions,
     get_ticks,
@@ -36,7 +37,7 @@ class ValueRange:
 
 
 AlphaRange = Annotated[float, ValueRange(0.0, 1.0)]
-ColorDict = Union[str, dict[str, str]]
+ColorDict = Union[str, dict[str, str], None]
 
 MP_PLOTS = {
     "boxplot": mp._boxplot,
@@ -173,6 +174,20 @@ class BasePlot:
         else:
             raise AttributeError("Backend not implemented")
         return output
+
+    def plot_legend(self):
+        fig, ax = plt.subplots()
+
+        handles = mp._make_legend_patches(
+            color_dict=self.plot_dict["legend_dict"][0],
+            alpha=self.plot_dict["legend_dict"][1],
+            group=self.plot_dict["group_order"],
+            subgroup=self.plot_dict["subgroup_order"],
+        )
+        ax.plot()
+        ax.axis("off")
+        ax.legend(handles=handles, frameon=False)
+        return fig, ax
 
 
 # %%
@@ -474,26 +489,34 @@ class LinePlot(BasePlot):
         bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
         tol: Union[float, int] = 1e-3,
         common_norm: bool = True,
-        linecolor: ColorDict = "black",
+        linecolor: Optional[ColorDict] = None,
         linestyle: str = "-",
         linewidth: int = 2,
         fill_under: bool = False,
-        fillcolor: ColorDict = "black",
+        fillcolor: Optional[ColorDict] = None,
         alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
         unique_id: Optional[str] = None,
     ):
         linecolor_dict = process_args(
-            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                linecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
-        if fill_under:
-            fillcolor_dict = process_args(
+
+        fillcolor_dict = process_args(
+            _process_colors(
                 fillcolor,
                 self.plot_dict["group_order"],
                 self.plot_dict["subgroup_order"],
-            )
-        else:
-            fillcolor_dict = {}
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
+        )
 
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -522,7 +545,7 @@ class LinePlot(BasePlot):
 
     def polyhist(
         self,
-        color: ColorDict = "black",
+        color: Optional[ColorDict] = None,
         linestyle: str = "-",
         linewidth: int = 2,
         bin_limits=None,
@@ -535,7 +558,11 @@ class LinePlot(BasePlot):
         unique_id: Optional[str] = None,
     ):
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -566,8 +593,8 @@ class LinePlot(BasePlot):
     def hist(
         self,
         hist_type: Literal["bar", "step", "stepfilled"] = "bar",
-        color: ColorDict = "black",
-        linecolor: ColorDict = "black",
+        color: ColorDict = None,
+        linecolor: ColorDict = None,
         linewidth: int = 2,
         hatch=None,
         fillalpha: float = 1.0,
@@ -580,10 +607,20 @@ class LinePlot(BasePlot):
         unique_id=None,
     ):
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         linecolor_dict = process_args(
-            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                linecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         hist = {
             "color_dict": color_dict,
@@ -611,14 +648,18 @@ class LinePlot(BasePlot):
 
     def ecdf(
         self,
-        color: ColorDict = "black",
+        color: ColorDict = None,
         linestyle: str = "-",
         linewidth: int = 2,
         alpha: AlphaRange = 1.0,
         unique_id: Optional[str] = None,
     ):
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -1048,7 +1089,7 @@ class CategoricalPlot(BasePlot):
 
     def jitter(
         self,
-        color: ColorDict = "black",
+        color: ColorDict = None,
         marker: Union[str, dict[str, str]] = "o",
         edgecolor: ColorDict = "none",
         alpha: AlphaRange = 1.0,
@@ -1062,7 +1103,11 @@ class CategoricalPlot(BasePlot):
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         edgecolor_dict = process_args(
             edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -1090,7 +1135,7 @@ class CategoricalPlot(BasePlot):
     def jitteru(
         self,
         unique_id: Union[str, int, float],
-        color: ColorDict = "black",
+        color: ColorDict = None,
         marker: Union[str, dict[str, str]] = "o",
         edgecolor: ColorDict = "none",
         alpha: AlphaRange = 1.0,
@@ -1104,7 +1149,11 @@ class CategoricalPlot(BasePlot):
             marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         edgecolor_dict = process_args(
             edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
@@ -1146,7 +1195,11 @@ class CategoricalPlot(BasePlot):
             color = "white"
 
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
 
         summary_plot = {
@@ -1187,7 +1240,11 @@ class CategoricalPlot(BasePlot):
             color = "white"
 
         color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
 
         summary_plot = {
@@ -1214,7 +1271,7 @@ class CategoricalPlot(BasePlot):
 
     def boxplot(
         self,
-        facecolor="none",
+        facecolor=None,
         linecolor: ColorDict = "black",
         fliers="",
         box_width: float = 1.0,
@@ -1226,11 +1283,23 @@ class CategoricalPlot(BasePlot):
         legend: bool = False,
     ):
         color_dict = process_args(
-            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                facecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
 
         linecolor_dict = process_args(
-            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                linecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         boxplot = {
             "color_dict": color_dict,
@@ -1254,7 +1323,7 @@ class CategoricalPlot(BasePlot):
 
     def violin(
         self,
-        facecolor="none",
+        facecolor: ColorDict = None,
         edgecolor: ColorDict = "black",
         alpha: AlphaRange = 1.0,
         showextrema: bool = False,
@@ -1264,10 +1333,22 @@ class CategoricalPlot(BasePlot):
         legend: bool = False,
     ):
         color_dict = process_args(
-            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                facecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         edge_dict = process_args(
-            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                edgecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         violin = {
             "color_dict": color_dict,
@@ -1290,7 +1371,7 @@ class CategoricalPlot(BasePlot):
     def percent(
         self,
         unique_id=None,
-        facecolor="none",
+        facecolor=None,
         linecolor: ColorDict = "black",
         hatch=None,
         barwidth: float = 1.0,
@@ -1307,11 +1388,23 @@ class CategoricalPlot(BasePlot):
             cutoff = [cutoff]
 
         color_dict = process_args(
-            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                facecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
 
         linecolor_dict = process_args(
-            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                linecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
         if cutoff is None:
             cutoff = [self.plot_dict["data"][self.plot_dict["y"]].mean()]
@@ -1387,20 +1480,6 @@ class CategoricalPlot(BasePlot):
 
         if not self.inplace:
             return self
-
-    def plot_legend(self):
-        fig, ax = plt.subplots()
-
-        handles = mp._make_legend_patches(
-            color_dict=self.plot_dict["legend_dict"][0],
-            alpha=self.plot_dict["legend_dict"][1],
-            group=self.plot_dict["group_order"],
-            subgroup=self.plot_dict["subgroup_order"],
-        )
-        ax.plot()
-        ax.axis("off")
-        ax.legend(handles=handles, frameon=False)
-        return fig, ax
 
     def _matplotlib_backend(
         self,

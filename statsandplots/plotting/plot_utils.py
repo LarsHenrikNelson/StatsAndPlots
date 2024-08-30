@@ -6,6 +6,30 @@ import pandas as pd
 from matplotlib.colors import Normalize, to_rgba
 
 
+STANDARD_COLORS = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+]
+
+
+def _process_colors(color, group, subgroup):
+    if color is not None:
+        return color
+    else:
+        color = {}
+        for index, i in enumerate(subgroup):
+            color[i] = STANDARD_COLORS[index]
+    return color
+
+
 def radian_ticks(ticks, rotate=False):
     pi_symbol = "\u03C0"
     mm = [int(180 * i / np.pi) for i in ticks]
@@ -130,14 +154,14 @@ def bin_data(data, bins):
     return binned_data
 
 
-def process_args(arg, group_order, subgroup_order):
+def process_args(arg, group, subgroup):
     if isinstance(arg, (str, int, float)):
-        arg = {key: arg for key in group_order}
+        arg = {key: arg for key in group}
     elif isinstance(arg, list):
-        arg = {key: arg for key, arg in zip(group_order, arg)}
+        arg = {key: arg for key, arg in zip(group, arg)}
     output_dict = {}
-    for s in group_order:
-        for b in subgroup_order:
+    for s in group:
+        for b in subgroup:
             key = rf"{s}" + rf"{b}"
             if s in arg:
                 output_dict[key] = arg[s]
