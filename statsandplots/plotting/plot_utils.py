@@ -25,8 +25,12 @@ def _process_colors(color, group, subgroup):
         return color
     else:
         color = {}
-        for index, i in enumerate(subgroup):
-            color[i] = STANDARD_COLORS[index]
+        if subgroup[0] != "":
+            for index, i in enumerate(subgroup):
+                color[i] = STANDARD_COLORS[index]
+        else:
+            for index, i in enumerate(group):
+                color[i] = STANDARD_COLORS[index]
     return color
 
 

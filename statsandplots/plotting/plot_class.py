@@ -399,10 +399,10 @@ class LinePlot(BasePlot):
         self,
         x,
         marker: str = "none",
-        markerfacecolor: Union[ColorDict, tuple[str, str]] = "black",
-        markeredgecolor: Union[ColorDict, tuple[str, str]] = "black",
+        markerfacecolor: Union[ColorDict, tuple[str, str]] = None,
+        markeredgecolor: Union[ColorDict, tuple[str, str]] = None,
         markersize: Union[float, str] = 1,
-        linecolor: ColorDict = "black",
+        linecolor: ColorDict = None,
         linewidth: float = 1.0,
         linestyle: str = "-",
         linealpha: float = 1.0,
@@ -418,14 +418,27 @@ class LinePlot(BasePlot):
         if colorall is None:
             linecolor_dict = process_args_alt(
                 self.plot_dict["mapping_dict"],
-                linecolor,
+                _process_colors(
+                    linecolor,
+                    self.plot_dict["group_order"],
+                    self.plot_dict["subgroup_order"],
+                ),
             )
             markerfacecolor_dict = process_args_alt(
                 self.plot_dict["mapping_dict"],
-                markerfacecolor,
+                _process_colors(
+                    markerfacecolor,
+                    self.plot_dict["group_order"],
+                    self.plot_dict["subgroup_order"],
+                ),
             )
             markeredgecolor_dict = process_args_alt(
-                self.plot_dict["mapping_dict"], markeredgecolor
+                self.plot_dict["mapping_dict"],
+                _process_colors(
+                    markeredgecolor,
+                    self.plot_dict["group_order"],
+                    self.plot_dict["subgroup_order"],
+                ),
             )
         else:
             temp_dict = process_args_alt(
@@ -1091,7 +1104,7 @@ class CategoricalPlot(BasePlot):
         self,
         color: ColorDict = None,
         marker: Union[str, dict[str, str]] = "o",
-        edgecolor: ColorDict = "none",
+        edgecolor: ColorDict = None,
         alpha: AlphaRange = 1.0,
         jitter: Union[float, int] = 1.0,
         seed: int = 42,
@@ -1127,7 +1140,14 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("jitter")
 
         if legend:
-            self.plot_dict["legend_dict"] = (color, alpha)
+            if color is not None or edgecolor == "none":
+                d = color
+            else:
+                d = edgecolor
+            d = _process_colors(
+                d, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1137,7 +1157,7 @@ class CategoricalPlot(BasePlot):
         unique_id: Union[str, int, float],
         color: ColorDict = None,
         marker: Union[str, dict[str, str]] = "o",
-        edgecolor: ColorDict = "none",
+        edgecolor: ColorDict = None,
         alpha: AlphaRange = 1.0,
         width: Union[float, int] = 1.0,
         duplicate_offset=0.0,
@@ -1156,7 +1176,13 @@ class CategoricalPlot(BasePlot):
             self.plot_dict["subgroup_order"],
         )
         edgecolor_dict = process_args(
-            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            _process_colors(
+                edgecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
+            ),
+            self.plot_dict["group_order"],
+            self.plot_dict["subgroup_order"],
         )
 
         jitteru_plot = {
@@ -1174,7 +1200,14 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("jitteru")
 
         if legend:
-            self.plot_dict["legend_dict"] = (color, alpha)
+            if color is not None or edgecolor == "none":
+                d = color
+            else:
+                d = edgecolor
+            d = _process_colors(
+                d, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1216,7 +1249,10 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("summary")
 
         if legend:
-            self.plot_dict["legend_dict"] = (color, alpha)
+            d = _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1264,7 +1300,10 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("summaryu")
 
         if legend:
-            self.plot_dict["legend_dict"] = (color, alpha)
+            d = _process_colors(
+                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1316,7 +1355,14 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("boxplot")
 
         if legend:
-            self.plot_dict["legend_dict"] = (facecolor, alpha)
+            if facecolor is not None or linecolor == "black":
+                d = facecolor
+            else:
+                d = linecolor
+            d = _process_colors(
+                d, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1363,7 +1409,14 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("violin")
 
         if legend:
-            self.plot_dict["legend_dict"] = (facecolor, alpha)
+            if facecolor is not None or edgecolor == "black":
+                d = facecolor
+            else:
+                d = edgecolor
+            d = _process_colors(
+                d, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1434,7 +1487,14 @@ class CategoricalPlot(BasePlot):
             self.plot_dict["ylim"] = [0, 100]
 
         if legend:
-            self.plot_dict["legend_dict"] = (facecolor, alpha)
+            if facecolor is not None or linecolor == "black":
+                d = facecolor
+            else:
+                d = linecolor
+            d = _process_colors(
+                d, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self
@@ -1476,7 +1536,14 @@ class CategoricalPlot(BasePlot):
         self.plot_list.append("count")
 
         if legend:
-            self.plot_dict["legend_dict"] = (facecolor, alpha)
+            if facecolor is not None or linecolor == "black":
+                d = facecolor
+            else:
+                d = linecolor
+            d = _process_colors(
+                d, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+            )
+            self.plot_dict["legend_dict"] = (d, alpha)
 
         if not self.inplace:
             return self

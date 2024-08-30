@@ -52,16 +52,20 @@ HATCHES = [
 
 def _make_legend_patches(color_dict, alpha, group, subgroup):
     legend_patches = []
-    for j in group:
-        if j in color_dict:
-            legend_patches.append(
-                mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
-            )
-    for j in subgroup:
-        if j in color_dict:
-            legend_patches.append(
-                mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
-            )
+    # for j in group:
+    #     if j in color_dict:
+    #         legend_patches.append(
+    #             mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
+    #         )
+    # for j in subgroup:
+    #     if j in color_dict:
+    #         legend_patches.append(
+    #             mpatches.Patch(color=to_rgba(color_dict[j], alpha=alpha), label=j)
+    #         )
+    for key, value in color_dict.items():
+        legend_patches.append(
+            mpatches.Patch(color=to_rgba(value, alpha=alpha), label=key)
+        )
     return legend_patches
 
 
