@@ -11,7 +11,8 @@ def sem(a, axis=None):
         shape = a.shape[1]
     else:
         shape = a.size
-    return np.std(a, axis=axis) / np.sqrt(shape - 1)
+    denominator = np.sqrt(shape - 1) if shape > 1 else 1
+    return np.std(a, axis=axis) / denominator
 
 
 def ci(a, axis=None):

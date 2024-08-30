@@ -1,7 +1,31 @@
+from fractions import Fraction
+
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
 from matplotlib.colors import Normalize, to_rgba
+
+
+def radian_ticks(ticks, rotate=False):
+    pi_symbol = "\u03C0"
+    mm = [int(180 * i / np.pi) for i in ticks]
+    if rotate:
+        mm = [deg if deg <= 180 else deg - 360 for deg in mm]
+    jj = [Fraction(deg / 180) if deg != 0 else 0 for deg in mm]
+    output = []
+    for t in jj:
+        sign = "-" if t < 0 else ""
+        if t.numerator == 0 or t == 0:
+            output.append("0")
+        elif t.numerator == 1 and t.denominator == 1:
+            output.append(f"{sign}{pi_symbol}")
+        elif abs(t.denominator) == 1:
+            output.append(f"{t.numerator}{pi_symbol}")
+        elif abs(t.numerator) == 1:
+            output.append(f"{sign}{pi_symbol}/{t.denominator}")
+        else:
+            output.append(f"{sign}{t.numerator}{pi_symbol}/{t.denominator}")
+    return output
 
 
 def process_duplicates(values, output=None):

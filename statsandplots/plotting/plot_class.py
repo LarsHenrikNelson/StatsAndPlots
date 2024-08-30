@@ -25,6 +25,7 @@ from .plot_utils import (
     process_args,
     process_args_alt,
     process_scatter_args,
+    radian_ticks,
 )
 
 
@@ -65,8 +66,117 @@ MPL_SAVE_TYPES = {"svg", "png", "jpeg"}
 PLOTLY_SAVE_TYPES = {"html"}
 
 
+class BasePlot:
+
+    def grid_settings(
+        self,
+        ygrid: bool = True,
+        xgrid: bool = True,
+        linestyle: Union[str, tuple] = "solid",
+        ylinewidth: Union[float, int] = 1,
+        xlinewidth: Union[float, int] = 1,
+    ):
+
+        grid_settings = {
+            "ygrid": ygrid,
+            "xgrid": xgrid,
+            "linestyle": linestyle,
+            "xlinewidth": xlinewidth,
+            "ylinewidth": ylinewidth,
+        }
+        self.plot_dict["grid_settings"] = grid_settings
+
+    def _set_grid(self, sub_ax):
+        if self.plot_dict["grid_settings"]["ygrid"]:
+            sub_ax.yaxis.grid(
+                linewidth=self.plot_dict["grid_settings"]["ylinewidth"],
+                linestyle=self.plot_dict["grid_settings"]["linestyle"],
+            )
+
+        if self.plot_dict["grid_settings"]["xgrid"]:
+            sub_ax.xaxis.grid(
+                linewidth=self.plot_dict["grid_settings"]["xlinewidth"],
+                linestyle=self.plot_dict["grid_settings"]["linestyle"],
+            )
+
+    def add_axline(
+        self,
+        linetype: Literal["hline", "vline"],
+        lines: list,
+        linestyle="solid",
+        linealpha=1,
+        linecolor="black",
+    ):
+        if linetype not in ["hline", "vline"]:
+            raise AttributeError("linetype must by hline or vline")
+        if isinstance(lines, (float, int)):
+            lines = [lines]
+        self.plot_dict[linetype] = {
+            "line": lines,
+            linestyle: linestyle,
+            linealpha: linealpha,
+            linecolor: linecolor,
+        }
+
+    def _plot_axlines(line_dict, ax):
+        for key, item in line_dict.items():
+            for ap in ax:
+                for ll in item["lines"]:
+                    if key == "vline":
+                        ap.axvline(
+                            ll,
+                            linestyle=item["linestyle"],
+                            color=item["linecolor"],
+                            alpha=item["linealpha"],
+                        )
+                    else:
+                        ap.axhline(
+                            ll,
+                            linestyle=item["linestyle"],
+                            color=item["linecolor"],
+                            alpha=item["linealpha"],
+                        )
+
+    def plot(
+        self,
+        savefig: bool = False,
+        path=None,
+        filename="",
+        filetype="svg",
+        backend="matplotlib",
+        margins=0.05,
+        aspect: Union[int, float] = 1,
+        figsize: Union[None, tuple[int, int]] = None,
+    ):
+        self.plot_dict["margins"] = margins
+        self.plot_dict["aspect"] = (
+            aspect if self.plot_dict["projection"] == "rectilinear" else None
+        )
+        self.plot_dict["figsize"] = figsize
+        if not self._plot_settings_run:
+            if self.inplace:
+                self.plot_settings()
+            else:
+                self.inplace = True
+                self.plot_settings()
+                self.inplace = False
+
+        if backend == "matplotlib":
+            output = self._matplotlib_backend(
+                savefig=savefig, path=path, filetype=filetype, filename=filename
+            )
+            return output
+        elif backend == "plotly":
+            output = self._plotly_backend(
+                savefig=savefig, path=path, filetype=filetype, filename=filename
+            )
+        else:
+            raise AttributeError("Backend not implemented")
+        return output
+
+
 # %%
-class LinePlot:
+class LinePlot(BasePlot):
 
     def __init__(
         self,
@@ -151,6 +261,15 @@ class LinePlot:
         }
         self.lines = {}
 
+        grid_settings = {
+            "ygrid": False if projection == "rectilinear" else True,
+            "xgrid": False if projection == "rectilinear" else True,
+            "linestyle": "solid",
+            "xlinewidth": 1,
+            "ylinewidth": 1,
+        }
+        self.plot_dict["grid_settings"] = grid_settings
+
     def plot_settings(
         self,
         style: str = "default",
@@ -159,9 +278,6 @@ class LinePlot:
         yscale: Literal["linear", "log", "symlog"] = "linear",
         xscale: Literal["linear", "log", "symlog"] = "linear",
         xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
-        margins: float = 0.05,
-        aspect: Union[int, float] = 1,
-        figsize: Union[None, tuple[int, int]] = None,
         labelsize: int = 20,
         linewidth: int = 2,
         ticksize: int = 2,
@@ -170,7 +286,7 @@ class LinePlot:
         tickstyle: Literal["all", "middle"] = "all",
         ydecimals: int = None,
         xdecimals: int = None,
-        axis_visible=True,
+        xunits: Optional[Literal["degree", "radian" "wradian"]] = None,
     ):
         self._plot_settings_run = True
         if ylim is None:
@@ -182,9 +298,6 @@ class LinePlot:
             "yscale": yscale,
             "xscale": xscale,
             "xlabel_rotation": xlabel_rotation,
-            "margins": margins,
-            "aspect": aspect if self.plot_dict["projection"] == "rectilinear" else None,
-            "figsize": figsize,
             "labelsize": labelsize,
             "ticksize": ticksize,
             "ticklabel": ticklabel,
@@ -195,7 +308,7 @@ class LinePlot:
             "xdecimals": xdecimals,
             "steps": steps,
             "tickstyle": tickstyle,
-            "axis_visible": axis_visible,
+            "xunits": xunits,
         }
         self.plot_dict.update(plot_settings)
 
@@ -230,44 +343,6 @@ class LinePlot:
 
         if not self.inplace:
             return self
-
-    def add_line(
-        self,
-        linetype: Literal["hline", "vline"],
-        lines: list,
-        linestyle="solid",
-        linealpha=1,
-        linecolor="black",
-    ):
-        if linetype not in ["hline", "vline"]:
-            raise AttributeError("linetype must by hline or vline")
-        if isinstance(lines, (float, int)):
-            lines = [lines]
-        self.plot_dict[linetype] = {
-            "line": lines,
-            linestyle: linestyle,
-            linealpha: linealpha,
-            linecolor: linecolor,
-        }
-
-    def _plot_lines(line_dict, ax):
-        for key, item in line_dict.items():
-            for ap in ax:
-                for ll in item["lines"]:
-                    if key == "vline":
-                        ap.axvline(
-                            ll,
-                            linestyle=item["linestyle"],
-                            color=item["linecolor"],
-                            alpha=item["linealpha"],
-                        )
-                    else:
-                        ap.axhline(
-                            ll,
-                            linestyle=item["linestyle"],
-                            color=item["linecolor"],
-                            alpha=item["linealpha"],
-                        )
 
     def line(
         self,
@@ -528,6 +603,9 @@ class LinePlot:
         self.plots.append(hist)
         self.plot_list.append("hist")
 
+        if self.plot_dict["projection"] == "polar":
+            self.grid_settings()
+
         if not self.inplace:
             return self
 
@@ -637,32 +715,12 @@ class LinePlot:
         if not self.inplace:
             return self
 
-    def plot(
-        self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
-    ):
-        if not self._plot_settings_run:
-            if self.inplace:
-                self.plot_settings()
-            else:
-                self.inplace = True
-                self.plot_settings()
-                self.inplace = False
-        if backend == "matplotlib":
-            output = self._matplotlib_backend(
-                savefig=savefig, path=path, filetype=filetype
-            )
-            return output
-        elif backend == "plotly":
-            output = self._plotly_backend(savefig=savefig, path=path, filetype=filetype)
-        else:
-            raise AttributeError("Backend not implemented")
-        return output
-
     def _matplotlib_backend(
         self,
         savefig: bool = False,
         path: str = "",
         filetype: str = "svg",
+        filename: str = "",
         transparent=False,
     ):
         if self.plot_dict["nrows"] is None and self.plot_dict["ncols"] is None:
@@ -740,19 +798,29 @@ class LinePlot:
                 self._set_lims(sub_ax, ydecimals, axis="y")
                 self._set_lims(sub_ax, xdecimals, axis="x")
 
-                sub_ax.tick_params(
-                    axis="both",
-                    which="major",
-                    labelsize=self.plot_dict["ticklabel"],
-                    width=self.plot_dict["ticksize"],
-                )
-
                 sub_ax.margins(self.plot_dict["margins"])
             else:
-                sub_ax.yaxis.grid(linewidth=3)
-                sub_ax.grid(True)
-                sub_ax.spines["polar"].set_visible(self.plot_dict["axis_visible"])
-                sub_ax.spines["polar"].set_linewidth(self.plot_dict["linewidth"])
+                if (
+                    self.plot_dict["xunits"] == "radian"
+                    or self.plot_dict["xunits"] == "wradian"
+                ):
+                    xticks = sub_ax.get_xticks()
+                    labels = (
+                        radian_ticks(xticks, rotate=False)
+                        if self.plot_dict["xunits"] == "radian"
+                        else radian_ticks(xticks, rotate=True)
+                    )
+                    sub_ax.set_xticks(xticks, labels)
+                sub_ax.spines["polar"].set_visible(False)
+
+            sub_ax.tick_params(
+                axis="both",
+                which="major",
+                labelsize=self.plot_dict["ticklabel"],
+                width=self.plot_dict["ticksize"],
+            )
+
+            self._set_grid(sub_ax)
 
             if "/" in str(self.plot_dict["y"]):
                 self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
@@ -778,7 +846,8 @@ class LinePlot:
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in MPL_SAVE_TYPES:
-                path = path / f"{self.plot_dict['y']}.{filetype}"
+                filename = self.plot_dict["y"] if filename == "" else filename
+                path = path / f"{filename}.{filetype}"
             else:
                 filetype = path.suffix[1:]
             plt.savefig(
@@ -830,7 +899,7 @@ class LinePlot:
                 ax.set_xlim(left=lim[0], right=lim[1])
 
 
-class CategoricalPlot:
+class CategoricalPlot(BasePlot):
     def __init__(
         self,
         data: Union[pd.DataFrame, np.ndarray, dict],
@@ -895,9 +964,19 @@ class CategoricalPlot:
             "title": title,
             "transform": None,
             "back_transform_ticks": False,
+            "projection": "rectilinear",
         }
         self.plots = []
         self.plot_list = []
+
+        grid_settings = {
+            "ygrid": False,
+            "xgrid": False,
+            "linestyle": "solid",
+            "xlinewidth": 1,
+            "ylinewidth": 1,
+        }
+        self.plot_dict["grid_settings"] = grid_settings
 
     def plot_settings(
         self,
@@ -908,9 +987,6 @@ class CategoricalPlot:
         yscale: Literal["linear", "log", "symlog"] = "linear",
         xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
         steps: int = 5,
-        margins=0.05,
-        aspect: Union[int, float] = 1,
-        figsize: Union[None, tuple[int, int]] = None,
         labelsize: int = 20,
         linewidth: int = 2,
         ticksize: int = 2,
@@ -927,9 +1003,6 @@ class CategoricalPlot:
             "ylim": ylim,
             "yscale": yscale,
             "steps": steps,
-            "margins": margins,
-            "aspect": aspect,
-            "figsize": figsize,
             "labelsize": labelsize,
             "ticksize": ticksize,
             "ticklabel": ticklabel,
@@ -1329,32 +1402,11 @@ class CategoricalPlot:
         ax.legend(handles=handles, frameon=False)
         return fig, ax
 
-    def plot(
-        self, savefig: bool = False, path=None, filetype="svg", backend="matplotlib"
-    ):
-        if not self._plot_settings_run:
-            if self.inplace:
-                self.plot_settings()
-            else:
-                self.inplace = True
-                self.plot_settings()
-                self.inplace = False
-
-        if backend == "matplotlib":
-            output = self._matplotlib_backend(
-                savefig=savefig, path=path, filetype=filetype
-            )
-            return output
-        elif backend == "plotly":
-            output = self._plotly_backend(savefig=savefig, path=path, filetype=filetype)
-        else:
-            raise AttributeError("Backend not implemented")
-        return output
-
     def _matplotlib_backend(
         self,
         savefig: bool = False,
         path: str = "",
+        filename: str = "",
         filetype: str = "svg",
         transparent=False,
     ):
@@ -1388,6 +1440,9 @@ class CategoricalPlot:
         ax.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
         if "/" in self.plot_dict["y"]:
             self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
+
+        self._set_grid(ax)
+
         if self.plot_dict["yscale"] not in ["log", "symlog"]:
             ticks = ax.get_yticks()
             if self.plot_dict["ylim"][0] is None:
@@ -1463,7 +1518,8 @@ class CategoricalPlot:
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in MPL_SAVE_TYPES:
-                path = path / f"{self.plot_dict['y']}.{filetype}"
+                filename = self.plot_dict["y"] if filename == "" else filename
+                path = path / f"{filename}.{filetype}"
             else:
                 filetype = path.suffix[1:]
             plt.savefig(
