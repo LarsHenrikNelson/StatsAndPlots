@@ -446,7 +446,7 @@ def _violin_plot(
     edge_dict,
     alpha=1,
     showextrema: bool = False,
-    violin_width: float = 1.0,
+    width: float = 1.0,
     showmeans: bool = True,
     showmedians: bool = False,
     transform=None,
@@ -465,7 +465,7 @@ def _violin_plot(
         parts = ax.violinplot(
             transform(data[indexes, y]),
             positions=[loc_dict[i]],
-            widths=violin_width,
+            widths=width,
             showmeans=showmeans,
             showmedians=showmedians,
             showextrema=showextrema,

@@ -1373,7 +1373,7 @@ class CategoricalPlot(BasePlot):
         edgecolor: ColorDict = "black",
         alpha: AlphaRange = 1.0,
         showextrema: bool = False,
-        violin_width: float = 1.0,
+        width: float = 1.0,
         showmeans: bool = True,
         showmedians: bool = False,
         legend: bool = False,
@@ -1401,7 +1401,7 @@ class CategoricalPlot(BasePlot):
             "edge_dict": edge_dict,
             "alpha": alpha,
             "showextrema": showextrema,
-            "violin_width": violin_width * self.plot_dict["width"],
+            "width": width * self.plot_dict["width"],
             "showmeans": showmeans,
             "showmedians": showmedians,
         }
