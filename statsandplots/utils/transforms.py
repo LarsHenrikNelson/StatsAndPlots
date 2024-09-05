@@ -79,5 +79,7 @@ FUNC_DICT = {
 def get_func(input):
     if input in FUNC_DICT:
         return FUNC_DICT[input]
+    elif callable(input):
+        return input
     else:
         return lambda a, axis=None: a

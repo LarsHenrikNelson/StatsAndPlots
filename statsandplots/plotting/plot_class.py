@@ -352,9 +352,16 @@ class LinePlot(BasePlot):
         xback_transform_ticks: bool = False,
     ):
         self.plot_dict["ytransform"] = ytransform
-        self.plot_dict["yback_transform_ticks"] = yback_transform_ticks
+        if callable(ytransform):
+            self.plot_dict["yback_transform_ticks"] = False
+        else:
+            self.plot_dict["yback_transform_ticks"] = yback_transform_ticks
+
         self.plot_dict["xtransform"] = xtransform
-        self.plot_dict["xback_transform_ticks"] = xback_transform_ticks
+        if callable(xtransform):
+            self.plot_dict["xback_transform_ticks"] = False
+        else:
+            self.plot_dict["xback_transform_ticks"] = xback_transform_ticks
 
         if not self.inplace:
             return self
@@ -1095,7 +1102,11 @@ class CategoricalPlot(BasePlot):
         back_transform_ticks: bool = False,
     ):
         self.plot_dict["transform"] = transform
-        self.plot_dict["back_transform_ticks"] = back_transform_ticks
+
+        if callable(transform):
+            self.plot_dict["back_transform_ticks"] = False
+        else:
+            self.plot_dict["back_transform_ticks"] = back_transform_ticks
 
         if not self.inplace:
             return self
