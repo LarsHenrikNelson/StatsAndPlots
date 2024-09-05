@@ -42,10 +42,10 @@ ERROR = Literal[
 ]
 
 BACK_TRANSFORM_DICT = {
-    "log10": lambda x: 10**x,
-    "log2": lambda x: 2**x,
-    "ninverse": lambda x: -1 / x,
-    "inverse": lambda x: 1 / x,
+    "log10": lambda x: 10.0**x,
+    "log2": lambda x: 2.0**x,
+    "ninverse": lambda x: -1.0 / x,
+    "inverse": lambda x: 1.0 / x,
     "ln": lambda x: np.e**x,
     "sqrt": lambda x: x**2,
 }

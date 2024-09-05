@@ -1,4 +1,5 @@
 from fractions import Fraction
+from itertools import cycle
 
 import matplotlib as mpl
 import numpy as np
@@ -26,11 +27,9 @@ def _process_colors(color, group, subgroup):
     else:
         color = {}
         if subgroup[0] != "":
-            for index, i in enumerate(subgroup):
-                color[i] = STANDARD_COLORS[index]
+            color = {key: value for key, value in zip(subgroup, cycle(STANDARD_COLORS))}
         else:
-            for index, i in enumerate(group):
-                color[i] = STANDARD_COLORS[index]
+            color = {key: value for key, value in zip(group, cycle(STANDARD_COLORS))}
     return color
 
 
