@@ -445,6 +445,7 @@ def _violin_plot(
     color_dict,
     edge_dict,
     alpha=1,
+    linewidth=1,
     showextrema: bool = False,
     width: float = 1.0,
     showmeans: bool = True,
@@ -474,10 +475,13 @@ def _violin_plot(
             body.set_alpha(alpha)
             body.set_facecolor(color_dict[i])
             body.set_edgecolor(edge_dict[i])
+            body.set_linewidth(linewidth)
         if showmeans:
             parts["cmeans"].set_color(edge_dict[i])
+            parts["cmeans"].set_linewidth(linewidth)
         if showmedians:
             parts["cmedians"].set_color(edge_dict[i])
+            parts["cmedians"].set_linewidth(linewidth)
 
     return ax
 

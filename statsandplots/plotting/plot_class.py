@@ -1382,6 +1382,7 @@ class CategoricalPlot(BasePlot):
         self,
         facecolor: ColorDict = None,
         edgecolor: ColorDict = "black",
+        linewidth=1,
         alpha: AlphaRange = 1.0,
         showextrema: bool = False,
         width: float = 1.0,
@@ -1415,6 +1416,7 @@ class CategoricalPlot(BasePlot):
             "width": width * self.plot_dict["width"],
             "showmeans": showmeans,
             "showmedians": showmedians,
+            "linewidth": linewidth,
         }
         self.plots.append(violin)
         self.plot_list.append("violin")
