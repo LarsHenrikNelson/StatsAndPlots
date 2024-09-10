@@ -73,6 +73,7 @@ FUNC_DICT = {
     "sqrt": np.sqrt,
     "mad": mad,
     "wrap_pi": lambda a: np.where(a < 0, a + 2 * np.pi, a),
+    "zscore": lambda a: (a - np.mean(a) / np.std(a)),
 }
 
 

@@ -490,6 +490,18 @@ def paired_plot():
     pass
 
 
+def _calc_hist(data, bins, stat):
+    if stat == "probability":
+        data = np.histogram(data, bins)
+        return data / data.sum()
+    elif stat == "count":
+        data = np.histogram(data, bins)
+        return data
+    elif stat == "density":
+        data, _ = np.histogram(data, bins, density=True)
+        return data
+
+
 def _hist_plot(
     data,
     y,
@@ -502,22 +514,33 @@ def _hist_plot(
     linealpha=1.0,
     bin_limits=None,
     nbins=None,
-    density=True,
+    stat="probability",
     ax=None,
     agg_func=None,
     projection="rectilinear",
     unique_id=None,
+    ytransform=None,
     **kwargs,
 ):
     if ax is None:
         ax = plt.gca()
 
     if bin_limits is None:
-        bins = np.linspace(data[y].min(), data[y].max(), num=nbins + 1)
-        x = np.linspace(data[y].min(), data[y].max(), num=nbins)
+        bins = np.linspace(
+            get_func(ytransform)(data[y].min()),
+            get_func(ytransform)(data[y].max()),
+            num=nbins + 1,
+        )
+        # x = np.linspace(data[y].min(), data[y].max(), num=nbins)
+        x = (bins[1:] + bins[:-1]) / 2
     else:
-        x = np.linspace(bin_limits[0], bin_limits[1], num=nbins)
-        bins = np.linspace(bin_limits[0], bin_limits[1], num=nbins + 1)
+        # x = np.linspace(bin_limits[0], bin_limits[1], num=nbins)
+        bins = np.linspace(
+            get_func(ytransform)(bin_limits[0]),
+            get_func(ytransform)(bin_limits[1]),
+            num=nbins + 1,
+        )
+        x = (bins[1:] + bins[:-1]) / 2
     ugrp = np.unique(unique_groups)
     bottom = np.zeros(nbins)
     bw = np.full(
@@ -539,9 +562,7 @@ def _hist_plot(
             for index, j in enumerate(uids):
                 temp = np.where((data[unique_id] == j) & (unique_groups == i))[0]
                 temp_data = np.sort(data[temp, y])
-                poly, _ = np.histogram(temp_data, bins)
-                if density:
-                    poly = poly / poly.sum()
+                poly = _calc_hist(get_func(ytransform)(temp_data), bins, stat)
                 if agg_func is not None:
                     temp_list[index] = poly
                 else:
@@ -558,7 +579,7 @@ def _hist_plot(
                 count += 1
         else:
             temp_data = np.sort(data[unique_groups == i, y])
-            poly, _ = np.histogram(temp_data, bins)
+            poly = _calc_hist(get_func(ytransform)(temp_data), bins, stat)
             plot_data.append(poly)
             colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
             edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
@@ -792,7 +813,9 @@ def _kde_plot(
             indexes = np.where(unique_groups == i)[0]
             y_values = data[indexes, y].to_numpy().flatten()
             temp_size = indexes.size
-        x_kde, y_kde = kde(y_values, bw=bw, kernel=kernel, tol=tol)
+        x_kde, y_kde = kde(
+            get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+        )
         if common_norm:
             multiplier = float(temp_size / size)
             y_kde *= multiplier

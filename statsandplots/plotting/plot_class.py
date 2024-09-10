@@ -506,18 +506,20 @@ class LinePlot(BasePlot):
             "tricube",
             "cosine",
         ] = "gaussian",
-        bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
+        bw: Literal["ISJ", "silverman", "scott"] = "silverman",
         tol: Union[float, int] = 1e-3,
         common_norm: bool = True,
         linecolor: Optional[ColorDict] = None,
         linestyle: str = "-",
         linewidth: int = 2,
-        fill_under: bool = False,
         fillcolor: Optional[ColorDict] = None,
         alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
         unique_id: Optional[str] = None,
     ):
+
+        fill_under = False if fillcolor is None else True
+
         linecolor_dict = process_args(
             _process_colors(
                 linecolor,
@@ -620,7 +622,7 @@ class LinePlot(BasePlot):
         fillalpha: float = 1.0,
         linealpha: float = 1.0,
         bin_limits=None,
-        density=True,
+        stat: Literal["density", "probability", "count"] = "density",
         nbins=50,
         err_func=None,
         agg_func=None,
@@ -647,7 +649,7 @@ class LinePlot(BasePlot):
             "linecolor_dict": linecolor_dict,
             "linewidth": linewidth,
             "hatch": hatch,
-            "density": density,
+            "stat": stat,
             "bin_limits": bin_limits,
             "nbins": nbins,
             "agg_func": agg_func,
@@ -828,6 +830,13 @@ class LinePlot(BasePlot):
                 xtransform=self.plot_dict["xtransform"],
                 **j,
             )
+            # if j == "kde" and all(v is None for v in self.plot_dict["ylim"]):
+            #     if j["axis"] == "y":
+            #         self.plot_dict["ylim"] = [0, None]
+            # if j == "kde" and all(v is None for v in self.plot_dict["xlim"]):
+            #     index = self.plot_list.index("kde")
+            #     if self.plots[index]["axis"] == "x":
+            #         self.plot_dict["xlim"] = [0, None]
 
         if self.plot_dict["ydecimals"] is None:
             ydecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
@@ -839,17 +848,6 @@ class LinePlot(BasePlot):
             xdecimals = self.plot_dict["xdecimals"]
         # num_plots = len(self.plot_dict["group_order"])
         for index, sub_ax in enumerate(ax):
-            if "kde" in self.plot_list and all(
-                v is None for v in self.plot_dict["ylim"]
-            ):
-                if j["axis"] == "y":
-                    self.plot_dict["ylim"] = [0, None]
-            if "kde" in self.plot_list and all(
-                v is None for v in self.plot_dict["xlim"]
-            ):
-                index = self.plot_list.index("kde")
-                if self.plots[index]["axis"] == "x":
-                    self.plot_dict["xlim"] = [0, None]
             if self.plot_dict["projection"] == "rectilinear":
                 sub_ax.spines["right"].set_visible(False)
                 sub_ax.spines["top"].set_visible(False)
@@ -873,6 +871,9 @@ class LinePlot(BasePlot):
                     )
                     sub_ax.set_xticks(xticks, labels)
                 sub_ax.spines["polar"].set_visible(False)
+                sub_ax.set_xlabel(
+                    self.plot_dict["xlabel"], fontsize=self.plot_dict["labelsize"]
+                )
 
             sub_ax.tick_params(
                 axis="both",
