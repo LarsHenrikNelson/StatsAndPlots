@@ -3,6 +3,7 @@ from itertools import product
 from pathlib import Path
 from typing import Annotated, Callable, Literal, Optional, Union
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -28,6 +29,9 @@ from .plot_utils import (
     process_scatter_args,
     radian_ticks,
 )
+
+mpl.rcParams["pdf.fonttype"] = 42
+mpl.rcParams["svg.fonttype"] = "none"
 
 
 @dataclass
@@ -148,7 +152,9 @@ class BasePlot:
         margins=0.05,
         aspect: Union[int, float] = 1,
         figsize: Union[None, tuple[int, int]] = None,
+        gridspec_kw: dict[str, Union[str, int, float]] = None,
     ):
+        self.plot_dict["gridspec_kw"] = gridspec_kw
         self.plot_dict["margins"] = margins
         self.plot_dict["aspect"] = (
             aspect if self.plot_dict["projection"] == "rectilinear" else None
@@ -805,6 +811,7 @@ class LinePlot(BasePlot):
                     projection=self.plot_dict["projection"],
                 ),
                 figsize=self.plot_dict["figsize"],
+                gridspec_kw=self.plot_dict["gridspec_kw"],
                 ncols=ncols,
                 nrows=nrows,
             )
@@ -830,13 +837,21 @@ class LinePlot(BasePlot):
                 xtransform=self.plot_dict["xtransform"],
                 **j,
             )
-            # if j == "kde" and all(v is None for v in self.plot_dict["ylim"]):
-            #     if j["axis"] == "y":
-            #         self.plot_dict["ylim"] = [0, None]
-            # if j == "kde" and all(v is None for v in self.plot_dict["xlim"]):
-            #     index = self.plot_list.index("kde")
-            #     if self.plots[index]["axis"] == "x":
-            #         self.plot_dict["xlim"] = [0, None]
+            if (
+                j == "kde"
+                or j == "hist"
+                and all(v is None for v in self.plot_dict["ylim"])
+            ):
+                if j["axis"] == "y":
+                    self.plot_dict["ylim"] = [0, None]
+            if (
+                j == "kde"
+                or j == "hist"
+                and all(v is None for v in self.plot_dict["xlim"])
+            ):
+                index = self.plot_list.index("kde")
+                if self.plots[index]["axis"] == "x":
+                    self.plot_dict["xlim"] = [0, None]
 
         if self.plot_dict["ydecimals"] is None:
             ydecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
@@ -847,7 +862,7 @@ class LinePlot(BasePlot):
         else:
             xdecimals = self.plot_dict["xdecimals"]
         # num_plots = len(self.plot_dict["group_order"])
-        for index, sub_ax in enumerate(ax):
+        for index, sub_ax in enumerate(ax[: len(self.plot_dict["group_order"])]):
             if self.plot_dict["projection"] == "rectilinear":
                 sub_ax.spines["right"].set_visible(False)
                 sub_ax.spines["top"].set_visible(False)
@@ -904,7 +919,9 @@ class LinePlot(BasePlot):
             fig.suptitle(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
 
         if self.plot_dict["projection"] == "rectilinear":
-            fig.tight_layout()
+            if self.plot_dict["gridspec_kw"] is None:
+                fig.tight_layout()
+
         if savefig:
             path = Path(path)
             if path.suffix[1:] not in MPL_SAVE_TYPES:
