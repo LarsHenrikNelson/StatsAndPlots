@@ -1454,6 +1454,9 @@ class CategoricalPlot(BasePlot):
 
     def percent(
         self,
+        cutoff: Union[
+            None, Literal["categorical"], float, int, list[Union[float, int]]
+        ],
         unique_id=None,
         facecolor=None,
         linecolor: ColorDict = "black",
@@ -1463,7 +1466,6 @@ class CategoricalPlot(BasePlot):
         alpha: float = 1.0,
         line_alpha=1.0,
         axis_type: Literal["density", "percent"] = "density",
-        cutoff: Union[None, float, int, list[Union[float, int]]] = None,
         include_bins: Optional[list[bool]] = None,
         invert: bool = False,
         legend: bool = False,
@@ -1490,11 +1492,6 @@ class CategoricalPlot(BasePlot):
             self.plot_dict["group_order"],
             self.plot_dict["subgroup_order"],
         )
-        if cutoff is None:
-            cutoff = [self.plot_dict["data"][self.plot_dict["y"]].mean()]
-
-        if include_bins is None:
-            include_bins = [True] * (len(cutoff) + 1)
 
         percent_plot = {
             "color_dict": color_dict,

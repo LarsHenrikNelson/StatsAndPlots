@@ -12,7 +12,7 @@ from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from ..stats import kde
-from .plot_utils import bin_data, process_args, process_duplicates
+from .plot_utils import process_args, process_duplicates
 from ..utils import DataHolder, get_func
 
 
@@ -1165,12 +1165,19 @@ def _percent_plot(
     if ax is None:
         ax = plt.gca()
 
-    bins = np.zeros(len(cutoff) + 3)
-    bins[0] = data[y].min() - 1
-    bins[1] = data[y].min()
-    bins[-1] = data[y].max() + 1
-    for i in range(len(cutoff)):
-        bins[i + 2] = cutoff[i]
+    if cutoff != "categorical":
+        bins = np.zeros(len(cutoff) + 2)
+        bins[-1] = data[y].max() + 1e-6
+        bins[0] = data[y].min() - 1e-6
+        for i in range(len(cutoff)):
+            bins[i + 1] = cutoff[i]
+
+        if include_bins is None:
+            include_bins = [True] * (len(bins) - 1)
+    else:
+        if include_bins is None:
+            bins = np.unique(data[y])
+            include_bins = [True] * len(bins)
 
     groups = np.unique(unique_groups)
     plot_bins = sum(include_bins)
@@ -1200,16 +1207,19 @@ def _percent_plot(
         if unique_id is None:
             barwidth = [barwidth] * multiplier
             bw.extend(barwidth)
-            temp = np.sort(data[indexes, y])
-            binned_data = bin_data(temp, bins)
+            if cutoff != "categorical":
+                temp = np.sort(data[indexes, y])
+                binned_data, _ = np.histogram(temp, bins)
+            else:
+                _, binned_data = np.unique(data[indexes, y], return_counts=True)
             binned_data = binned_data / binned_data.sum()
             if axis_type == "percent":
                 binned_data *= 100
             if invert:
-                binned_data = np.concatenate((binned_data, [0]))[::-1][:-1]
-            top = binned_data[1:]
-            bottom = binned_data[:-1]
-            tops.extend(top[include_bins])
+                binned_data = binned_data[::-1]
+            bottom = np.zeros(len(binned_data))
+            bottom[1:] = binned_data[:-1]
+            tops.extend(binned_data[include_bins])
             bottoms.extend(bottom[include_bins])
             fc = [
                 to_rgba(color_dict[gr], alpha=alpha),
@@ -1232,22 +1242,24 @@ def _percent_plot(
                 dist = (dist[1:] + dist[:-1]) / 2
             else:
                 dist = [0]
-            bw.extend([temp_width] * len(unique_ids_sub))
             for index, ui_group in enumerate(unique_ids_sub):
                 sub_indexes = np.where(
                     np.logical_and(data[unique_id] == ui_group, unique_groups == gr)
                 )[0]
                 temp = data[sub_indexes, y].sort_values()
-                binned_data = bin_data(temp, bins)
-                binned_data = binned_data / binned_data.sum()
+                if cutoff != "categorical":
+                    temp = np.sort(data[indexes, y])
+                    binned_data, _ = np.histogram(temp, bins)
+                else:
+                    _, binned_data = np.unique(data[sub_indexes, y], return_counts=True)
                 binned_data = binned_data / binned_data.sum()
                 if axis_type == "percent":
                     binned_data *= 100
                 if invert:
-                    binned_data = np.concatenate((binned_data, [0]))[::-1][:-1]
-                top = binned_data[1:]
-                bottom = binned_data[:-1]
-                tops.extend(top[include_bins])
+                    binned_data = binned_data[::-1]
+                bottom = np.zeros(len(binned_data))
+                bottom[1:] = binned_data[:-1]
+                tops.extend(binned_data[include_bins])
                 bottoms.extend(bottom[include_bins])
                 fc = [
                     to_rgba(color_dict[gr], alpha=alpha),
@@ -1257,6 +1269,7 @@ def _percent_plot(
                     to_rgba(linecolor_dict[gr], alpha=line_alpha),
                 ] * plot_bins
                 edgecolors.extend(ec)
+                bw.extend([temp_width] * len(unique_ids_sub))
                 x_s = [loc_dict[gr] + dist[index]] * plot_bins
                 x_loc.extend(x_s)
                 hatches.extend(hs)
