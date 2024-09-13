@@ -7,7 +7,8 @@ import numpy as np
 from matplotlib._enums import CapStyle
 from matplotlib.collections import LineCollection
 from matplotlib.colors import Normalize, to_rgba
-from matplotlib.container import BarContainer
+
+# from matplotlib.container import BarContainer
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
@@ -72,27 +73,17 @@ def _make_legend_patches(color_dict, alpha, group, subgroup):
 def _add_rectangles(
     tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth, ax
 ):
-    patches = []
-    for t, b, x, width, fc, ec, h, lw in zip(
-        tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth
-    ):
-        left = x - width / 2
-        r = mpatches.Rectangle(
-            xy=(left, b),
-            width=width,
-            height=t,
-            facecolor=fc,
-            edgecolor=ec,
-            hatch=h,
-            linewidth=lw,
-        )
-        # r._internal_update()
-        r.get_path()._interpolation_steps = 100
-        r.sticky_edges.y.append(b)
-        ax.add_patch(r)
-        patches.append(r)
-    bar_container = BarContainer(patches, datavalues=tops)
-    return bar_container, ax
+    ax.bar(
+        x=x_loc,
+        height=tops,
+        bottom=bottoms,
+        width=bw,
+        color=fillcolors,
+        edgecolor=edgecolors,
+        linewidth=linewidth,
+        hatch=hatches,
+    )
+    return ax
 
 
 def _jitter_plot(
@@ -1182,12 +1173,6 @@ def _percent_plot(
     groups = np.unique(unique_groups)
     plot_bins = sum(include_bins)
 
-    if unique_id is not None:
-        uids = np.unique(data[unique_id])
-        multiplier = len(groups) * len(uids)
-    else:
-        multiplier = len(groups) * plot_bins
-
     if hatch is True:
         hs = HATCHES[:plot_bins]
     else:
@@ -1195,7 +1180,7 @@ def _percent_plot(
 
     tops = []
     bottoms = []
-    linewidth = [linewidth] * multiplier
+    lw = []
     edgecolors = []
     fillcolors = []
     x_loc = []
@@ -1205,7 +1190,8 @@ def _percent_plot(
     for gr in groups:
         indexes = np.where(unique_groups == gr)[0]
         if unique_id is None:
-            barwidth = [barwidth] * multiplier
+            barwidth = [barwidth] * plot_bins
+            lw.extend([linewidth] * plot_bins)
             bw.extend(barwidth)
             if cutoff != "categorical":
                 temp = np.sort(data[indexes, y])
@@ -1235,6 +1221,8 @@ def _percent_plot(
         else:
             unique_ids_sub = np.unique(data[indexes, unique_id])
             temp_width = barwidth / len(unique_ids_sub)
+            bw.extend([temp_width] * plot_bins * len(unique_ids_sub))
+            lw.extend([linewidth] * plot_bins * len(unique_ids_sub))
             if len(unique_ids_sub) > 1:
                 dist = np.linspace(
                     -barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1
@@ -1248,7 +1236,7 @@ def _percent_plot(
                 )[0]
                 temp = data[sub_indexes, y].sort_values()
                 if cutoff != "categorical":
-                    temp = np.sort(data[indexes, y])
+                    temp = np.sort(data[sub_indexes, y])
                     binned_data, _ = np.histogram(temp, bins)
                 else:
                     _, binned_data = np.unique(data[sub_indexes, y], return_counts=True)
@@ -1269,12 +1257,11 @@ def _percent_plot(
                     to_rgba(linecolor_dict[gr], alpha=line_alpha),
                 ] * plot_bins
                 edgecolors.extend(ec)
-                bw.extend([temp_width] * len(unique_ids_sub))
                 x_s = [loc_dict[gr] + dist[index]] * plot_bins
                 x_loc.extend(x_s)
                 hatches.extend(hs)
 
-    _, ax = _add_rectangles(
+    ax = _add_rectangles(
         tops,
         bottoms,
         x_loc,
@@ -1282,7 +1269,7 @@ def _percent_plot(
         fillcolors,
         edgecolors,
         hatches,
-        linewidth,
+        lw,
         ax,
     )
     return ax
@@ -1348,7 +1335,7 @@ def _count_plot(
             hatches.append(HATCHES[index] if hatch else None)
             lws.append(linewidth)
 
-    _, ax = _add_rectangles(
+    ax = _add_rectangles(
         tops,
         bottoms,
         x_loc,
