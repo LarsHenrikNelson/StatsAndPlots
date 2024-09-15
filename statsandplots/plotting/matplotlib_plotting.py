@@ -1190,9 +1190,8 @@ def _percent_plot(
     for gr in groups:
         indexes = np.where(unique_groups == gr)[0]
         if unique_id is None:
-            barwidth = [barwidth] * plot_bins
+            bw.extend([barwidth] * plot_bins)
             lw.extend([linewidth] * plot_bins)
-            bw.extend(barwidth)
             if cutoff != "categorical":
                 temp = np.sort(data[indexes, y])
                 binned_data, _ = np.histogram(temp, bins)

@@ -117,30 +117,32 @@ class BasePlot:
         if isinstance(lines, (float, int)):
             lines = [lines]
         self.plot_dict[linetype] = {
-            "line": lines,
-            linestyle: linestyle,
-            linealpha: linealpha,
-            linecolor: linecolor,
+            "linetype": linetype,
+            "lines": lines,
+            "linestyle": linestyle,
+            "linealpha": linealpha,
+            "linecolor": linecolor,
         }
 
-    def _plot_axlines(line_dict, ax):
-        for key, item in line_dict.items():
-            for ap in ax:
-                for ll in item["lines"]:
-                    if key == "vline":
-                        ap.axvline(
-                            ll,
-                            linestyle=item["linestyle"],
-                            color=item["linecolor"],
-                            alpha=item["linealpha"],
-                        )
-                    else:
-                        ap.axhline(
-                            ll,
-                            linestyle=item["linestyle"],
-                            color=item["linecolor"],
-                            alpha=item["linealpha"],
-                        )
+        if not self.inplace:
+            return self
+
+    def _plot_axlines(self, line_dict, ax):
+        for ll in line_dict["lines"]:
+            if line_dict["linetype"] == "vline":
+                ax.axvline(
+                    ll,
+                    linestyle=line_dict["linestyle"],
+                    color=line_dict["linecolor"],
+                    alpha=line_dict["linealpha"],
+                )
+            else:
+                ax.axhline(
+                    ll,
+                    linestyle=line_dict["linestyle"],
+                    color=line_dict["linecolor"],
+                    alpha=line_dict["linealpha"],
+                )
 
     def plot(
         self,
@@ -889,6 +891,11 @@ class LinePlot(BasePlot):
                 sub_ax.set_xlabel(
                     self.plot_dict["xlabel"], fontsize=self.plot_dict["labelsize"]
                 )
+            if "hline" in self.plot_dict:
+                self._plot_axlines(self.plot_dict["hline"], sub_ax)
+
+            if "vline" in self.plot_dict:
+                self._plot_axlines(self.plot_dict["vline"], sub_ax)
 
             sub_ax.tick_params(
                 axis="both",
