@@ -38,6 +38,7 @@ MARKERS = [
 ]
 CB6 = ["#0173B2", "#029E73", "#D55E00", "#CC78BC", "#ECE133", "#56B4E9"]
 HATCHES = [
+    None,
     "/",
     "o",
     "-",
@@ -1204,6 +1205,7 @@ def _percent_plot(
                 binned_data = binned_data[::-1]
             bottom = np.zeros(len(binned_data))
             bottom[1:] = binned_data[:-1]
+            bottom = np.cumsum(bottom)
             tops.extend(binned_data[include_bins])
             bottoms.extend(bottom[include_bins])
             fc = [
@@ -1246,6 +1248,7 @@ def _percent_plot(
                     binned_data = binned_data[::-1]
                 bottom = np.zeros(len(binned_data))
                 bottom[1:] = binned_data[:-1]
+                bottom = np.cumsum(bottom)
                 tops.extend(binned_data[include_bins])
                 bottoms.extend(bottom[include_bins])
                 fc = [
@@ -1259,7 +1262,8 @@ def _percent_plot(
                 x_s = [loc_dict[gr] + dist[index]] * plot_bins
                 x_loc.extend(x_s)
                 hatches.extend(hs)
-
+    print("bottom", bottoms)
+    print("tops", tops)
     ax = _add_rectangles(
         tops,
         bottoms,
