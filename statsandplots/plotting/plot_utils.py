@@ -204,7 +204,7 @@ def process_scatter_args(
         output = process_args(arg, group_order, subgroup_order)
         if alpha:
             output = {key: to_rgba(value, alpha) for key, value in output.items()}
-        output = unique_groups.map(output)
+        output = unique_groups.map(output).to_list()
     return output
 
 
@@ -218,7 +218,7 @@ def _discrete_cycler(arg, data, arg_cycle, alpha=None):
     mapping = {key: value for key, value in zip(grps, markers)}
     if alpha is not None:
         mapping = {key: to_rgba(value, alpha) for key, value in mapping.items()}
-    output = data[arg].map(mapping)
+    output = data[arg].map(mapping).to_list()
     return output
 
 
@@ -235,7 +235,7 @@ def _continuous_cycler(arg, data, arg_cycle, alpha):
             key: cmap(color_normal(value), alpha=alpha)
             for value, key in enumerate(uvals)
         }
-        colors = data[arg].map(mapping)
+        colors = data[arg].map(mapping).to_list()
     else:
         vmin = data[arg].min()
         vmax = data[arg].max()
