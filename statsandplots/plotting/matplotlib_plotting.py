@@ -742,8 +742,8 @@ def _agg_line(
         x_data = new_data[indexes, x]
         ed = err_data[indexes, y] if err_func is not None else np.zeros(y_data.size)
         _plot_agg_line(
-            x_data,
-            y_data,
+            get_func(xtransform)(x_data),
+            get_func(ytransform)(y_data),
             ed,
             value,
             ax,
@@ -786,44 +786,127 @@ def _kde_plot(
     bw: Literal["ISJ", "silverman", "scott"] = "ISJ",
     tol: Union[float, int] = 1e-3,
     common_norm: bool = True,
-    axis="y",
     unique_id=None,
+    axis="y",
     ax=None,
+    agg_func=None,
+    err_func=None,
     xtransform=None,
     ytransform=None,
+    kde_type="fft",
 ):
     if ax is None:
         ax = plt.gca()
         ax = [ax]
     ugroups = np.unique(unique_groups)
     size = data.shape[0]
-    for i in ugroups:
-        if i == "none" and ugroups == 1:
+
+    x_data = []
+    y_data = []
+    linestyle_data = []
+    linecolor_data = []
+    facet_list = []
+    errs = []
+
+    for u in ugroups:
+        if u == "none" and ugroups == 1:
             y_values = data[y].to_numpy.flatten()
             temp_size = size
-        else:
-            indexes = np.where(unique_groups == i)[0]
+            x_kde, y_kde = kde(
+                get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+            )
+            if common_norm:
+                multiplier = float(temp_size / size)
+                y_kde *= multiplier
+            if axis == "x":
+                y_kde, x_kde = x_kde, y_kde
+            y_data.append(y_kde)
+            x_data.append(x_kde)
+            linecolor_data.append(linecolor_dict[u])
+            linestyle_data.append(linestyle_dict[u])
+            facet_list.append(facet_dict[u])
+        elif unique_id is None:
+            indexes = np.where(unique_groups == u)[0]
             y_values = data[indexes, y].to_numpy().flatten()
             temp_size = indexes.size
-        x_kde, y_kde = kde(
-            get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
-        )
-        if common_norm:
-            multiplier = float(temp_size / size)
-            y_kde *= multiplier
-        if axis == "x":
-            y_kde, x_kde = x_kde, y_kde
-        ax[facet_dict[i]].plot(
-            x_kde,
-            y_kde,
-            c=linecolor_dict[i],
-            linestyle=linestyle_dict[i],
+            x_kde, y_kde = kde(
+                get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+            )
+            if common_norm:
+                multiplier = float(temp_size / size)
+                y_kde *= multiplier
+            if axis == "x":
+                y_kde, x_kde = x_kde, y_kde
+            y_data.append(y_kde)
+            x_data.append(x_kde)
+            linecolor_data.append(linecolor_dict[u])
+            linestyle_data.append(linestyle_dict[u])
+            facet_list.append(facet_dict[u])
+        else:
+            indexes = np.where(unique_groups == u)[0]
+            subgroups, count = np.unique(data[indexes, unique_id], return_counts=True)
+            temp_data = data[indexes, y]
+            min_data = get_func(ytransform)(temp_data.min())
+            max_data = get_func(ytransform)(temp_data.max())
+            min_data = min_data - np.abs((min_data * tol))
+            max_data = max_data + np.abs((max_data * tol))
+            if kde_type == "fft":
+                power2 = int(np.ceil(np.log2(len(temp_data))))
+                x = np.linspace(min_data, max_data, num=(1 << power2))
+            else:
+                max_len = np.max(count)
+                x = np.linspace(min_data, max_data, num=int(max_len * 1.5))
+
+            if agg_func is not None:
+                y_hold = np.zeros((len(subgroups), x.size))
+
+            for hi, s in enumerate(subgroups):
+                s_indexes = np.where((data[unique_id] == s) & (unique_groups == u))[0]
+                y_values = data[s_indexes, y].to_numpy().flatten()
+                temp_size = y_values.size
+                if agg_func is None:
+                    x_kde, y_kde = kde(
+                        get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                    )
+                    y_data.append(y_kde)
+                    x_data.append(x_kde)
+                    linecolor_data.append(linecolor_dict[u])
+                    linestyle_data.append(linestyle_dict[u])
+                    facet_list.append(facet_dict[u])
+                else:
+                    _, y_kde = kde(
+                        get_func(ytransform)(y_values),
+                        bw=bw,
+                        kernel=kernel,
+                        tol=tol,
+                        x=x,
+                        kde_type="fft",
+                    )
+                    y_hold[hi, :] = y_kde
+            if agg_func is not None:
+                y_data.append(get_func(agg_func)(y_hold, axis=0))
+                x_data.append(x)
+                linecolor_data.append(linecolor_dict[u])
+                linestyle_data.append(linestyle_dict[u])
+                facet_list.append(facet_dict[u])
+            if err_func is not None:
+                errs.append(get_func(err_func)(y_hold, axis=0))
+    for plot_index, (x, y, lc, ls, fax) in enumerate(
+        zip(x_data, y_data, linecolor_data, linestyle_data, facet_list)
+    ):
+        ax[fax].plot(
+            x,
+            y,
+            c=lc,
+            linestyle=ls,
             alpha=alpha,
             linewidth=linewidth,
         )
         if fill_under:
-            ax[facet_dict[i]].fill_between(
-                x_kde, y_kde, color=fillcolor_dict[i], alpha=alpha
+            ax[fax].fill_between(x, y, color=lc, alpha=alpha)
+        if err_func is not None:
+            ax[fax].fill_between(
+                x, y - errs[plot_index], y + errs[plot_index], color=lc, alpha=alpha
             )
     return ax
 
@@ -1262,8 +1345,6 @@ def _percent_plot(
                 x_s = [loc_dict[gr] + dist[index]] * plot_bins
                 x_loc.extend(x_s)
                 hatches.extend(hs)
-    print("bottom", bottoms)
-    print("tops", tops)
     ax = _add_rectangles(
         tops,
         bottoms,

@@ -524,6 +524,9 @@ class LinePlot(BasePlot):
         alpha: AlphaRange = 1.0,
         axis: Literal["x", "y"] = "y",
         unique_id: Optional[str] = None,
+        agg_func=None,
+        err_func=None,
+        kde_type: Literal["tree", "fft"] = "fft",
     ):
 
         fill_under = False if fillcolor is None else True
@@ -565,6 +568,9 @@ class LinePlot(BasePlot):
             "tol": tol,
             "common_norm": common_norm,
             "unique_id": unique_id,
+            "agg_func": agg_func,
+            "err_func": err_func,
+            "kde_type": kde_type,
         }
 
         self.plots.append(kde_plot)
@@ -839,20 +845,10 @@ class LinePlot(BasePlot):
                 xtransform=self.plot_dict["xtransform"],
                 **j,
             )
-            if (
-                j == "kde"
-                or j == "hist"
-                and all(v is None for v in self.plot_dict["ylim"])
-            ):
+            if j == "kde" or j == "hist":
                 if j["axis"] == "y":
                     self.plot_dict["ylim"] = [0, None]
-            if (
-                j == "kde"
-                or j == "hist"
-                and all(v is None for v in self.plot_dict["xlim"])
-            ):
-                index = self.plot_list.index("kde")
-                if self.plots[index]["axis"] == "x":
+                else:
                     self.plot_dict["xlim"] = [0, None]
 
         if self.plot_dict["ydecimals"] is None:

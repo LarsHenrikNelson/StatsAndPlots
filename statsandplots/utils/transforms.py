@@ -8,7 +8,7 @@ from ..stats.circular_stats import periodic_mean, periodic_std, periodic_sem
 
 def sem(a, axis=None):
     if len(a.shape) == 2:
-        shape = a.shape[1]
+        shape = a.shape[0]
     else:
         shape = a.size
     denominator = np.sqrt(shape - 1) if shape > 1 else 1
