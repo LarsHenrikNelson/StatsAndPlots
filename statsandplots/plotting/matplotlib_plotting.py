@@ -770,8 +770,8 @@ def _kde_plot(
     linestyle_dict,
     linewidth,
     alpha,
+    fillalpha,
     fill_under,
-    fillcolor_dict,
     kernel: Literal[
         "gaussian",
         "exponential",
@@ -903,10 +903,15 @@ def _kde_plot(
             linewidth=linewidth,
         )
         if fill_under:
-            ax[fax].fill_between(x, y, color=lc, alpha=alpha)
+            ax[fax].fill_between(x, y, color=lc, alpha=fillalpha, linewidth=0)
         if err_func is not None:
             ax[fax].fill_between(
-                x, y - errs[plot_index], y + errs[plot_index], color=lc, alpha=alpha
+                x,
+                y - errs[plot_index],
+                y + errs[plot_index],
+                color=lc,
+                alpha=fillalpha,
+                linewidth=0,
             )
     return ax
 

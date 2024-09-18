@@ -522,6 +522,7 @@ class LinePlot(BasePlot):
         linewidth: int = 2,
         fillcolor: Optional[ColorDict] = None,
         alpha: AlphaRange = 1.0,
+        fillalpha=None,
         axis: Literal["x", "y"] = "y",
         unique_id: Optional[str] = None,
         agg_func=None,
@@ -541,16 +542,6 @@ class LinePlot(BasePlot):
             self.plot_dict["subgroup_order"],
         )
 
-        fillcolor_dict = process_args(
-            _process_colors(
-                fillcolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
-        )
-
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
@@ -561,7 +552,6 @@ class LinePlot(BasePlot):
             "linewidth": linewidth,
             "alpha": alpha,
             "fill_under": fill_under,
-            "fillcolor_dict": fillcolor_dict,
             "axis": axis,
             "kernel": kernel,
             "bw": bw,
@@ -571,6 +561,7 @@ class LinePlot(BasePlot):
             "agg_func": agg_func,
             "err_func": err_func,
             "kde_type": kde_type,
+            "fillalpha": alpha / 2 if fillalpha is None else fillalpha,
         }
 
         self.plots.append(kde_plot)
