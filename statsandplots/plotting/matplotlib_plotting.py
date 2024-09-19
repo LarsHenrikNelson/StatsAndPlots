@@ -13,7 +13,7 @@ from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
 from ..stats import kde
-from .plot_utils import process_args, process_duplicates
+from .plot_utils import process_args, process_duplicates, _bin_data
 from ..utils import DataHolder, get_func
 
 
@@ -850,6 +850,8 @@ def _kde_plot(
             max_data = get_func(ytransform)(temp_data.max())
             min_data = min_data - np.abs((min_data * tol))
             max_data = max_data + np.abs((max_data * tol))
+            min_data = min_data if min_data != 0 else -1e-10
+            max_data = max_data if max_data != 0 else 1e-10
             if kde_type == "fft":
                 power2 = int(np.ceil(np.log2(len(temp_data))))
                 x = np.linspace(min_data, max_data, num=(1 << power2))
@@ -1281,20 +1283,8 @@ def _percent_plot(
         if unique_id is None:
             bw.extend([barwidth] * plot_bins)
             lw.extend([linewidth] * plot_bins)
-            if cutoff != "categorical":
-                temp = np.sort(data[indexes, y])
-                binned_data, _ = np.histogram(temp, bins)
-            else:
-                _, binned_data = np.unique(data[indexes, y], return_counts=True)
-            binned_data = binned_data / binned_data.sum()
-            if axis_type == "percent":
-                binned_data *= 100
-            if invert:
-                binned_data = binned_data[::-1]
-            bottom = np.zeros(len(binned_data))
-            bottom[1:] = binned_data[:-1]
-            bottom = np.cumsum(bottom)
-            tops.extend(binned_data[include_bins])
+            top, bottom = _bin_data(data[indexes, y], bins, axis_type, invert, cutoff)
+            tops.extend(top[include_bins])
             bottoms.extend(bottom[include_bins])
             fc = [
                 to_rgba(color_dict[gr], alpha=alpha),
@@ -1323,21 +1313,11 @@ def _percent_plot(
                 sub_indexes = np.where(
                     np.logical_and(data[unique_id] == ui_group, unique_groups == gr)
                 )[0]
-                temp = data[sub_indexes, y].sort_values()
-                if cutoff != "categorical":
-                    temp = np.sort(data[sub_indexes, y])
-                    binned_data, _ = np.histogram(temp, bins)
-                else:
-                    _, binned_data = np.unique(data[sub_indexes, y], return_counts=True)
-                binned_data = binned_data / binned_data.sum()
-                if axis_type == "percent":
-                    binned_data *= 100
-                if invert:
-                    binned_data = binned_data[::-1]
-                bottom = np.zeros(len(binned_data))
-                bottom[1:] = binned_data[:-1]
-                bottom = np.cumsum(bottom)
-                tops.extend(binned_data[include_bins])
+                top, bottom = _bin_data(
+                    data[sub_indexes, y], bins, axis_type, invert, cutoff
+                )
+
+                tops.extend(top[include_bins])
                 bottoms.extend(bottom[include_bins])
                 fc = [
                     to_rgba(color_dict[gr], alpha=alpha),

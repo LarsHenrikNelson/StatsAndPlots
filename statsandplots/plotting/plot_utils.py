@@ -110,6 +110,24 @@ def get_ticks(
     return lim, ticks
 
 
+def _bin_data(data, bins, axis_type, invert, cutoff):
+    if cutoff != "categorical":
+        temp = np.sort(data)
+        binned_data, _ = np.histogram(temp, bins)
+    else:
+        _, binned_data = np.unique(data, return_counts=True)
+    binned_data = binned_data / binned_data.sum()
+    if axis_type == "percent":
+        binned_data *= 100
+    if invert:
+        binned_data = binned_data[::-1]
+    bottom = np.zeros(len(binned_data))
+    bottom[1:] = binned_data[:-1]
+    bottom = np.cumsum(bottom)
+    top = binned_data
+    return top, bottom
+
+
 def _decimals(data):
     decimals = np.abs(int(np.max(np.round(np.log10(np.abs(data)))))) + 2
     return decimals
