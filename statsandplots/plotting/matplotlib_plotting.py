@@ -1257,8 +1257,8 @@ def _percent_plot(
         if include_bins is None:
             include_bins = [True] * (len(bins) - 1)
     else:
+        bins = np.unique(data[y])
         if include_bins is None:
-            bins = np.unique(data[y])
             include_bins = [True] * len(bins)
 
     groups = np.unique(unique_groups)
