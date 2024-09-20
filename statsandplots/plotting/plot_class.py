@@ -11,10 +11,11 @@ import plotly.graph_objects as go
 
 from ..utils import (
     AGGREGATE,
-    BACK_TRANSFORM_DICT,
     ERROR,
     TRANSFORM,
     DataHolder,
+    get_backtransform,
+    get_transform,
 )
 from . import matplotlib_plotting as mp
 from . import plotly_plotting as plp
@@ -143,6 +144,41 @@ class BasePlot:
                     color=line_dict["linecolor"],
                     alpha=line_dict["linealpha"],
                 )
+
+    def _set_minorticks(self, ax, transform: str, ticks: Literal["y", "x"]):
+        if ticks == "y":
+            yticks = ax.get_yticks()
+        else:
+            yticks = ax.get_xticks()
+        yticks = get_backtransform(transform)(yticks)
+        mticks = np.zeros(len(yticks) * 4)
+        for index in range(yticks.size - 1):
+            vals = np.linspace(yticks[index], yticks[index + 1], num=5, endpoint=False)
+            mticks[index * 5 : index * 5 + 5] = vals
+        if ticks == "y":
+            ax.set_yticks(
+                get_transform(transform)(mticks),
+                minor=True,
+            )
+            ax.tick_params(
+                axis="y",
+                which="minor",
+                width=self.plot_dict["minor_tickwidth"],
+                length=self.plot_dict["minor_ticklength"],
+            )
+
+        else:
+            ax.set_xticks(
+                get_transform(transform)(mticks),
+                minor=True,
+                width=self.plot_dict["minor_tickwidth"],
+            )
+            ax.tick_params(
+                axis="x",
+                which="minor",
+                width=self.plot_dict["minor_tickwidth"],
+                length=self.plot_dict["minor_ticklength"],
+            )
 
     def plot(
         self,
@@ -301,9 +337,12 @@ class LinePlot(BasePlot):
         yscale: Literal["linear", "log", "symlog"] = "linear",
         xscale: Literal["linear", "log", "symlog"] = "linear",
         xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
-        labelsize: int = 20,
-        linewidth: int = 2,
-        ticksize: int = 2,
+        labelsize: float = 20,
+        linewidth: float = 2,
+        tickwidth: float = 2,
+        ticklength: float = 5.0,
+        minor_tickwidth: float = 1.5,
+        minor_ticklength: float = 2.5,
         ticklabel: int = 12,
         steps: int = 7,
         tickstyle: Literal["all", "middle"] = "all",
@@ -322,7 +361,8 @@ class LinePlot(BasePlot):
             "xscale": xscale,
             "xlabel_rotation": xlabel_rotation,
             "labelsize": labelsize,
-            "ticksize": ticksize,
+            "tickwidth": tickwidth,
+            "ticklength": ticklength,
             "ticklabel": ticklabel,
             "linewidth": linewidth,
             "ylim": ylim,
@@ -332,6 +372,8 @@ class LinePlot(BasePlot):
             "steps": steps,
             "tickstyle": tickstyle,
             "xunits": xunits,
+            "minor_tickwidth": minor_tickwidth,
+            "minor_ticklength": minor_ticklength,
         }
         self.plot_dict.update(plot_settings)
 
@@ -862,6 +904,9 @@ class LinePlot(BasePlot):
                 self._set_lims(sub_ax, xdecimals, axis="x")
 
                 sub_ax.margins(self.plot_dict["margins"])
+                sub_ax.set_xlabel(
+                    self.plot_dict["xlabel"], fontsize=self.plot_dict["labelsize"]
+                )
             else:
                 if (
                     self.plot_dict["xunits"] == "radian"
@@ -888,7 +933,8 @@ class LinePlot(BasePlot):
                 axis="both",
                 which="major",
                 labelsize=self.plot_dict["ticklabel"],
-                width=self.plot_dict["ticksize"],
+                width=self.plot_dict["tickwidth"],
+                length=self.plot_dict["ticklength"],
             )
 
             self._set_grid(sub_ax)
@@ -1062,9 +1108,13 @@ class CategoricalPlot(BasePlot):
         steps: int = 5,
         labelsize: int = 20,
         linewidth: int = 2,
-        ticksize: int = 2,
+        tickwidth: int = 2,
+        ticklength: float = 5.0,
         ticklabel: int = 20,
         decimals: int = None,
+        minorticks: bool = False,
+        minor_tickwidth: float = 1.5,
+        minor_ticklength: float = 2.5,
     ):
         self._plot_settings_run = True
         if "ylim" in self.plot_dict:
@@ -1077,7 +1127,8 @@ class CategoricalPlot(BasePlot):
             "yscale": yscale,
             "steps": steps,
             "labelsize": labelsize,
-            "ticksize": ticksize,
+            "tickwidth": tickwidth,
+            "ticklength": ticklength,
             "ticklabel": ticklabel,
             "xlabel_rotation": xlabel_rotation,
             "decimals": decimals,
@@ -1085,6 +1136,9 @@ class CategoricalPlot(BasePlot):
             "legend_loc": legend_loc,
             "legend_anchor": legend_anchor,
             "integer_axis": False,
+            "minorticks": minorticks,
+            "minor_tickwidth": minor_tickwidth,
+            "minor_ticklength": minor_ticklength,
         }
         self.plot_dict.update(plot_settings)
 
@@ -1110,7 +1164,7 @@ class CategoricalPlot(BasePlot):
 
     def transform(
         self,
-        transform: Optional[TRANSFORM] = (None,),
+        transform: Optional[TRANSFORM] = None,
         back_transform_ticks: bool = False,
     ):
         self.plot_dict["transform"] = transform
@@ -1642,7 +1696,7 @@ class CategoricalPlot(BasePlot):
                     self.plot_dict["steps"],
                 )
             if self.plot_dict["back_transform_ticks"]:
-                tick_labels = BACK_TRANSFORM_DICT[self.plot_dict["transform"]](ticks)
+                tick_labels = get_backtransform(self.plot_dict["transform"])(ticks)
             else:
                 tick_labels = ticks
             if decimals is not None:
@@ -1659,13 +1713,18 @@ class CategoricalPlot(BasePlot):
             if self.plot_dict["ylim"][1] is None:
                 self.plot_dict["ylim"][1] = ticks[-1]
             ax.set_ylim(bottom=self.plot_dict["ylim"][0], top=self.plot_dict["ylim"][1])
+
+        if self.plot_dict["minorticks"]:
+            self._set_minorticks(ax, self.plot_dict["transform"], ticks="y")
+
         ax.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
         ax.set_title(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
         ax.tick_params(
             axis="both",
             which="major",
             labelsize=self.plot_dict["ticklabel"],
-            width=self.plot_dict["ticksize"],
+            width=self.plot_dict["tickwidth"],
+            length=self.plot_dict["ticklength"],
         )
         ax.margins(x=self.plot_dict["margins"])
 
@@ -1755,7 +1814,7 @@ class CategoricalPlot(BasePlot):
                 ticks="outside",
                 color="black",
                 tickfont=dict(size=self.plot_dict["ticklabel"]),
-                tickwidth=self.plot_dict["ticksize"],
+                tickwidth=self.plot_dict["tickwidth"],
                 linewidth=self.plot_dict["linewidth"],
                 automargin=True,
             ),
@@ -1771,7 +1830,7 @@ class CategoricalPlot(BasePlot):
                 ticks="outside",
                 color="black",
                 tickfont=dict(size=self.plot_dict["ticklabel"]),
-                tickwidth=self.plot_dict["ticksize"],
+                tickwidth=self.plot_dict["tickwidth"],
                 linewidth=self.plot_dict["linewidth"],
                 automargin=True,
                 range=[ticks[0], ticks[-1]],

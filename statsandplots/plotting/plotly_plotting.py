@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import default_rng
 
 
-from ..utils import get_func
+from ..utils import get_transform
 
 MARKERS = [
     "o",
@@ -42,7 +42,7 @@ def _jitter_plot(
     transform=None,
     unique_id=None,
 ):
-    transform = get_func(transform)
+    transform = get_transform(transform)
     rng = default_rng(seed)
     jitter_values = rng.random(unique_groups.size)
     jitter_values *= width

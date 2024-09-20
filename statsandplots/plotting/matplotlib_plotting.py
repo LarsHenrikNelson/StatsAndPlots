@@ -14,7 +14,7 @@ from sklearn import decomposition, preprocessing
 
 from ..stats import kde
 from .plot_utils import process_args, process_duplicates, _bin_data
-from ..utils import DataHolder, get_func
+from ..utils import DataHolder, get_transform
 
 
 # Reorder the filled matplotlib markers to choose the most different
@@ -106,7 +106,7 @@ def _jitter_plot(
     if ax is None:
         ax = plt.gca()
 
-    transform = get_func(transform)
+    transform = get_transform(transform)
 
     rng = default_rng(seed)
     jitter_values = rng.random(len(unique_groups))
@@ -168,7 +168,7 @@ def _jitteru_plot(
     if ax is None:
         ax = plt.gca()
 
-    transform = get_func(transform)
+    transform = get_transform(transform)
     temp = width / 2
 
     ugrp = np.unique(unique_groups)
@@ -191,12 +191,12 @@ def _jitteru_plot(
                 )
                 x += output
             if agg_func is None:
-                x = get_func(agg_func)(x)
+                x = get_transform(agg_func)(x)
             else:
                 x = x[0]
             ax.plot(
                 x,
-                get_func(agg_func)(transform(data[sub_indexes, y])),
+                get_transform(agg_func)(transform(data[sub_indexes, y])),
                 marker_dict[i],
                 markerfacecolor=color_dict[i],
                 markeredgecolor=edgecolor_dict[i],
@@ -225,7 +225,7 @@ def _summary_plot(
     if ax is None:
         ax = plt.gca()
 
-    transform = get_func(transform)
+    transform = get_transform(transform)
     y_data = []
     errs = []
     colors = []
@@ -238,9 +238,9 @@ def _summary_plot(
         x_data.append(loc_dict[i])
         colors.append(color_dict[i])
         widths.append(barwidth)
-        y_data.append(get_func(func)(transform(data[indexes, y])))
+        y_data.append(get_transform(func)(transform(data[indexes, y])))
         if err_func is not None:
-            errs.append(get_func(err_func)(transform(data[indexes, y])))
+            errs.append(get_transform(err_func)(transform(data[indexes, y])))
         else:
             errs.append(None)
     ax = _plot_summary(
@@ -280,7 +280,7 @@ def _summaryu_plot(
     if ax is None:
         ax = plt.gca()
 
-    transform = get_func(transform)
+    transform = get_transform(transform)
     y_data = []
     errs = []
     colors = []
@@ -307,9 +307,9 @@ def _summaryu_plot(
                 vals = transform(data[sub_indexes, y])
                 x_data.append(loc_dict[i] + centers[index])
                 colors.append(color_dict[i])
-                y_data.append(get_func(func)(vals))
+                y_data.append(get_transform(func)(vals))
                 if err_func is not None:
-                    errs.append(get_func(err_func)(vals))
+                    errs.append(get_transform(err_func)(vals))
                 else:
                     errs.append(None)
         else:
@@ -319,13 +319,13 @@ def _summaryu_plot(
                     np.logical_and(data[unique_id] == j, unique_groups == i)
                 )[0]
                 vals = transform(data[sub_indexes, y])
-                temp_vals.append(get_func(func)(vals))
+                temp_vals.append(get_transform(func)(vals))
             x_data.append(loc_dict[i])
             colors.append(color_dict[i])
             widths.append(barwidth)
-            y_data.append(get_func(func)(np.array(temp_vals)))
+            y_data.append(get_transform(func)(np.array(temp_vals)))
             if err_func is not None:
-                errs.append(get_func(err_func)(np.array(temp_vals)))
+                errs.append(get_transform(err_func)(np.array(temp_vals)))
             else:
                 errs.append(None)
 
@@ -396,7 +396,7 @@ def _boxplot(
     if ax is None:
         ax = plt.gca()
 
-    transform = get_func(transform)
+    transform = get_transform(transform)
 
     ugrp = np.unique(unique_groups)
     for i in ugrp:
@@ -448,7 +448,7 @@ def _violin_plot(
     if ax is None:
         ax = plt.gca()
 
-    transform = get_func(transform)
+    transform = get_transform(transform)
 
     ugrp = np.unique(unique_groups)
     for i in ugrp:
@@ -519,8 +519,8 @@ def _hist_plot(
 
     if bin_limits is None:
         bins = np.linspace(
-            get_func(ytransform)(data[y].min()),
-            get_func(ytransform)(data[y].max()),
+            get_transform(ytransform)(data[y].min()),
+            get_transform(ytransform)(data[y].max()),
             num=nbins + 1,
         )
         # x = np.linspace(data[y].min(), data[y].max(), num=nbins)
@@ -528,8 +528,8 @@ def _hist_plot(
     else:
         # x = np.linspace(bin_limits[0], bin_limits[1], num=nbins)
         bins = np.linspace(
-            get_func(ytransform)(bin_limits[0]),
-            get_func(ytransform)(bin_limits[1]),
+            get_transform(ytransform)(bin_limits[0]),
+            get_transform(ytransform)(bin_limits[1]),
             num=nbins + 1,
         )
         x = (bins[1:] + bins[:-1]) / 2
@@ -554,7 +554,7 @@ def _hist_plot(
             for index, j in enumerate(uids):
                 temp = np.where((data[unique_id] == j) & (unique_groups == i))[0]
                 temp_data = np.sort(data[temp, y])
-                poly = _calc_hist(get_func(ytransform)(temp_data), bins, stat)
+                poly = _calc_hist(get_transform(ytransform)(temp_data), bins, stat)
                 if agg_func is not None:
                     temp_list[index] = poly
                 else:
@@ -564,14 +564,14 @@ def _hist_plot(
                     axes1.append(ax[facet_dict[i]])
                     count += 1
             if agg_func is not None:
-                plot_data.append(get_func(agg_func)(temp_list, axis=0))
+                plot_data.append(get_transform(agg_func)(temp_list, axis=0))
                 colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
                 edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
                 axes1.append(ax[facet_dict[i]])
                 count += 1
         else:
             temp_data = np.sort(data[unique_groups == i, y])
-            poly = _calc_hist(get_func(ytransform)(temp_data), bins, stat)
+            poly = _calc_hist(get_transform(ytransform)(temp_data), bins, stat)
             plot_data.append(poly)
             colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
             edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
@@ -617,8 +617,8 @@ def _scatter_plot(
     for key, value in facet_dict.items():
         indexes = np.where(unique_groups == key)[0]
         ax[value].scatter(
-            get_func(xtransform)(data[indexes, x]),
-            get_func(ytransform)(data[indexes, y]),
+            get_transform(xtransform)(data[indexes, x]),
+            get_transform(ytransform)(data[indexes, y]),
             marker=markers,
             color=[markercolors[i] for i in indexes],
             edgecolors=[edgecolors[i] for i in indexes],
@@ -706,11 +706,11 @@ def _agg_line(
 ):
     err_data = None
     new_levels = (levels + [x]) if unique_id is None else (levels + [x, unique_id])
-    new_data = data.groupby(y, new_levels).agg(get_func(func)).reset_index()
+    new_data = data.groupby(y, new_levels).agg(get_transform(func)).reset_index()
     if unique_id is None:
         if err_func is not None:
             err_data = DataHolder(
-                data.groupby(y, new_levels).agg(get_func(err_func)).reset_index()
+                data.groupby(y, new_levels).agg(get_transform(err_func)).reset_index()
             )
     else:
         if agg_func is not None:
@@ -718,13 +718,13 @@ def _agg_line(
                 err_data = DataHolder(
                     new_data[levels + [x, y]]
                     .groupby(levels + [x])
-                    .agg(get_func(err_func))
+                    .agg(get_transform(err_func))
                     .reset_index()
                 )
         new_data = (
             new_data[levels + [x, y]]
             .groupby(levels + [x])
-            .agg(get_func(func))
+            .agg(get_transform(func))
             .reset_index()
         )
     new_data = DataHolder(new_data)
@@ -742,8 +742,8 @@ def _agg_line(
         x_data = new_data[indexes, x]
         ed = err_data[indexes, y] if err_func is not None else np.zeros(y_data.size)
         _plot_agg_line(
-            get_func(xtransform)(x_data),
-            get_func(ytransform)(y_data),
+            get_transform(xtransform)(x_data),
+            get_transform(ytransform)(y_data),
             ed,
             value,
             ax,
@@ -813,7 +813,7 @@ def _kde_plot(
             y_values = data[y].to_numpy.flatten()
             temp_size = size
             x_kde, y_kde = kde(
-                get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                get_transform(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
             )
             if common_norm:
                 multiplier = float(temp_size / size)
@@ -830,7 +830,7 @@ def _kde_plot(
             y_values = data[indexes, y].to_numpy().flatten()
             temp_size = indexes.size
             x_kde, y_kde = kde(
-                get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                get_transform(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
             )
             if common_norm:
                 multiplier = float(temp_size / size)
@@ -846,8 +846,8 @@ def _kde_plot(
             indexes = np.where(unique_groups == u)[0]
             subgroups, count = np.unique(data[indexes, unique_id], return_counts=True)
             temp_data = data[indexes, y]
-            min_data = get_func(ytransform)(temp_data.min())
-            max_data = get_func(ytransform)(temp_data.max())
+            min_data = get_transform(ytransform)(temp_data.min())
+            max_data = get_transform(ytransform)(temp_data.max())
             min_data = min_data - np.abs((min_data * tol))
             max_data = max_data + np.abs((max_data * tol))
             min_data = min_data if min_data != 0 else -1e-10
@@ -868,7 +868,7 @@ def _kde_plot(
                 temp_size = y_values.size
                 if agg_func is None:
                     x_kde, y_kde = kde(
-                        get_func(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                        get_transform(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
                     )
                     y_data.append(y_kde)
                     x_data.append(x_kde)
@@ -877,7 +877,7 @@ def _kde_plot(
                     facet_list.append(facet_dict[u])
                 else:
                     _, y_kde = kde(
-                        get_func(ytransform)(y_values),
+                        get_transform(ytransform)(y_values),
                         bw=bw,
                         kernel=kernel,
                         tol=tol,
@@ -886,13 +886,13 @@ def _kde_plot(
                     )
                     y_hold[hi, :] = y_kde
             if agg_func is not None:
-                y_data.append(get_func(agg_func)(y_hold, axis=0))
+                y_data.append(get_transform(agg_func)(y_hold, axis=0))
                 x_data.append(x)
                 linecolor_data.append(linecolor_dict[u])
                 linestyle_data.append(linestyle_dict[u])
                 facet_list.append(facet_dict[u])
             if err_func is not None:
-                errs.append(get_func(err_func)(y_hold, axis=0))
+                errs.append(get_transform(err_func)(y_hold, axis=0))
     for plot_index, (x, y, lc, ls, fax) in enumerate(
         zip(x_data, y_data, linecolor_data, linestyle_data, facet_list)
     ):
@@ -968,7 +968,7 @@ def _poly_hist(
     xtransform=None,
     ytransform=None,
 ):
-    ytransform = get_func(ytransform)
+    ytransform = get_transform(ytransform)
     if bin_limits is None:
         bins = np.linspace(
             ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins + 1
@@ -982,9 +982,9 @@ def _poly_hist(
         ax = [ax]
 
     if unique_id is not None:
-        func = get_func(func)
+        func = get_transform(func)
         if err_func is not None:
-            err_func = get_func(err_func)
+            err_func = get_transform(err_func)
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
@@ -1057,9 +1057,9 @@ def _line_plot(
         ax = plt.gca()
         ax = [ax]
     if unique_id is not None:
-        func = get_func(func)
+        func = get_transform(func)
         if err_func is not None:
-            err_func = get_func(err_func)
+            err_func = get_transform(err_func)
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
