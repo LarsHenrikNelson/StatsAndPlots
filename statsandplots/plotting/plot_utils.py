@@ -111,7 +111,7 @@ def get_ticks(
 
 
 def _bin_data(data, bins, axis_type, invert, cutoff):
-    if cutoff != "categorical":
+    if cutoff is not None:
         temp = np.sort(data)
         binned_data, _ = np.histogram(temp, bins)
     else:
