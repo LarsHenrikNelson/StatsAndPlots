@@ -1502,9 +1502,7 @@ class CategoricalPlot(BasePlot):
 
     def percent(
         self,
-        cutoff: Union[
-            None, Literal["categorical"], float, int, list[Union[float, int]]
-        ],
+        cutoff: Union[None, float, int, list[Union[float, int]]],
         unique_id=None,
         facecolor=None,
         linecolor: ColorDict = "black",

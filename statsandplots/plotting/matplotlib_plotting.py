@@ -868,7 +868,10 @@ def _kde_plot(
                 temp_size = y_values.size
                 if agg_func is None:
                     x_kde, y_kde = kde(
-                        get_transform(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                        get_transform(ytransform)(y_values),
+                        bw=bw,
+                        kernel=kernel,
+                        tol=tol,
                     )
                     y_data.append(y_kde)
                     x_data.append(x_kde)
@@ -1231,7 +1234,7 @@ def _percent_plot(
     loc_dict,
     color_dict,
     linecolor_dict,
-    cutoff: Union[float, int, list[Union[float, int]]],
+    cutoff: Union[None, float, int, list[Union[float, int]]],
     include_bins: list[bool],
     barwidth: float = 1.0,
     linewidth=1,
@@ -1247,7 +1250,7 @@ def _percent_plot(
     if ax is None:
         ax = plt.gca()
 
-    if cutoff != "categorical":
+    if cutoff is not None:
         bins = np.zeros(len(cutoff) + 2)
         bins[-1] = data[y].max() + 1e-6
         bins[0] = data[y].min() - 1e-6
