@@ -145,6 +145,71 @@ class BasePlot:
                     alpha=line_dict["linealpha"],
                 )
 
+    def _set_lims(self, ax, decimals, axis="x"):
+        if axis == "y":
+            if self.plot_dict["yscale"] not in ["log", "symlog"]:
+                ticks = ax.get_yticks()
+                lim, ticks = get_ticks(
+                    self.plot_dict["ylim"],
+                    ticks,
+                    self.plot_dict["steps"],
+                    decimals,
+                    tickstyle=self.plot_dict["tickstyle"],
+                )
+                ax.set_ylim(bottom=lim[0], top=lim[1])
+                if (
+                    "back_transform_yticks" in self.plot_dict
+                    and self.plot_dict["back_transform_yticks"]
+                ):
+                    tick_labels = get_backtransform(self.plot_dict["ytransform"])(ticks)
+                else:
+                    tick_labels = ticks
+                if decimals is not None:
+                    if decimals == -1:
+                        tick_labels = tick_labels.astype(int)
+                    else:
+                        tick_labels = np.round(tick_labels, decimals=decimals)
+                ax.set_yticks(ticks, labels=tick_labels)
+            else:
+                ax.set_yscale(self.plot_dict["yscale"])
+                ticks = ax.get_yticks()
+                lim, _ = get_ticks(
+                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], decimals
+                )
+                ax.set_ylim(bottom=lim[0], top=lim[1])
+        else:
+            if self.plot_dict["xscale"] not in ["log", "symlog"]:
+                ticks = ax.get_xticks()
+                lim, ticks = get_ticks(
+                    self.plot_dict["xlim"],
+                    ticks,
+                    self.plot_dict["steps"],
+                    decimals,
+                    tickstyle=self.plot_dict["tickstyle"],
+                )
+                ax.set_xlim(left=lim[0], right=lim[1])
+                if (
+                    "back_transform_yticks" in self.plot_dict
+                    and self.plot_dict["back_transform_xticks"]
+                ):
+                    tick_labels = get_backtransform(self.plot_dict["xtransform"])(ticks)
+                else:
+                    tick_labels = ticks
+                if decimals is not None:
+                    if decimals == -1:
+                        tick_labels = tick_labels.astype(int)
+                    else:
+                        tick_labels = np.round(tick_labels, decimals=decimals)
+                ax.set_xticks(ticks, labels=tick_labels)
+
+            else:
+                ax.set_xscale(self.plot_dict["xscale"])
+                ticks = ax.get_xticks()
+                lim, _ = get_ticks(
+                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], decimals
+                )
+                ax.set_xlim(left=lim[0], right=lim[1])
+
     def _set_minorticks(self, ax, transform: str, ticks: Literal["y", "x"]):
         if ticks == "y":
             yticks = ax.get_yticks()
@@ -234,13 +299,13 @@ class BasePlot:
         return fig, ax
 
 
-# %%
 class LinePlot(BasePlot):
 
     def __init__(
         self,
         data: pd.DataFrame,
-        y: str,
+        y: Optional[str] = None,
+        x: Optional[str] = None,
         group: Optional[str] = None,
         subgroup: Optional[str] = None,
         group_order: Optional[list[str]] = None,
@@ -296,6 +361,7 @@ class LinePlot(BasePlot):
         self.plot_dict = {
             "data": data,
             "y": y,
+            "x": x,
             "group": group,
             "subgroup": subgroup,
             "group_order": group_order,
@@ -397,28 +463,27 @@ class LinePlot(BasePlot):
     def transform(
         self,
         ytransform: Optional[TRANSFORM] = (None,),
-        yback_transform_ticks: bool = False,
+        back_transform_yticks: bool = False,
         xtransform: Optional[TRANSFORM] = (None,),
-        xback_transform_ticks: bool = False,
+        back_transform_xticks: bool = False,
     ):
         self.plot_dict["ytransform"] = ytransform
         if callable(ytransform):
-            self.plot_dict["yback_transform_ticks"] = False
+            self.plot_dict["back_transform_yticks"] = False
         else:
-            self.plot_dict["yback_transform_ticks"] = yback_transform_ticks
+            self.plot_dict["back_transform_yticks"] = back_transform_yticks
 
         self.plot_dict["xtransform"] = xtransform
         if callable(xtransform):
-            self.plot_dict["xback_transform_ticks"] = False
+            self.plot_dict["back_transform_xticks"] = False
         else:
-            self.plot_dict["xback_transform_ticks"] = xback_transform_ticks
+            self.plot_dict["back_transform_xticks"] = back_transform_xticks
 
         if not self.inplace:
             return self
 
     def line(
         self,
-        x: str,
         color: ColorDict = "black",
         linestyle: str = "-",
         linewidth: int = 2,
@@ -442,7 +507,6 @@ class LinePlot(BasePlot):
             "func": func,
             "err_func": err_func,
             "fit_func": fit_func,
-            "x": x,
             "alpha": alpha,
             "unique_id": unique_id,
         }
@@ -454,7 +518,6 @@ class LinePlot(BasePlot):
 
     def aggline(
         self,
-        x,
         marker: str = "none",
         markerfacecolor: Union[ColorDict, tuple[str, str]] = None,
         markeredgecolor: Union[ColorDict, tuple[str, str]] = None,
@@ -515,7 +578,6 @@ class LinePlot(BasePlot):
             "linewidth": linewidth,
             "func": func,
             "err_func": err_func,
-            "x": x,
             "linealpha": linealpha,
             "fill_between": fill_between,
             "fillalpha": fillalpha,
@@ -565,7 +627,6 @@ class LinePlot(BasePlot):
         fillcolor: Optional[ColorDict] = None,
         alpha: AlphaRange = 1.0,
         fillalpha=None,
-        axis: Literal["x", "y"] = "y",
         unique_id: Optional[str] = None,
         agg_func=None,
         err_func=None,
@@ -594,7 +655,6 @@ class LinePlot(BasePlot):
             "linewidth": linewidth,
             "alpha": alpha,
             "fill_under": fill_under,
-            "axis": axis,
             "kernel": kernel,
             "bw": bw,
             "tol": tol,
@@ -749,7 +809,6 @@ class LinePlot(BasePlot):
 
     def scatter(
         self,
-        x,
         marker: str = ".",
         markercolor: Union[ColorDict, tuple[str, str]] = "black",
         edgecolor: ColorDict = "black",
@@ -812,7 +871,6 @@ class LinePlot(BasePlot):
             None,
         )
         plot_data = {
-            "x": x,
             "markers": marker,
             "markercolors": colors,
             "edgecolors": edgecolors,
@@ -871,6 +929,7 @@ class LinePlot(BasePlot):
             plot_func(
                 data=self.plot_dict["data"],
                 y=self.plot_dict["y"],
+                x=self.plot_dict["x"],
                 unique_groups=self.plot_dict["unique_groups"],
                 facet_dict=self.plot_dict["facet_dict"],
                 ax=ax,
@@ -884,12 +943,18 @@ class LinePlot(BasePlot):
                 else:
                     self.plot_dict["xlim"] = [0, None]
 
-        if self.plot_dict["ydecimals"] is None:
+        if (
+            self.plot_dict["ydecimals"] is None
+            and self.plot_dict["data"][self.plot_dict["y"]] is not None
+        ):
             ydecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
             ydecimals = self.plot_dict["ydecimals"]
-        if self.plot_dict["xdecimals"] is None:
-            xdecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
+        if (
+            self.plot_dict["xdecimals"] is None
+            and self.plot_dict["data"][self.plot_dict["x"]] is not None
+        ):
+            xdecimals = _decimals(self.plot_dict["data"][self.plot_dict["x"]])
         else:
             xdecimals = self.plot_dict["xdecimals"]
         # num_plots = len(self.plot_dict["group_order"])
@@ -977,46 +1042,6 @@ class LinePlot(BasePlot):
             )
         return fig, ax
 
-    def _set_lims(self, ax, decimals, axis="x"):
-        if axis == "y":
-            if self.plot_dict["yscale"] not in ["log", "symlog"]:
-                ticks = ax.get_yticks()
-                lim, ticks = get_ticks(
-                    self.plot_dict["ylim"],
-                    ticks,
-                    self.plot_dict["steps"],
-                    decimals,
-                    tickstyle=self.plot_dict["tickstyle"],
-                )
-                ax.set_ylim(bottom=lim[0], top=lim[1])
-                ax.set_yticks(ticks)
-            else:
-                ax.set_yscale(self.plot_dict["yscale"])
-                ticks = ax.get_yticks()
-                lim, _ = get_ticks(
-                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], decimals
-                )
-                ax.set_ylim(bottom=lim[0], top=lim[1])
-        else:
-            if self.plot_dict["xscale"] not in ["log", "symlog"]:
-                ticks = ax.get_xticks()
-                lim, ticks = get_ticks(
-                    self.plot_dict["xlim"],
-                    ticks,
-                    self.plot_dict["steps"],
-                    decimals,
-                    tickstyle=self.plot_dict["tickstyle"],
-                )
-                ax.set_xlim(left=lim[0], right=lim[1])
-                ax.set_xticks(ticks)
-            else:
-                ax.set_xscale(self.plot_dict["xscale"])
-                ticks = ax.get_xticks()
-                lim, _ = get_ticks(
-                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], decimals
-                )
-                ax.set_xlim(left=lim[0], right=lim[1])
-
 
 class CategoricalPlot(BasePlot):
     def __init__(
@@ -1081,7 +1106,7 @@ class CategoricalPlot(BasePlot):
             "width": width,
             "ylabel": ylabel,
             "title": title,
-            "transform": None,
+            "ytransform": None,
             "back_transform_ticks": False,
             "projection": "rectilinear",
         }
@@ -1111,6 +1136,7 @@ class CategoricalPlot(BasePlot):
         tickwidth: int = 2,
         ticklength: float = 5.0,
         ticklabel: int = 20,
+        tickstyle: Literal["all", "middle"] = "all",
         decimals: int = None,
         minorticks: bool = False,
         minor_tickwidth: float = 1.5,
@@ -1139,6 +1165,7 @@ class CategoricalPlot(BasePlot):
             "minorticks": minorticks,
             "minor_tickwidth": minor_tickwidth,
             "minor_ticklength": minor_ticklength,
+            "tickstyle": tickstyle,
         }
         self.plot_dict.update(plot_settings)
 
@@ -1167,12 +1194,12 @@ class CategoricalPlot(BasePlot):
         transform: Optional[TRANSFORM] = None,
         back_transform_ticks: bool = False,
     ):
-        self.plot_dict["transform"] = transform
+        self.plot_dict["ytransform"] = transform
 
         if callable(transform):
-            self.plot_dict["back_transform_ticks"] = False
+            self.plot_dict["back_transform_yticks"] = False
         else:
-            self.plot_dict["back_transform_ticks"] = back_transform_ticks
+            self.plot_dict["back_transform_yticks"] = back_transform_ticks
 
         if not self.inplace:
             return self
@@ -1643,7 +1670,7 @@ class CategoricalPlot(BasePlot):
                 loc_dict=self.plot_dict["loc_dict"],
                 unique_groups=self.plot_dict["unique_groups"],
                 ax=ax,
-                transform=self.plot_dict["transform"],
+                transform=self.plot_dict["ytransform"],
                 **j,
             )
 
@@ -1663,57 +1690,10 @@ class CategoricalPlot(BasePlot):
 
         self._set_grid(ax)
 
-        if self.plot_dict["yscale"] not in ["log", "symlog"]:
-            ticks = ax.get_yticks()
-            if self.plot_dict["ylim"][0] is None:
-                self.plot_dict["ylim"][0] = ticks[0]
-            if self.plot_dict["ylim"][1] is None:
-                self.plot_dict["ylim"][1] = ticks[-1]
-            ax.set_ylim(bottom=self.plot_dict["ylim"][0], top=self.plot_dict["ylim"][1])
-            if decimals is not None:
-                if decimals == -1:
-                    ticks = np.linspace(
-                        self.plot_dict["ylim"][0],
-                        self.plot_dict["ylim"][1],
-                        self.plot_dict["steps"],
-                        dtype=int,
-                    )
-                else:
-                    ticks = np.round(
-                        np.linspace(
-                            self.plot_dict["ylim"][0],
-                            self.plot_dict["ylim"][1],
-                            self.plot_dict["steps"],
-                        ),
-                        decimals=decimals,
-                    )
-            else:
-                ticks = np.linspace(
-                    self.plot_dict["ylim"][0],
-                    self.plot_dict["ylim"][1],
-                    self.plot_dict["steps"],
-                )
-            if self.plot_dict["back_transform_ticks"]:
-                tick_labels = get_backtransform(self.plot_dict["transform"])(ticks)
-            else:
-                tick_labels = ticks
-            if decimals is not None:
-                if decimals == -1:
-                    tick_labels = tick_labels.astype(int)
-                else:
-                    tick_labels = np.round(tick_labels, decimals=decimals)
-            ax.set_yticks(ticks, labels=tick_labels)
-        else:
-            ax.set_yscale(self.plot_dict["yscale"])
-            ticks = ax.get_yticks()
-            if self.plot_dict["ylim"][0] is None:
-                self.plot_dict["ylim"][0] = ticks[0]
-            if self.plot_dict["ylim"][1] is None:
-                self.plot_dict["ylim"][1] = ticks[-1]
-            ax.set_ylim(bottom=self.plot_dict["ylim"][0], top=self.plot_dict["ylim"][1])
+        self._set_lims(ax, decimals, axis="y")
 
         if self.plot_dict["minorticks"]:
-            self._set_minorticks(ax, self.plot_dict["transform"], ticks="y")
+            self._set_minorticks(ax, self.plot_dict["ytransform"], ticks="y")
 
         ax.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
         ax.set_title(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])

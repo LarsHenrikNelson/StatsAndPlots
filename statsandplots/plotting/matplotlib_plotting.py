@@ -72,18 +72,39 @@ def _make_legend_patches(color_dict, alpha, group, subgroup):
 
 
 def _add_rectangles(
-    tops, bottoms, x_loc, bw, fillcolors, edgecolors, hatches, linewidth, ax
+    tops,
+    bottoms,
+    loc,
+    bw,
+    fillcolors,
+    edgecolors,
+    hatches,
+    linewidth,
+    ax,
+    axis="x",
 ):
-    ax.bar(
-        x=x_loc,
-        height=tops,
-        bottom=bottoms,
-        width=bw,
-        color=fillcolors,
-        edgecolor=edgecolors,
-        linewidth=linewidth,
-        hatch=hatches,
-    )
+    if axis == "x":
+        ax.bar(
+            x=loc,
+            height=tops,
+            bottom=bottoms,
+            width=bw,
+            color=fillcolors,
+            edgecolor=edgecolors,
+            linewidth=linewidth,
+            hatch=hatches,
+        )
+    else:
+        ax.barh(
+            y=loc,
+            width=tops,
+            left=bottoms,
+            height=bw,
+            color=fillcolors,
+            edgecolor=edgecolors,
+            linewidth=linewidth,
+            hatch=hatches,
+        )
     return ax
 
 
@@ -497,6 +518,7 @@ def _calc_hist(data, bins, stat):
 def _hist_plot(
     data,
     y,
+    x,
     unique_groups,
     color_dict,
     facet_dict,
@@ -512,15 +534,20 @@ def _hist_plot(
     projection="rectilinear",
     unique_id=None,
     ytransform=None,
+    xtransfrom=None,
     **kwargs,
 ):
     if ax is None:
         ax = plt.gca()
 
+    y = y if x is None else x
+    transform = ytransform if xtransfrom is None else xtransfrom
+    axis = "y" if x is None else "x"
+
     if bin_limits is None:
         bins = np.linspace(
-            get_transform(ytransform)(data[y].min()),
-            get_transform(ytransform)(data[y].max()),
+            get_transform(transform)(data[y].min()),
+            get_transform(transform)(data[y].max()),
             num=nbins + 1,
         )
         # x = np.linspace(data[y].min(), data[y].max(), num=nbins)
@@ -528,8 +555,8 @@ def _hist_plot(
     else:
         # x = np.linspace(bin_limits[0], bin_limits[1], num=nbins)
         bins = np.linspace(
-            get_transform(ytransform)(bin_limits[0]),
-            get_transform(ytransform)(bin_limits[1]),
+            get_transform(transform)(bin_limits[0]),
+            get_transform(transform)(bin_limits[1]),
             num=nbins + 1,
         )
         x = (bins[1:] + bins[:-1]) / 2
@@ -554,7 +581,7 @@ def _hist_plot(
             for index, j in enumerate(uids):
                 temp = np.where((data[unique_id] == j) & (unique_groups == i))[0]
                 temp_data = np.sort(data[temp, y])
-                poly = _calc_hist(get_transform(ytransform)(temp_data), bins, stat)
+                poly = _calc_hist(get_transform(transform)(temp_data), bins, stat)
                 if agg_func is not None:
                     temp_list[index] = poly
                 else:
@@ -571,7 +598,7 @@ def _hist_plot(
                 count += 1
         else:
             temp_data = np.sort(data[unique_groups == i, y])
-            poly = _calc_hist(get_transform(ytransform)(temp_data), bins, stat)
+            poly = _calc_hist(get_transform(transform)(temp_data), bins, stat)
             plot_data.append(poly)
             colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
             edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
@@ -585,7 +612,7 @@ def _hist_plot(
     for d, b, x, w, c, e, h, ln, sub_ax in zip(
         plot_data, bottom, bins, bw, colors, edgec, hatches, linewidth, axes1
     ):
-        _add_rectangles(d, b, x, w, c, e, h, ln, sub_ax)
+        _add_rectangles(d, b, x, w, c, e, h, ln, sub_ax, axis=axis)
 
     for sub_ax in axes1:
         if projection == "polar":
@@ -764,6 +791,7 @@ def _agg_line(
 def _kde_plot(
     data,
     y,
+    x,
     unique_groups,
     linecolor_dict,
     facet_dict,
@@ -787,7 +815,6 @@ def _kde_plot(
     tol: Union[float, int] = 1e-3,
     common_norm: bool = True,
     unique_id=None,
-    axis="y",
     ax=None,
     agg_func=None,
     err_func=None,
@@ -808,17 +835,20 @@ def _kde_plot(
     facet_list = []
     errs = []
 
+    column = y if x is None else x
+    transform = ytransform if xtransform is None else xtransform
+
     for u in ugroups:
         if u == "none" and ugroups == 1:
-            y_values = data[y].to_numpy.flatten()
+            y_values = data[column].to_numpy.flatten()
             temp_size = size
             x_kde, y_kde = kde(
-                get_transform(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
             )
             if common_norm:
                 multiplier = float(temp_size / size)
                 y_kde *= multiplier
-            if axis == "x":
+            if y is not None:
                 y_kde, x_kde = x_kde, y_kde
             y_data.append(y_kde)
             x_data.append(x_kde)
@@ -827,15 +857,15 @@ def _kde_plot(
             facet_list.append(facet_dict[u])
         elif unique_id is None:
             indexes = np.where(unique_groups == u)[0]
-            y_values = data[indexes, y].to_numpy().flatten()
+            y_values = data[indexes, column].to_numpy().flatten()
             temp_size = indexes.size
             x_kde, y_kde = kde(
-                get_transform(ytransform)(y_values), bw=bw, kernel=kernel, tol=tol
+                get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
             )
             if common_norm:
                 multiplier = float(temp_size / size)
                 y_kde *= multiplier
-            if axis == "x":
+            if y is not None:
                 y_kde, x_kde = x_kde, y_kde
             y_data.append(y_kde)
             x_data.append(x_kde)
@@ -845,9 +875,9 @@ def _kde_plot(
         else:
             indexes = np.where(unique_groups == u)[0]
             subgroups, count = np.unique(data[indexes, unique_id], return_counts=True)
-            temp_data = data[indexes, y]
-            min_data = get_transform(ytransform)(temp_data.min())
-            max_data = get_transform(ytransform)(temp_data.max())
+            temp_data = data[indexes, column]
+            min_data = get_transform(transform)(temp_data.min())
+            max_data = get_transform(transform)(temp_data.max())
             min_data = min_data - np.abs((min_data * tol))
             max_data = max_data + np.abs((max_data * tol))
             min_data = min_data if min_data != 0 else -1e-10
@@ -864,15 +894,17 @@ def _kde_plot(
 
             for hi, s in enumerate(subgroups):
                 s_indexes = np.where((data[unique_id] == s) & (unique_groups == u))[0]
-                y_values = data[s_indexes, y].to_numpy().flatten()
+                y_values = data[s_indexes, column].to_numpy().flatten()
                 temp_size = y_values.size
                 if agg_func is None:
                     x_kde, y_kde = kde(
-                        get_transform(ytransform)(y_values),
+                        get_transform(transform)(y_values),
                         bw=bw,
                         kernel=kernel,
                         tol=tol,
                     )
+                    if y is not None:
+                        y_kde, x_kde = x_kde, y_kde
                     y_data.append(y_kde)
                     x_data.append(x_kde)
                     linecolor_data.append(linecolor_dict[u])
@@ -880,7 +912,7 @@ def _kde_plot(
                     facet_list.append(facet_dict[u])
                 else:
                     _, y_kde = kde(
-                        get_transform(ytransform)(y_values),
+                        get_transform(transform)(y_values),
                         bw=bw,
                         kernel=kernel,
                         tol=tol,
@@ -954,6 +986,7 @@ def _ecdf(
 def _poly_hist(
     data,
     y,
+    x,
     unique_groups,
     color_dict,
     facet_dict,
@@ -971,12 +1004,14 @@ def _poly_hist(
     xtransform=None,
     ytransform=None,
 ):
-    ytransform = get_transform(ytransform)
+    y = y if x is None else x
+    transform = ytransform if xtransform is None else xtransform
+    transform = get_transform(transform)
     if bin_limits is None:
         bins = np.linspace(
-            ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins + 1
+            transform(data[y]).min(), transform(data[y]).max(), num=nbins + 1
         )
-        x = np.linspace(ytransform(data[y]).min(), ytransform(data[y]).max(), num=nbins)
+        x = np.linspace(transform(data[y]).min(), transform(data[y]).max(), num=nbins)
     else:
         x = np.linspace(bin[0], bin[1], num=nbins)
         bins = np.linspace(bin[0], bin[1], num=nbins + 1)
@@ -995,7 +1030,7 @@ def _poly_hist(
             temp_list = np.zeros((len(uids), bins))
             for index, j in enumerate(uids):
                 temp = np.where(data[unique_id] == j)[0]
-                temp_data = np.sort(ytransform(data[temp, y]))
+                temp_data = np.sort(transform(data[temp, y]))
                 poly, _ = np.histogram(temp_data, bins)
                 if density:
                     poly = poly / poly.sum()
@@ -1023,7 +1058,7 @@ def _poly_hist(
         ugrp = np.unique(unique_groups)
         for i in ugrp:
             indexes = np.where(unique_groups == i)[0]
-            temp = np.sort(ytransform(data[indexes, y]))
+            temp = np.sort(transform(data[indexes, y]))
             poly, _ = np.histogram(temp, bins)
             if fit_func is not None:
                 poly = fit_func(x, poly)

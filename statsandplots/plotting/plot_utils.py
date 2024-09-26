@@ -90,21 +90,28 @@ def get_ticks(
     lim,
     ticks,
     steps,
-    n_decimals,
+    n_decimals=None,
     tickstyle=None,
 ):
     if lim[0] is None:
         lim[0] = ticks[0]
     if lim[1] is None:
         lim[1] = ticks[-1]
-    ticks = np.round(
+    if n_decimals is not None:
+        ticks = np.round(
+            np.linspace(
+                lim[0],
+                lim[1],
+                steps,
+            ),
+            decimals=n_decimals,
+        )
+    else:
         np.linspace(
             lim[0],
             lim[1],
             steps,
-        ),
-        decimals=n_decimals,
-    )
+        )
     if tickstyle == "middle":
         ticks = ticks[1:-1]
     return lim, ticks
@@ -129,7 +136,9 @@ def _bin_data(data, bins, axis_type, invert, cutoff):
 
 
 def _decimals(data):
-    decimals = np.abs(int(np.max(np.round(np.log10(np.abs(data)))))) + 2
+    temp = np.abs(data)
+    temp = temp[temp > 0.0]
+    decimals = np.abs(int(np.max(np.round(np.log10(temp))))) + 2
     return decimals
 
 
