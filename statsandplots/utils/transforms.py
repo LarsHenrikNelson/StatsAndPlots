@@ -36,9 +36,20 @@ def mad(a, axis=None):
 
 
 TRANSFORM = Literal["log10", "log2", "ln", "inverse", "ninverse", "sqrt"]
-AGGREGATE = Literal["mean", "periodic_mean", "nanmean", "median", "nanmedian"]
+AGGREGATE = Literal[
+    "mean", "periodic_mean", "nanmean", "median", "nanmedian", "gmean", "hmean"
+]
 ERROR = Literal[
-    "sem", "ci", "periodic_std", "periodic_sem", "std", "nanstd", "var", "nanvar", "mad"
+    "sem",
+    "ci",
+    "periodic_std",
+    "periodic_sem",
+    "std",
+    "nanstd",
+    "var",
+    "nanvar",
+    "mad",
+    "gstd",
 ]
 
 BACK_TRANSFORM_DICT = {
@@ -74,6 +85,9 @@ FUNC_DICT = {
     "mad": mad,
     "wrap_pi": lambda a: np.where(a < 0, a + 2 * np.pi, a),
     "zscore": lambda a: (a - np.mean(a) / np.std(a)),
+    "gmean": stats.gmean,
+    "hmean": stats.hmean,
+    "gstd": stats.gstd,
 }
 
 
