@@ -1383,10 +1383,10 @@ def _percent_plot(
 
 
 def _count_plot(
-    data,
-    y,
-    unique_groups,
-    loc_dict,
+    data: DataHolder,
+    y: str,
+    unique_groups: dict,
+    loc_dict: dict,
     color_dict,
     linecolor_dict,
     hatch,
@@ -1395,6 +1395,7 @@ def _count_plot(
     alpha,
     line_alpha,
     axis_type,
+    unique_id=None,
     invert=False,
     agg_func=None,
     err_func=None,
@@ -1415,33 +1416,39 @@ def _count_plot(
     multiplier = 100 if axis_type == "percent" else 1
     for gr in groups:
         indexes = np.where(unique_groups == gr)[0]
-        unique_ids_sub = np.unique(data[indexes, y])
-        temp_width = barwidth / len(unique_ids_sub)
-        if len(unique_ids_sub) > 1:
-            dist = np.linspace(-barwidth / 2, barwidth / 2, num=len(unique_ids_sub) + 1)
+        unique_groups_sub = np.unique(data[indexes, y])
+        temp_width = barwidth / len(unique_groups_sub)
+        if len(unique_groups_sub) > 1:
+            dist = np.linspace(
+                -barwidth / 2, barwidth / 2, num=len(unique_groups_sub) + 1
+            )
             dist = (dist[1:] + dist[:-1]) / 2
         else:
             dist = [0]
-        bw.extend([temp_width] * len(unique_ids_sub))
-        for index, ui_group in enumerate(unique_ids_sub):
-            print(ui_group)
-            sub_indexes = np.where(
-                np.logical_and(data[y] == ui_group, unique_groups == gr)
-            )[0]
-            bottoms.append(0)
-            tops.append(
-                (
-                    sub_indexes.size / indexes.size
-                    if axis_type != "count"
-                    else sub_indexes.size
+        bw.extend([temp_width] * len(unique_groups_sub))
+        for index, ui_group in enumerate(unique_groups_sub):
+            if unique_id is None:
+                sub_indexes = np.where(
+                    np.logical_and(data[y] == ui_group, unique_groups == gr)
+                )[0]
+                bottoms.append(0)
+                tops.append(
+                    (
+                        sub_indexes.size / indexes.size
+                        if axis_type != "count"
+                        else sub_indexes.size
+                    )
+                    * multiplier
                 )
-                * multiplier
-            )
-            fillcolors.append(to_rgba(color_dict[str(ui_group)], alpha=alpha))
-            edgecolors.append(to_rgba(linecolor_dict[str(ui_group)], alpha=line_alpha))
-            x_loc.append(loc_dict[gr] + dist[index])
-            hatches.append(HATCHES[index] if hatch else None)
-            lws.append(linewidth)
+                fillcolors.append(to_rgba(color_dict[str(ui_group)], alpha=alpha))
+                edgecolors.append(
+                    to_rgba(linecolor_dict[str(ui_group)], alpha=line_alpha)
+                )
+                x_loc.append(loc_dict[gr] + dist[index])
+                hatches.append(HATCHES[index] if hatch else None)
+                lws.append(linewidth)
+            else:
+                pass
 
     ax = _add_rectangles(
         tops,

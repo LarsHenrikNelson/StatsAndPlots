@@ -122,7 +122,11 @@ def _bin_data(data, bins, axis_type, invert, cutoff):
         temp = np.sort(data)
         binned_data, _ = np.histogram(temp, bins)
     else:
-        _, binned_data = np.unique(data, return_counts=True)
+        binned_data = np.zeros(len(bins))
+        conv_dict = {key: value for value, key in enumerate(bins)}
+        unames, ucounts = np.unique(data, return_counts=True)
+        for un, uc in zip(unames, ucounts):
+            binned_data[conv_dict[un]] = uc
     binned_data = binned_data / binned_data.sum()
     if axis_type == "percent":
         binned_data *= 100
