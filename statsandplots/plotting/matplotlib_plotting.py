@@ -1424,6 +1424,7 @@ def _count_plot(
             dist = [0]
         bw.extend([temp_width] * len(unique_ids_sub))
         for index, ui_group in enumerate(unique_ids_sub):
+            print(ui_group)
             sub_indexes = np.where(
                 np.logical_and(data[y] == ui_group, unique_groups == gr)
             )[0]
@@ -1436,8 +1437,8 @@ def _count_plot(
                 )
                 * multiplier
             )
-            fillcolors.append(to_rgba(color_dict[ui_group], alpha=alpha))
-            edgecolors.append(to_rgba(linecolor_dict[ui_group], alpha=line_alpha))
+            fillcolors.append(to_rgba(color_dict[str(ui_group)], alpha=alpha))
+            edgecolors.append(to_rgba(linecolor_dict[str(ui_group)], alpha=line_alpha))
             x_loc.append(loc_dict[gr] + dist[index])
             hatches.append(HATCHES[index] if hatch else None)
             lws.append(linewidth)

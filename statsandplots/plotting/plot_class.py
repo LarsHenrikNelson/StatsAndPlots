@@ -1602,7 +1602,7 @@ class CategoricalPlot(BasePlot):
 
     def count(
         self,
-        facecolor: ColorDict = "black",
+        facecolor: ColorDict = None,
         linecolor: ColorDict = "black",
         hatch=None,
         barwidth: float = 1.0,
@@ -1612,20 +1612,32 @@ class CategoricalPlot(BasePlot):
         axis_type: Literal["density", "count", "percent"] = "density",
         legend: bool = False,
     ):
-        # color_dict = process_args(
-        #     facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        # )
-        if isinstance(facecolor, str):
-            unique_ids_sub = self.plot_dict["data"][self.plot_dict["y"]].unique()
-            facecolor = {key: facecolor for key in unique_ids_sub}
 
-        if isinstance(linecolor, str):
-            unique_ids_sub = self.plot_dict["data"][self.plot_dict["y"]].unique()
-            linecolor = {key: linecolor for key in unique_ids_sub}
+        groups = pd.unique(self.plot_dict["data"][self.plot_dict["y"]])
+        subgroups = [""] * len(groups)
+        color_dict = process_args(
+            _process_colors(
+                facecolor,
+                groups,
+                subgroups,
+            ),
+            groups,
+            subgroups,
+        )
+
+        linecolor_dict = process_args(
+            _process_colors(
+                linecolor,
+                groups,
+                subgroups,
+            ),
+            groups,
+            subgroups,
+        )
 
         count_plot = {
-            "color_dict": facecolor,
-            "linecolor_dict": linecolor,
+            "color_dict": color_dict,
+            "linecolor_dict": linecolor_dict,
             "hatch": hatch,
             "barwidth": barwidth * self.plot_dict["width"],
             "linewidth": linewidth,
