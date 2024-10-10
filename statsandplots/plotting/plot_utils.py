@@ -93,6 +93,7 @@ def get_ticks(
     n_decimals=None,
     tickstyle=None,
 ):
+    lim = lim.copy()
     if lim[0] is None:
         lim[0] = ticks[0]
     if lim[1] is None:

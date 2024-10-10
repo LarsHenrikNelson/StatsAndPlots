@@ -147,6 +147,7 @@ class BasePlot:
 
     def _set_lims(self, ax, decimals, axis="x"):
         if axis == "y":
+            print(self.plot_dict["ylim"])
             if self.plot_dict["yscale"] not in ["log", "symlog"]:
                 ticks = ax.get_yticks()
                 lim, ticks = get_ticks(
@@ -156,6 +157,7 @@ class BasePlot:
                     decimals,
                     tickstyle=self.plot_dict["tickstyle"],
                 )
+                print(lim)
                 ax.set_ylim(bottom=lim[0], top=lim[1])
                 if (
                     "back_transform_yticks" in self.plot_dict
@@ -300,6 +302,10 @@ class BasePlot:
 
 
 class LinePlot(BasePlot):
+    ecdf_args = {
+        "spline": {"size": 1000, "bc_type": "natural"},
+        "bootstrap": {"size": 1000, "repititions": 1000, "seed": 42},
+    }
 
     def __init__(
         self,
@@ -782,6 +788,10 @@ class LinePlot(BasePlot):
         linewidth: int = 2,
         alpha: AlphaRange = 1.0,
         unique_id: Optional[str] = None,
+        agg_func=None,
+        err_func=None,
+        ecdf_type: Literal["spline", "bootstrap", "none"] = "none",
+        ecdf_args=None,
     ):
         color_dict = process_args(
             _process_colors(
@@ -800,6 +810,10 @@ class LinePlot(BasePlot):
             "linewidth": linewidth,
             "alpha": alpha,
             "unique_id": unique_id,
+            "ecdf_type": ecdf_type,
+            "ecdf_args": ecdf_args if ecdf_args is not None else {},
+            "agg_func": agg_func,
+            "err_func": err_func,
         }
         self.plots.append(ecdf)
         self.plot_list.append("ecdf")
@@ -937,11 +951,13 @@ class LinePlot(BasePlot):
                 xtransform=self.plot_dict["xtransform"],
                 **j,
             )
-            if j == "kde" or j == "hist":
+            if i == "kde" or i == "hist":
                 if j["axis"] == "y":
                     self.plot_dict["ylim"] = [0, None]
                 else:
                     self.plot_dict["xlim"] = [0, None]
+            if i == "ecdf":
+                self.plot_dict["ylim"] = [0.0, 1.0]
 
         if (
             self.plot_dict["ydecimals"] is None

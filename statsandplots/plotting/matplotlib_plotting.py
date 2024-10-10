@@ -12,7 +12,7 @@ from matplotlib.colors import Normalize, to_rgba
 from numpy.random import default_rng
 from sklearn import decomposition, preprocessing
 
-from ..stats import kde
+from ..stats import kde, ecdf
 from .plot_utils import process_args, process_duplicates, _bin_data
 from ..utils import DataHolder, get_transform
 
@@ -839,7 +839,7 @@ def _kde_plot(
     transform = ytransform if xtransform is None else xtransform
 
     for u in ugroups:
-        if u == "none" and ugroups == 1:
+        if u == "none" and ugroups.size == 1:
             y_values = data[column].to_numpy.flatten()
             temp_size = size
             x_kde, y_kde = kde(
@@ -956,31 +956,123 @@ def _kde_plot(
 def _ecdf(
     data,
     y,
+    x,
     unique_groups,
-    unique_id,
     linewidth,
     color_dict,
     facet_dict,
     linestyle_dict,
     alpha,
-    ax,
+    unique_id=None,
+    agg_func=None,
+    err_func=None,
+    ecdf_type: Literal["spline", "bootstrap"] = "spline",
+    ecdf_args=None,
+    ax=None,
     xtransform=None,
     ytransform=None,
 ):
     if ax is None:
         ax = plt.gca()
+        ax = [ax]
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        temp = data[indexes, y]
-        ax[facet_dict[i]].ecdata(
-            x=temp,
-            color=color_dict[i],
+    column = y if x is None else x
+    transform = ytransform if xtransform is None else xtransform
+
+    ugroups = np.unique(unique_groups)
+    x_data = []
+    y_data = []
+    linestyle_data = []
+    linecolor_data = []
+    facet_list = []
+    errs = []
+
+    etypes = {"spline", "bootstrap"}
+
+    for u in ugroups:
+        if u == "none" and ugroups.size == 1:
+            y_values = data[column].to_numpy.flatten()
+            x_ecdf, y_ecdf = ecdf.ecdf(
+                get_transform(transform)(y_values), ecdf_type=ecdf_type, **ecdf_args
+            )
+            y_data.append(y_ecdf)
+            x_data.append(x_ecdf)
+            linecolor_data.append(color_dict[u])
+            linestyle_data.append(linestyle_dict[u])
+            facet_list.append(facet_dict[u])
+        elif unique_id is None:
+            indexes = np.where(unique_groups == u)[0]
+            y_values = data[indexes, column].to_numpy().flatten()
+            x_ecdf, y_ecdf = ecdf.ecdf(
+                get_transform(transform)(y_values), ecdf_type=ecdf_type, **ecdf_args
+            )
+            y_data.append(y_ecdf)
+            x_data.append(x_ecdf)
+            linecolor_data.append(color_dict[u])
+            linestyle_data.append(linestyle_dict[u])
+            facet_list.append(facet_dict[u])
+        else:
+            indexes = np.where(unique_groups == u)[0]
+            subgroups, _ = np.unique(data[indexes, unique_id], return_counts=True)
+            if agg_func is not None:
+                if ecdf_type not in etypes:
+                    raise ValueError(
+                        "ecdf_type must be spline or bootstrap when using an agg_func"
+                    )
+                if "size" not in ecdf_args:
+                    ecdf_args["size"] = indexes.size
+                y_ecdf = np.arange(ecdf_args["size"]) / ecdf_args["size"]
+                x_hold = np.zeros((len(subgroups), ecdf_args["size"]))
+            for hi, s in enumerate(subgroups):
+                s_indexes = np.where((data[unique_id] == s) & (unique_groups == u))[0]
+                y_values = data[s_indexes, column].to_numpy().flatten()
+                if agg_func is None:
+                    x_ecdf, y_ecdf = ecdf.ecdf(
+                        get_transform(transform)(y_values),
+                        ecdf_type=ecdf_type,
+                        **ecdf_args,
+                    )
+                    y_data.append(y_ecdf)
+                    x_data.append(x_ecdf)
+                    linecolor_data.append(color_dict[u])
+                    linestyle_data.append(linestyle_dict[u])
+                    facet_list.append(facet_dict[u])
+                else:
+                    x_ecdf, _ = ecdf.ecdf(
+                        get_transform(transform)(y_values),
+                        ecdf_type=ecdf_type,
+                        **ecdf_args,
+                    )
+                    x_hold[hi, :] = x_ecdf
+            if agg_func is not None:
+                x_data.append(get_transform(agg_func)(x_hold, axis=0))
+                y_data.append(y_ecdf)
+                linecolor_data.append(color_dict[u])
+                linestyle_data.append(linestyle_dict[u])
+                facet_list.append(facet_dict[u])
+            if err_func is not None:
+                errs.append(get_transform(err_func)(x_hold, axis=0))
+
+    for plot_index, (x, y, lc, ls, fax) in enumerate(
+        zip(x_data, y_data, linecolor_data, linestyle_data, facet_list)
+    ):
+        ax[fax].plot(
+            x,
+            y,
+            c=lc,
+            linestyle=ls,
             alpha=alpha,
-            linestyle=linestyle_dict[i],
             linewidth=linewidth,
         )
+        if err_func is not None:
+            ax[fax].fill_between(
+                x,
+                y - errs[plot_index],
+                y + errs[plot_index],
+                color=lc,
+                alpha=alpha,
+                linewidth=0,
+            )
 
 
 def _poly_hist(
@@ -1088,6 +1180,8 @@ def _line_plot(
     fit_func=None,
     alpha=1,
     ax=None,
+    xtransform=None,
+    ytransform=None,
 ):
     if ax is None:
         ax = plt.gca()

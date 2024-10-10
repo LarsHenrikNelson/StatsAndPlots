@@ -1,13 +1,52 @@
+from typing import Literal
+
 import numpy as np
-from numpy.random import default_rng
 import pandas as pd
+from numpy.random import default_rng
+from scipy import interpolate
+
+
+def ecdf(x, ecdf_type: Literal["bootstrap", "spline", "none"] = "none", **kwargs):
+    if ecdf_type == "none":
+        x = np.sort(x)
+        y = np.arange(x.size) / x.size
+    elif ecdf_type == "spline":
+        y, x = spline_ecdf(x, **kwargs)
+    elif ecdf_type == "bootstrap":
+        x = rand_samp_column(x.reshape(1, x.size), **kwargs)
+        x = x.flatten()
+        y = np.arange(x.size) / x.size
+    else:
+        raise ValueError("ecdf_type not recognized, must be bootstrap, spline or none")
+    return x, y
+
+
+def spline_ecdf(
+    x,
+    size,
+    bc_type: Literal[
+        "not-a-knot",
+        "clamped",
+        "natural",
+    ] = "not-a-knot",
+):
+    j_sort = np.sort(x)
+    y = np.arange(j_sort.size) / j_sort.size
+    cs = interpolate.CubicSpline(y, j_sort, bc_type=bc_type)
+    y_new = np.arange(1, size) / size
+    x_new = cs(y_new)
+    return x_new, y_new
 
 
 # Could potentially speed this up with numba however,
 # numba does not seem to support the new numpy random
 # number generator choice method
 def rand_samp_column(
-    array: np.ndarray, repititions: int, size: int, axis: int, seed: int = 42
+    array: np.ndarray,
+    repititions: int = 10000,
+    size: int = 1000,
+    axis: int = 0,
+    seed: int = 42,
 ) -> np.ndarray:
     """Randomly sample from from a row or column in a numpy array with
     replacement.
@@ -120,10 +159,3 @@ def cum_prob_df(dfs, df_keys, data, group):
         cum_df_list += [cum_df]
     finished_df = pd.concat(cum_df_list)
     return finished_df
-
-
-if __name__ == "__main__":
-    resampled_cum_prob_df()
-    sample_from_dfs()
-    rand_samp_column()
-    cum_prob_df()
