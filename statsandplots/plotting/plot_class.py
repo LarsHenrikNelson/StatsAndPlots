@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from itertools import product
 from pathlib import Path
 from typing import Annotated, Callable, Literal, Optional, Union
 
@@ -26,9 +25,9 @@ from .plot_utils import (
     _process_positions,
     get_ticks,
     process_args,
-    process_args_alt,
     process_scatter_args,
     radian_ticks,
+    create_dict,
 )
 
 mpl.rcParams["pdf.fonttype"] = 42
@@ -147,7 +146,6 @@ class BasePlot:
 
     def _set_lims(self, ax, decimals, axis="x"):
         if axis == "y":
-            print(self.plot_dict["ylim"])
             if self.plot_dict["yscale"] not in ["log", "symlog"]:
                 ticks = ax.get_yticks()
                 lim, ticks = get_ticks(
@@ -157,7 +155,6 @@ class BasePlot:
                     decimals,
                     tickstyle=self.plot_dict["tickstyle"],
                 )
-                print(lim)
                 ax.set_ylim(bottom=lim[0], top=lim[1])
                 if (
                     "back_transform_yticks" in self.plot_dict
@@ -334,35 +331,26 @@ class LinePlot(BasePlot):
         data = DataHolder(data)
 
         if group is None:
-            unique_groups = np.array(["none"] * data.shape[0])
+            unique_groups = {("",)}
+            group_order = [""]
+            levels = []
+        elif subgroup is None:
+            if group_order is None:
+                group_order = np.unique(data[group])
+            unique_groups = {(g,) for g in group_order}
+            levels = [group]
         else:
-            if subgroup is not None:
-                unique_groups = data[group].astype(str) + data[subgroup].astype(str)
-            else:
-                unique_groups = data[group].astype(str) + ""
-
-        group_order, subgroup_order = _process_groups(
-            data, group, subgroup, group_order, subgroup_order
-        )
-
-        ugs = {
-            key: value
-            for value, key in enumerate(list(product(group_order, subgroup_order)))
-        }
-        mapping_dict = {
-            key: value
-            for key, value in enumerate(list(product(group_order, subgroup_order)))
-        }
+            if group_order is None:
+                group_order = np.unique(data[group])
+            if subgroup_order is None:
+                subgroup_order = np.unique(data[subgroup])
+            unique_groups = set(zip(data[group], data[subgroup]))
+            levels = [group, subgroup]
 
         if facet:
-            facet_length = list(range(len(group_order)))
+            facet_dict = create_dict(group_order, unique_groups)
         else:
-            facet_length = 0
-        facet_dict = process_args(
-            facet_length,
-            group_order,
-            subgroup_order,
-        )
+            facet_dict = create_dict(0, unique_groups)
 
         self.plot_dict = {
             "data": data,
@@ -385,9 +373,7 @@ class LinePlot(BasePlot):
             "xback_transform_ticks": False,
             "ytransform": None,
             "yback_transform_ticks": False,
-            "ugs": ugs,
-            "mapping_dict": mapping_dict,
-            "levels": [group, subgroup],
+            "levels": levels,
             "projection": projection,
         }
         self.lines = {}
@@ -490,7 +476,7 @@ class LinePlot(BasePlot):
 
     def line(
         self,
-        color: ColorDict = "black",
+        linecolor: ColorDict = "black",
         linestyle: str = "-",
         linewidth: int = 2,
         func: str = "mean",
@@ -499,15 +485,10 @@ class LinePlot(BasePlot):
         alpha: AlphaRange = 1.0,
         unique_id: Optional[str] = None,
     ):
-        color_dict = process_args(
-            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
-        linestyle_dict = process_args(
-            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
-
+        linecolor_dict = create_dict(linecolor, self.plot_dict["unique_groups"])
+        linestyle_dict = create_dict(linestyle, self.plot_dict["unique_groups"])
         line_plot = {
-            "color_dict": color_dict,
+            "linecolor_dict": linecolor_dict,
             "linestyle_dict": linestyle_dict,
             "linewidth": linewidth,
             "func": func,
@@ -542,41 +523,29 @@ class LinePlot(BasePlot):
         unique_id=None,
     ):
         if colorall is None:
-            linecolor_dict = process_args_alt(
-                self.plot_dict["mapping_dict"],
-                _process_colors(
-                    linecolor,
-                    self.plot_dict["group_order"],
-                    self.plot_dict["subgroup_order"],
-                ),
+            linecolor = _process_colors(
+                linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
             )
-            markerfacecolor_dict = process_args_alt(
-                self.plot_dict["mapping_dict"],
-                _process_colors(
-                    markerfacecolor,
-                    self.plot_dict["group_order"],
-                    self.plot_dict["subgroup_order"],
-                ),
+            linecolor_dict = create_dict(
+                linecolor,
+                self.plot_dict["unique_groups"],
             )
-            markeredgecolor_dict = process_args_alt(
-                self.plot_dict["mapping_dict"],
-                _process_colors(
-                    markeredgecolor,
-                    self.plot_dict["group_order"],
-                    self.plot_dict["subgroup_order"],
-                ),
+            markerfacecolor_dict = create_dict(
+                markerfacecolor,
+                self.plot_dict["unique_groups"],
+            )
+            markeredgecolor_dict = create_dict(
+                markeredgecolor,
+                self.plot_dict["unique_groups"],
             )
         else:
-            temp_dict = process_args_alt(
-                self.plot_dict["mapping_dict"],
-                colorall,
-            )
+            temp_dict = create_dict(colorall, self.plot_dict["unique_groups"])
             markeredgecolor_dict = temp_dict
             markerfacecolor_dict = temp_dict
             linecolor_dict = temp_dict
 
-        marker_dict = process_args_alt(self.plot_dict["mapping_dict"], marker)
-        linestyle_dict = process_args_alt(self.plot_dict["mapping_dict"], linestyle)
+        marker_dict = create_dict(marker, self.plot_dict["unique_groups"])
+        linestyle_dict = create_dict(linestyle, self.plot_dict["unique_groups"])
 
         line_plot = {
             "linecolor": linecolor_dict,
@@ -594,17 +563,8 @@ class LinePlot(BasePlot):
             "markersize": markersize,
             "unique_id": unique_id,
             "levels": self.plot_dict["levels"],
-            "ugs": self.plot_dict["ugs"],
             "agg_func": agg_func,
         }
-        facet_dict = {
-            key: value for value, key in enumerate(self.plot_dict["group_order"])
-        }
-        facet_dict = process_args_alt(
-            self.plot_dict["mapping_dict"],
-            facet_dict,
-        )
-        self.plot_dict["facet_dict"] = facet_dict
         self.plots.append(line_plot)
         self.plot_list.append("aggline")
 

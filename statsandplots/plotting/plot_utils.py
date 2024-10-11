@@ -21,15 +21,46 @@ STANDARD_COLORS = [
 ]
 
 
+def create_dict(grouping, unique_groups):
+    if isinstance(grouping, (str, int)) or grouping is None:
+        output_dict = {key: grouping for key in unique_groups}
+    else:
+        if not isinstance(grouping, dict):
+            grouping = {key: value for value, key in enumerate(grouping)}
+        output_dict = {}
+        for i in grouping:
+            for j in unique_groups:
+                if isinstance(i, tuple) and isinstance(j, tuple):
+                    if len(i) != len(j):
+                        if i == j[: len(i)]:
+                            output_dict[j] = grouping[i]
+                    elif i == j:
+                        output_dict[j] = grouping[i]
+                elif i in j:
+                    output_dict[j] = grouping[i]
+    return output_dict
+
+
+def process_none(markefacecolor, unique_groups):
+    if markefacecolor is None or markefacecolor == "none":
+        return {key: None for key in unique_groups}
+    else:
+        return markefacecolor
+
+
 def _process_colors(color, group, subgroup):
     if color is not None:
         return color
-    else:
+    elif group is not None:
         color = {}
-        if subgroup[0] != "":
+        if subgroup is None:
+            color = {key: value for key, value in zip(group, cycle(STANDARD_COLORS))}
+        elif subgroup[0] != "":
             color = {key: value for key, value in zip(subgroup, cycle(STANDARD_COLORS))}
         else:
             color = {key: value for key, value in zip(group, cycle(STANDARD_COLORS))}
+    else:
+        color = STANDARD_COLORS[0]
     return color
 
 
@@ -202,18 +233,6 @@ def process_args(arg, group, subgroup):
                 output_dict[key] = arg[s]
             else:
                 output_dict[key] = arg[b]
-    return output_dict
-
-
-def process_args_alt(ugs, arg_dict):
-    output_dict = {}
-    if isinstance(arg_dict, dict):
-        for key, value in ugs.items():
-            for key1, value1 in arg_dict.items():
-                if key1 in value:
-                    output_dict[key] = value1
-    else:
-        output_dict = {key: arg_dict for key in ugs.keys()}
     return output_dict
 
 

@@ -709,7 +709,6 @@ def _agg_line(
     x,
     y,
     levels,
-    ugs,
     marker,
     markersize,
     markerfacecolor,
@@ -755,31 +754,52 @@ def _agg_line(
             .reset_index()
         )
     new_data = DataHolder(new_data)
-    ugrps = (
-        list(set(zip(*[new_data[i] for i in levels + [unique_id]])))
-        if unique_id is not None and agg_func is None
-        else list(set(zip(*[new_data[i] for i in levels])))
-    )
+    if unique_id is not None and agg_func is None:
+        ugrps = list(set(zip(*[new_data[i] for i in levels + [unique_id]])))
+    else:
+        ugrps = list(set(zip(*[new_data[i] for i in levels])))
     temp_levels = (levels + [unique_id]) if unique_id is not None else levels
-    for i in ugrps:
-        index = ugs[i]
-        value = facet_dict[index]
-        indexes = new_data.get_data(temp_levels, i)
-        y_data = new_data[indexes, y]
-        x_data = new_data[indexes, x]
-        ed = err_data[indexes, y] if err_func is not None else np.zeros(y_data.size)
+    if len(ugrps) != 0:
+        for i in ugrps:
+            value = facet_dict[i]
+            indexes = new_data.get_data(temp_levels, i)
+            y_data = new_data[indexes, y]
+            x_data = new_data[indexes, x]
+            ed = err_data[indexes, y] if err_func is not None else np.zeros(y_data.size)
+            _plot_agg_line(
+                get_transform(xtransform)(x_data),
+                get_transform(ytransform)(y_data),
+                ed,
+                value,
+                ax,
+                marker=marker[i],
+                linecolor=linecolor[i],
+                linewidth=linewidth,
+                linestyle=linestyle[i],
+                markerfacecolor=markerfacecolor[i],
+                markeredgecolor=markeredgecolor[i],
+                markersize=markersize,
+                fill_between=fill_between,
+                linealpha=linealpha,
+                fillalpha=fillalpha,
+            )
+    else:
+        value = facet_dict[("",)]
+        y_data = new_data[y]
+        x_data = new_data[x]
+        ed = err_data[y] if err_func is not None else np.zeros(y_data.size)
         _plot_agg_line(
             get_transform(xtransform)(x_data),
             get_transform(ytransform)(y_data),
             ed,
             value,
             ax,
-            marker=marker[index],
-            linecolor=linecolor[index],
+            marker=marker[("",)],
+            linecolor=linecolor[("",)],
             linewidth=linewidth,
-            linestyle=linestyle[index],
-            markerfacecolor=markerfacecolor[index],
-            markeredgecolor=markeredgecolor[index],
+            linestyle=linestyle[("",)],
+            markerfacecolor=markerfacecolor[("",)],
+            markeredgecolor=markeredgecolor[("",)],
             markersize=markersize,
             fill_between=fill_between,
             linealpha=linealpha,

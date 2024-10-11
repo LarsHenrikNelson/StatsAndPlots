@@ -33,6 +33,8 @@ class DataHolder:
     def _numpy_index(self, index):
         if isinstance(index, tuple):
             return self._data[index]
+        elif isinstance(index, list):
+            return zip([self.data[i] for i in index])
         elif isinstance(index, int):
             return self._data[:, index]
 
@@ -42,12 +44,16 @@ class DataHolder:
                 return self._data.loc[index[0], index[1]]
             else:
                 return self._data.iloc[index[0], self._data.columns.get_loc(index[1])]
+        elif isinstance(index, list):
+            return zip([self.data[i] for i in index])
         elif isinstance(index, str):
             return self._data[index]
 
     def _dict_index(self, index):
         if isinstance(index, tuple):
             return self._data[index[1]][index[0]]
+        elif isinstance(index, list):
+            return zip([self.data[i] for i in index])
         elif isinstance(index, str):
             return self._data[index]
 
@@ -91,3 +97,6 @@ class DataHolder:
     def groupby(self, y, columns):
         yy = pd.DataFrame(self._data)[columns + [y]].groupby(columns)
         return yy
+
+    def groups(self, levels):
+        return pd.DataFrame(self._data)[levels].groupby(levels).groups
