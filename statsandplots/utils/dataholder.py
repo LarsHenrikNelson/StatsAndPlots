@@ -39,8 +39,11 @@ class DataHolder:
             return self._data[:, index]
 
     def _pandas_index(self, index):
+        print(index[0])
         if isinstance(index, tuple):
-            if pd.api.types.is_bool_dtype(index[0].dtype):
+            if pd.api.types.is_bool_dtype(index[0].dtype) or isinstance(
+                index[0], pd.Index
+            ):
                 return self._data.loc[index[0], index[1]]
             else:
                 return self._data.iloc[index[0], self._data.columns.get_loc(index[1])]
@@ -99,4 +102,11 @@ class DataHolder:
         return yy
 
     def groups(self, levels):
-        return pd.DataFrame(self._data)[levels].groupby(levels).groups
+        temp_groups = pd.DataFrame(self._data).groupby(levels).groups
+        new_groups = {}
+        for key, value in temp_groups.items():
+            if isinstance(key, str):
+                new_groups[(key,)] = value
+            else:
+                new_groups[key] = value
+        return new_groups

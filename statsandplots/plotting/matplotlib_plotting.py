@@ -813,6 +813,7 @@ def _kde_plot(
     y,
     x,
     unique_groups,
+    levels,
     linecolor_dict,
     facet_dict,
     linestyle_dict,
@@ -845,7 +846,6 @@ def _kde_plot(
     if ax is None:
         ax = plt.gca()
         ax = [ax]
-    ugroups = np.unique(unique_groups)
     size = data.shape[0]
 
     x_data = []
@@ -858,8 +858,10 @@ def _kde_plot(
     column = y if x is None else x
     transform = ytransform if xtransform is None else xtransform
 
-    for u in ugroups:
-        if u == "none" and ugroups.size == 1:
+    groups = data.groups(levels)
+
+    for u in unique_groups:
+        if u == ("",):
             y_values = data[column].to_numpy.flatten()
             temp_size = size
             x_kde, y_kde = kde(
@@ -876,9 +878,8 @@ def _kde_plot(
             linestyle_data.append(linestyle_dict[u])
             facet_list.append(facet_dict[u])
         elif unique_id is None:
-            indexes = np.where(unique_groups == u)[0]
-            y_values = data[indexes, column].to_numpy().flatten()
-            temp_size = indexes.size
+            y_values = data[groups[u], column].to_numpy().flatten()
+            temp_size = y_values.size
             x_kde, y_kde = kde(
                 get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
             )
@@ -893,15 +894,15 @@ def _kde_plot(
             linestyle_data.append(linestyle_dict[u])
             facet_list.append(facet_dict[u])
         else:
-            indexes = np.where(unique_groups == u)[0]
-            subgroups, count = np.unique(data[indexes, unique_id], return_counts=True)
-            temp_data = data[indexes, column]
+            subgroups, count = np.unique(data[groups[u], unique_id], return_counts=True)
+            temp_data = data[groups[u], column]
             min_data = get_transform(transform)(temp_data.min())
             max_data = get_transform(transform)(temp_data.max())
             min_data = min_data - np.abs((min_data * tol))
             max_data = max_data + np.abs((max_data * tol))
             min_data = min_data if min_data != 0 else -1e-10
             max_data = max_data if max_data != 0 else 1e-10
+            print(u, min_data, max_data)
             if kde_type == "fft":
                 power2 = int(np.ceil(np.log2(len(temp_data))))
                 x = np.linspace(min_data, max_data, num=(1 << power2))
@@ -913,8 +914,9 @@ def _kde_plot(
                 y_hold = np.zeros((len(subgroups), x.size))
 
             for hi, s in enumerate(subgroups):
-                s_indexes = np.where((data[unique_id] == s) & (unique_groups == u))[0]
+                s_indexes = data[groups[u], unique_id] == s
                 y_values = data[s_indexes, column].to_numpy().flatten()
+                print(y_values.min(), y_values.max(), s)
                 temp_size = y_values.size
                 if agg_func is None:
                     x_kde, y_kde = kde(

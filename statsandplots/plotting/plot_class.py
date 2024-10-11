@@ -152,7 +152,6 @@ class BasePlot:
                     self.plot_dict["ylim"],
                     ticks,
                     self.plot_dict["steps"],
-                    decimals,
                     tickstyle=self.plot_dict["tickstyle"],
                 )
                 ax.set_ylim(bottom=lim[0], top=lim[1])
@@ -183,12 +182,11 @@ class BasePlot:
                     self.plot_dict["xlim"],
                     ticks,
                     self.plot_dict["steps"],
-                    decimals,
                     tickstyle=self.plot_dict["tickstyle"],
                 )
                 ax.set_xlim(left=lim[0], right=lim[1])
                 if (
-                    "back_transform_yticks" in self.plot_dict
+                    "back_transform_xticks" in self.plot_dict
                     and self.plot_dict["back_transform_xticks"]
                 ):
                     tick_labels = get_backtransform(self.plot_dict["xtransform"])(ticks)
@@ -524,7 +522,9 @@ class LinePlot(BasePlot):
     ):
         if colorall is None:
             linecolor = _process_colors(
-                linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+                linecolor,
+                self.plot_dict["group_order"],
+                self.plot_dict["subgroup_order"],
             )
             linecolor_dict = create_dict(
                 linecolor,
@@ -590,7 +590,7 @@ class LinePlot(BasePlot):
         linecolor: Optional[ColorDict] = None,
         linestyle: str = "-",
         linewidth: int = 2,
-        fillcolor: Optional[ColorDict] = None,
+        fill_under: bool = False,
         alpha: AlphaRange = 1.0,
         fillalpha=None,
         unique_id: Optional[str] = None,
@@ -599,20 +599,19 @@ class LinePlot(BasePlot):
         kde_type: Literal["tree", "fft"] = "fft",
     ):
 
-        fill_under = False if fillcolor is None else True
-
-        linecolor_dict = process_args(
-            _process_colors(
-                linecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
+        linecolor = _process_colors(
+            linecolor,
             self.plot_dict["group_order"],
             self.plot_dict["subgroup_order"],
         )
+        linecolor_dict = create_dict(
+            linecolor,
+            self.plot_dict["unique_groups"],
+        )
 
-        linestyle_dict = process_args(
-            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        linestyle_dict = create_dict(
+            linestyle,
+            self.plot_dict["unique_groups"],
         )
 
         kde_plot = {
@@ -630,6 +629,7 @@ class LinePlot(BasePlot):
             "err_func": err_func,
             "kde_type": kde_type,
             "fillalpha": alpha / 2 if fillalpha is None else fillalpha,
+            "levels": self.plot_dict["levels"],
         }
 
         self.plots.append(kde_plot)
@@ -912,7 +912,7 @@ class LinePlot(BasePlot):
                 **j,
             )
             if i == "kde" or i == "hist":
-                if j["axis"] == "y":
+                if self.plot_dict["x"] is not None:
                     self.plot_dict["ylim"] = [0, None]
                 else:
                     self.plot_dict["xlim"] = [0, None]

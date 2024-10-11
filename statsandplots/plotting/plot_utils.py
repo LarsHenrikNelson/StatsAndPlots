@@ -121,7 +121,6 @@ def get_ticks(
     lim,
     ticks,
     steps,
-    n_decimals=None,
     tickstyle=None,
 ):
     lim = lim.copy()
@@ -129,21 +128,11 @@ def get_ticks(
         lim[0] = ticks[0]
     if lim[1] is None:
         lim[1] = ticks[-1]
-    if n_decimals is not None:
-        ticks = np.round(
-            np.linspace(
-                lim[0],
-                lim[1],
-                steps,
-            ),
-            decimals=n_decimals,
-        )
-    else:
-        np.linspace(
-            lim[0],
-            lim[1],
-            steps,
-        )
+    ticks = np.linspace(
+        lim[0],
+        lim[1],
+        steps,
+    )
     if tickstyle == "middle":
         ticks = ticks[1:-1]
     return lim, ticks
