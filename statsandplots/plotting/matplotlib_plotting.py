@@ -520,6 +520,7 @@ def _hist_plot(
     y,
     x,
     unique_groups,
+    levels,
     color_dict,
     facet_dict,
     hatch=None,
@@ -629,10 +630,12 @@ def _scatter_plot(
     y,
     x,
     unique_groups,
+    levels,
     markers,
     markercolors,
     edgecolors,
     markersizes,
+    facetgroup,
     ax=None,
     facet_dict=None,
     xtransform=None,
@@ -642,7 +645,7 @@ def _scatter_plot(
         ax = plt.gca()
         ax = [ax]
     for key, value in facet_dict.items():
-        indexes = np.where(unique_groups == key)[0]
+        indexes = np.array([index for index, j in enumerate(facetgroup) if value == j])
         ax[value].scatter(
             get_transform(xtransform)(data[indexes, x]),
             get_transform(ytransform)(data[indexes, y]),
@@ -982,6 +985,7 @@ def _ecdf(
     data,
     y,
     x,
+    levels,
     unique_groups,
     linewidth,
     color_dict,
@@ -1004,7 +1008,6 @@ def _ecdf(
     column = y if x is None else x
     transform = ytransform if xtransform is None else xtransform
 
-    ugroups = np.unique(unique_groups)
     x_data = []
     y_data = []
     linestyle_data = []
@@ -1014,8 +1017,14 @@ def _ecdf(
 
     etypes = {"spline", "bootstrap"}
 
-    for u in ugroups:
-        if u == "none" and ugroups.size == 1:
+    if len(levels) > 0:
+        ugroups = data.groups(levels)
+
+        if unique_id is not None:
+            uid_groups = data.groups(levels + [unique_id])
+
+    for u in unique_groups:
+        if u == ("",):
             y_values = data[column].to_numpy.flatten()
             x_ecdf, y_ecdf = ecdf.ecdf(
                 get_transform(transform)(y_values), ecdf_type=ecdf_type, **ecdf_args
@@ -1026,8 +1035,7 @@ def _ecdf(
             linestyle_data.append(linestyle_dict[u])
             facet_list.append(facet_dict[u])
         elif unique_id is None:
-            indexes = np.where(unique_groups == u)[0]
-            y_values = data[indexes, column].to_numpy().flatten()
+            y_values = data[ugroups[u], column].to_numpy().flatten()
             x_ecdf, y_ecdf = ecdf.ecdf(
                 get_transform(transform)(y_values), ecdf_type=ecdf_type, **ecdf_args
             )
@@ -1037,20 +1045,20 @@ def _ecdf(
             linestyle_data.append(linestyle_dict[u])
             facet_list.append(facet_dict[u])
         else:
-            indexes = np.where(unique_groups == u)[0]
-            subgroups, _ = np.unique(data[indexes, unique_id], return_counts=True)
+            subgroups, counts = np.unique(
+                data[ugroups[u], unique_id], return_counts=True
+            )
             if agg_func is not None:
                 if ecdf_type not in etypes:
                     raise ValueError(
                         "ecdf_type must be spline or bootstrap when using an agg_func"
                     )
                 if "size" not in ecdf_args:
-                    ecdf_args["size"] = indexes.size
+                    ecdf_args["size"] = np.max(counts)
                 y_ecdf = np.arange(ecdf_args["size"]) / ecdf_args["size"]
                 x_hold = np.zeros((len(subgroups), ecdf_args["size"]))
             for hi, s in enumerate(subgroups):
-                s_indexes = np.where((data[unique_id] == s) & (unique_groups == u))[0]
-                y_values = data[s_indexes, column].to_numpy().flatten()
+                y_values = data[uid_groups[s], column].to_numpy().flatten()
                 if agg_func is None:
                     x_ecdf, y_ecdf = ecdf.ecdf(
                         get_transform(transform)(y_values),
@@ -1105,6 +1113,7 @@ def _poly_hist(
     y,
     x,
     unique_groups,
+    levels,
     color_dict,
     facet_dict,
     linestyle_dict,
@@ -1195,6 +1204,7 @@ def _line_plot(
     y,
     x,
     unique_groups,
+    levels,
     color_dict,
     facet_dict,
     linestyle_dict,

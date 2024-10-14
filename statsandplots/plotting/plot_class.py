@@ -213,10 +213,12 @@ class BasePlot:
         else:
             yticks = ax.get_xticks()
         yticks = get_backtransform(transform)(yticks)
-        mticks = np.zeros(len(yticks) * 4)
+        mticks = np.zeros((len(yticks) - 1) * 5)
         for index in range(yticks.size - 1):
             vals = np.linspace(yticks[index], yticks[index + 1], num=5, endpoint=False)
-            mticks[index * 5 : index * 5 + 5] = vals
+            start = index * 5
+            end = index * 5 + 5
+            mticks[start:end] = vals
         if ticks == "y":
             ax.set_yticks(
                 get_transform(transform)(mticks),
@@ -233,7 +235,6 @@ class BasePlot:
             ax.set_xticks(
                 get_transform(transform)(mticks),
                 minor=True,
-                width=self.plot_dict["minor_tickwidth"],
             )
             ax.tick_params(
                 axis="x",
@@ -397,6 +398,8 @@ class LinePlot(BasePlot):
         linewidth: float = 2,
         tickwidth: float = 2,
         ticklength: float = 5.0,
+        yminorticks: bool = False,
+        xminorticks: bool = False,
         minor_tickwidth: float = 1.5,
         minor_ticklength: float = 2.5,
         ticklabel: int = 12,
@@ -428,6 +431,8 @@ class LinePlot(BasePlot):
             "steps": steps,
             "tickstyle": tickstyle,
             "xunits": xunits,
+            "yminorticks": yminorticks,
+            "xminorticks": xminorticks,
             "minor_tickwidth": minor_tickwidth,
             "minor_ticklength": minor_ticklength,
         }
@@ -562,7 +567,6 @@ class LinePlot(BasePlot):
             "markeredgecolor": markeredgecolor_dict,
             "markersize": markersize,
             "unique_id": unique_id,
-            "levels": self.plot_dict["levels"],
             "agg_func": agg_func,
         }
         self.plots.append(line_plot)
@@ -629,7 +633,6 @@ class LinePlot(BasePlot):
             "err_func": err_func,
             "kde_type": kde_type,
             "fillalpha": alpha / 2 if fillalpha is None else fillalpha,
-            "levels": self.plot_dict["levels"],
         }
 
         self.plots.append(kde_plot)
@@ -753,13 +756,10 @@ class LinePlot(BasePlot):
         ecdf_type: Literal["spline", "bootstrap", "none"] = "none",
         ecdf_args=None,
     ):
-        color_dict = process_args(
-            _process_colors(
-                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        color = _process_colors(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
         linestyle_dict = process_args(
             linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
@@ -821,8 +821,7 @@ class LinePlot(BasePlot):
         colors = process_scatter_args(
             markercolor0,
             self.plot_dict["data"],
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+            self.plot_dict["levels"],
             self.plot_dict["unique_groups"],
             markercolor1,
             alpha=alpha,
@@ -830,8 +829,7 @@ class LinePlot(BasePlot):
         edgecolors = process_scatter_args(
             edgecolor0,
             self.plot_dict["data"],
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+            self.plot_dict["levels"],
             self.plot_dict["unique_groups"],
             edgecolor1,
             alpha=alpha,
@@ -839,16 +837,21 @@ class LinePlot(BasePlot):
         markersize = process_scatter_args(
             markersize,
             self.plot_dict["data"],
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+            self.plot_dict["levels"],
             self.plot_dict["unique_groups"],
-            None,
+        )
+        facetgroup = process_scatter_args(
+            self.plot_dict["facet_dict"],
+            self.plot_dict["data"],
+            self.plot_dict["levels"],
+            self.plot_dict["unique_groups"],
         )
         plot_data = {
             "markers": marker,
             "markercolors": colors,
             "edgecolors": edgecolors,
             "markersizes": markersize,
+            "facetgroup": facetgroup,
         }
 
         self.plot_list.append("scatter")
@@ -909,6 +912,7 @@ class LinePlot(BasePlot):
                 ax=ax,
                 ytransform=self.plot_dict["ytransform"],
                 xtransform=self.plot_dict["xtransform"],
+                levels=self.plot_dict["levels"],
                 **j,
             )
             if i == "kde" or i == "hist":
@@ -943,6 +947,16 @@ class LinePlot(BasePlot):
 
                 self._set_lims(sub_ax, ydecimals, axis="y")
                 self._set_lims(sub_ax, xdecimals, axis="x")
+
+                if self.plot_dict["yminorticks"]:
+                    self._set_minorticks(
+                        sub_ax, self.plot_dict["ytransform"], ticks="y"
+                    )
+
+                if self.plot_dict["xminorticks"]:
+                    self._set_minorticks(
+                        sub_ax, self.plot_dict["xtransform"], ticks="x"
+                    )
 
                 sub_ax.margins(self.plot_dict["margins"])
                 sub_ax.set_xlabel(

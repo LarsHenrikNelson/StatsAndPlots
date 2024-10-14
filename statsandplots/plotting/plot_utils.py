@@ -225,9 +225,7 @@ def process_args(arg, group, subgroup):
     return output_dict
 
 
-def process_scatter_args(
-    arg, data, group_order, subgroup_order, unique_groups, arg_cycle=None, alpha=None
-):
+def process_scatter_args(arg, data, levels, unique_groups, arg_cycle=None, alpha=None):
     if isinstance(arg_cycle, (np.ndarray, list)):
         if arg in data:
             if arg_cycle is not None:
@@ -241,10 +239,10 @@ def process_scatter_args(
             raise AttributeError("arg[0] of arg must be in data passed to LinePlot")
         output = _continuous_cycler(arg, data, arg_cycle, alpha)
     else:
-        output = process_args(arg, group_order, subgroup_order)
+        output = create_dict(arg, unique_groups)
         if alpha:
             output = {key: to_rgba(value, alpha) for key, value in output.items()}
-        output = unique_groups.map(output).to_list()
+        output = [output[j] for j in zip(*[data[i] for i in levels])]
     return output
 
 
