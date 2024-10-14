@@ -39,7 +39,6 @@ class DataHolder:
             return self._data[:, index]
 
     def _pandas_index(self, index):
-        print(index[0])
         if isinstance(index, tuple):
             if pd.api.types.is_bool_dtype(index[0].dtype) or isinstance(
                 index[0], pd.Index

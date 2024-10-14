@@ -858,98 +858,101 @@ def _kde_plot(
     column = y if x is None else x
     transform = ytransform if xtransform is None else xtransform
 
-    groups = data.groups(levels)
+    if len(levels) == 0:
+        y_values = data[column].to_numpy().flatten()
+        temp_size = size
+        x_kde, y_kde = kde(
+            get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
+        )
+        if common_norm:
+            multiplier = float(temp_size / size)
+            y_kde *= multiplier
+        if y is not None:
+            y_kde, x_kde = x_kde, y_kde
+        y_data.append(y_kde)
+        x_data.append(x_kde)
+        linecolor_data.append(linecolor_dict[("",)])
+        linestyle_data.append(linestyle_dict[("",)])
+        facet_list.append(facet_dict[("",)])
+    else:
+        groups = data.groups(levels)
 
-    for u in unique_groups:
-        if u == ("",):
-            y_values = data[column].to_numpy.flatten()
-            temp_size = size
-            x_kde, y_kde = kde(
-                get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
-            )
-            if common_norm:
-                multiplier = float(temp_size / size)
-                y_kde *= multiplier
-            if y is not None:
-                y_kde, x_kde = x_kde, y_kde
-            y_data.append(y_kde)
-            x_data.append(x_kde)
-            linecolor_data.append(linecolor_dict[u])
-            linestyle_data.append(linestyle_dict[u])
-            facet_list.append(facet_dict[u])
-        elif unique_id is None:
-            y_values = data[groups[u], column].to_numpy().flatten()
-            temp_size = y_values.size
-            x_kde, y_kde = kde(
-                get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
-            )
-            if common_norm:
-                multiplier = float(temp_size / size)
-                y_kde *= multiplier
-            if y is not None:
-                y_kde, x_kde = x_kde, y_kde
-            y_data.append(y_kde)
-            x_data.append(x_kde)
-            linecolor_data.append(linecolor_dict[u])
-            linestyle_data.append(linestyle_dict[u])
-            facet_list.append(facet_dict[u])
-        else:
-            subgroups, count = np.unique(data[groups[u], unique_id], return_counts=True)
-            temp_data = data[groups[u], column]
-            min_data = get_transform(transform)(temp_data.min())
-            max_data = get_transform(transform)(temp_data.max())
-            min_data = min_data - np.abs((min_data * tol))
-            max_data = max_data + np.abs((max_data * tol))
-            min_data = min_data if min_data != 0 else -1e-10
-            max_data = max_data if max_data != 0 else 1e-10
-            print(u, min_data, max_data)
-            if kde_type == "fft":
-                power2 = int(np.ceil(np.log2(len(temp_data))))
-                x = np.linspace(min_data, max_data, num=(1 << power2))
-            else:
-                max_len = np.max(count)
-                x = np.linspace(min_data, max_data, num=int(max_len * 1.5))
-
-            if agg_func is not None:
-                y_hold = np.zeros((len(subgroups), x.size))
-
-            for hi, s in enumerate(subgroups):
-                s_indexes = data[groups[u], unique_id] == s
-                y_values = data[s_indexes, column].to_numpy().flatten()
-                print(y_values.min(), y_values.max(), s)
+        if unique_id is not None:
+            unique_id_indexes = data.groups(levels + [unique_id])
+        for u in unique_groups:
+            if unique_id is None:
+                y_values = data[groups[u], column].to_numpy().flatten()
                 temp_size = y_values.size
-                if agg_func is None:
-                    x_kde, y_kde = kde(
-                        get_transform(transform)(y_values),
-                        bw=bw,
-                        kernel=kernel,
-                        tol=tol,
-                    )
-                    if y is not None:
-                        y_kde, x_kde = x_kde, y_kde
-                    y_data.append(y_kde)
-                    x_data.append(x_kde)
-                    linecolor_data.append(linecolor_dict[u])
-                    linestyle_data.append(linestyle_dict[u])
-                    facet_list.append(facet_dict[u])
-                else:
-                    _, y_kde = kde(
-                        get_transform(transform)(y_values),
-                        bw=bw,
-                        kernel=kernel,
-                        tol=tol,
-                        x=x,
-                        kde_type="fft",
-                    )
-                    y_hold[hi, :] = y_kde
-            if agg_func is not None:
-                y_data.append(get_transform(agg_func)(y_hold, axis=0))
-                x_data.append(x)
+                x_kde, y_kde = kde(
+                    get_transform(transform)(y_values), bw=bw, kernel=kernel, tol=tol
+                )
+                if common_norm:
+                    multiplier = float(temp_size / size)
+                    y_kde *= multiplier
+                if y is not None:
+                    y_kde, x_kde = x_kde, y_kde
+                y_data.append(y_kde)
+                x_data.append(x_kde)
                 linecolor_data.append(linecolor_dict[u])
                 linestyle_data.append(linestyle_dict[u])
                 facet_list.append(facet_dict[u])
-            if err_func is not None:
-                errs.append(get_transform(err_func)(y_hold, axis=0))
+            else:
+                subgroups, count = np.unique(
+                    data[groups[u], unique_id], return_counts=True
+                )
+                temp_data = data[groups[u], column]
+                min_data = get_transform(transform)(temp_data.min())
+                max_data = get_transform(transform)(temp_data.max())
+                min_data = min_data - np.abs((min_data * tol))
+                max_data = max_data + np.abs((max_data * tol))
+                min_data = min_data if min_data != 0 else -1e-10
+                max_data = max_data if max_data != 0 else 1e-10
+                if kde_type == "fft":
+                    power2 = int(np.ceil(np.log2(len(temp_data))))
+                    x = np.linspace(min_data, max_data, num=(1 << power2))
+                else:
+                    max_len = np.max(count)
+                    x = np.linspace(min_data, max_data, num=int(max_len * 1.5))
+
+                if agg_func is not None:
+                    y_hold = np.zeros((len(subgroups), x.size))
+
+                for hi, s in enumerate(subgroups):
+                    s_indexes = unique_id_indexes[u + (s,)]
+                    y_values = data[s_indexes, column].to_numpy().flatten()
+                    temp_size = y_values.size
+                    if agg_func is None:
+                        x_kde, y_kde = kde(
+                            get_transform(transform)(y_values),
+                            bw=bw,
+                            kernel=kernel,
+                            tol=tol,
+                        )
+                        if y is not None:
+                            y_kde, x_kde = x_kde, y_kde
+                        y_data.append(y_kde)
+                        x_data.append(x_kde)
+                        linecolor_data.append(linecolor_dict[u])
+                        linestyle_data.append(linestyle_dict[u])
+                        facet_list.append(facet_dict[u])
+                    else:
+                        _, y_kde = kde(
+                            get_transform(transform)(y_values),
+                            bw=bw,
+                            kernel=kernel,
+                            tol=tol,
+                            x=x,
+                            kde_type="fft",
+                        )
+                        y_hold[hi, :] = y_kde
+                if agg_func is not None:
+                    y_data.append(get_transform(agg_func)(y_hold, axis=0))
+                    x_data.append(x)
+                    linecolor_data.append(linecolor_dict[u])
+                    linestyle_data.append(linestyle_dict[u])
+                    facet_list.append(facet_dict[u])
+                if err_func is not None:
+                    errs.append(get_transform(err_func)(y_hold, axis=0))
     for plot_index, (x, y, lc, ls, fax) in enumerate(
         zip(x_data, y_data, linecolor_data, linestyle_data, facet_list)
     ):
