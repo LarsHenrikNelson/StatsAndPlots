@@ -369,9 +369,7 @@ class LinePlot(BasePlot):
             "ncols": ncols,
             "facet_title": facet_title,
             "xtransform": None,
-            "xback_transform_ticks": False,
             "ytransform": None,
-            "yback_transform_ticks": False,
             "levels": levels,
             "projection": projection,
         }
@@ -917,9 +915,11 @@ class LinePlot(BasePlot):
             )
             if i == "kde" or i == "hist":
                 if self.plot_dict["x"] is not None:
-                    self.plot_dict["ylim"] = [0, None]
+                    if self.plot_dict["ylim"] is None:
+                        self.plot_dict["ylim"] = [0, None]
                 else:
-                    self.plot_dict["xlim"] = [0, None]
+                    if self.plot_dict["xlim"] is None:
+                        self.plot_dict["xlim"] = [0, None]
             if i == "ecdf":
                 self.plot_dict["ylim"] = [0.0, 1.0]
 
