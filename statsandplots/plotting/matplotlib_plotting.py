@@ -619,14 +619,6 @@ def _hist_plot(
         plot_data, bottom, bins, bw, colors, edgec, hatches, linewidth, axes1
     ):
         _add_rectangles(d, b, x, w, c, e, h, ln, sub_ax, axis=axis)
-
-    for sub_ax in axes1:
-        if projection == "polar":
-            sub_ax.set_rmax(sub_ax.dataLim.ymax)
-            ticks = sub_ax.get_yticks()
-            sub_ax.set_yticks(ticks)
-        else:
-            sub_ax.autoscale()
     return ax
 
 

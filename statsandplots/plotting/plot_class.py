@@ -939,6 +939,7 @@ class LinePlot(BasePlot):
         # num_plots = len(self.plot_dict["group_order"])
         for index, sub_ax in enumerate(ax[: len(self.plot_dict["group_order"])]):
             if self.plot_dict["projection"] == "rectilinear":
+                sub_ax.autoscale()
                 sub_ax.spines["right"].set_visible(False)
                 sub_ax.spines["top"].set_visible(False)
                 sub_ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
@@ -977,6 +978,9 @@ class LinePlot(BasePlot):
                 sub_ax.set_xlabel(
                     self.plot_dict["xlabel"], fontsize=self.plot_dict["labelsize"]
                 )
+                sub_ax.set_rmax(sub_ax.dataLim.ymax)
+                ticks = sub_ax.get_yticks()
+                sub_ax.set_yticks(ticks)
             if "hline" in self.plot_dict:
                 self._plot_axlines(self.plot_dict["hline"], sub_ax)
 
