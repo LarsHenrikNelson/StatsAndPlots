@@ -73,6 +73,7 @@ def radian_ticks(ticks, rotate=False):
     output = []
     for t in jj:
         sign = "-" if t < 0 else ""
+        t = abs(t)
         if t.numerator == 0 or t == 0:
             output.append("0")
         elif t.numerator == 1 and t.denominator == 1:

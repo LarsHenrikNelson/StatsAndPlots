@@ -393,6 +393,7 @@ class LinePlot(BasePlot):
         xscale: Literal["linear", "log", "symlog"] = "linear",
         xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
         labelsize: float = 20,
+        titlesize: float = 20,
         linewidth: float = 2,
         tickwidth: float = 2,
         ticklength: float = 5.0,
@@ -418,6 +419,7 @@ class LinePlot(BasePlot):
             "xscale": xscale,
             "xlabel_rotation": xlabel_rotation,
             "labelsize": labelsize,
+            "titlesize": titlesize,
             "tickwidth": tickwidth,
             "ticklength": ticklength,
             "ticklabel": ticklabel,
@@ -1008,7 +1010,7 @@ class LinePlot(BasePlot):
                 )
 
         if self.plot_dict["title"] is not None:
-            fig.suptitle(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
+            fig.suptitle(self.plot_dict["title"], fontsize=self.plot_dict["titlesize"])
 
         if self.plot_dict["projection"] == "rectilinear":
             if self.plot_dict["gridspec_kw"] is None:
@@ -1118,6 +1120,7 @@ class CategoricalPlot(BasePlot):
         yscale: Literal["linear", "log", "symlog"] = "linear",
         xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
         steps: int = 5,
+        titlesize: int = 20,
         labelsize: int = 20,
         linewidth: int = 2,
         tickwidth: int = 2,
@@ -1140,6 +1143,7 @@ class CategoricalPlot(BasePlot):
             "yscale": yscale,
             "steps": steps,
             "labelsize": labelsize,
+            "titlesize": titlesize,
             "tickwidth": tickwidth,
             "ticklength": ticklength,
             "ticklabel": ticklabel,
@@ -1695,7 +1699,7 @@ class CategoricalPlot(BasePlot):
             self._set_minorticks(ax, self.plot_dict["ytransform"], ticks="y")
 
         ax.set_ylabel(self.plot_dict["ylabel"], fontsize=self.plot_dict["labelsize"])
-        ax.set_title(self.plot_dict["title"], fontsize=self.plot_dict["labelsize"])
+        ax.set_title(self.plot_dict["title"], fontsize=self.plot_dict["titlesize"])
         ax.tick_params(
             axis="both",
             which="major",
