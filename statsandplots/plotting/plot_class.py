@@ -702,22 +702,19 @@ class LinePlot(BasePlot):
         agg_func=None,
         unique_id=None,
     ):
-        color_dict = process_args(
-            _process_colors(
-                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-            ),
+        color = _process_colors(
+            color,
             self.plot_dict["group_order"],
             self.plot_dict["subgroup_order"],
         )
-        linecolor_dict = process_args(
-            _process_colors(
-                linecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
+        linecolor = _process_colors(
+            linecolor,
             self.plot_dict["group_order"],
             self.plot_dict["subgroup_order"],
         )
+        linecolor_dict = create_dict(linecolor, self.plot_dict["unique_groups"])
+
         hist = {
             "color_dict": color_dict,
             "linecolor_dict": linecolor_dict,

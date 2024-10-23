@@ -561,7 +561,6 @@ def _hist_plot(
             num=nbins + 1,
         )
         x = (bins[1:] + bins[:-1]) / 2
-    ugrp = np.unique(unique_groups)
     bottom = np.zeros(nbins)
     bw = np.full(
         nbins,
@@ -572,39 +571,45 @@ def _hist_plot(
     colors = []
     axes1 = []
     edgec = []
-    for i in ugrp:
+
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
         if unique_id is not None:
-            uids = np.unique(data[unique_groups == i, unique_id])
-            if agg_func is not None:
-                temp_list = np.zeros((len(uids), nbins))
-            else:
-                temp_list = []
-            for index, j in enumerate(uids):
-                temp = np.where((data[unique_id] == j) & (unique_groups == i))[0]
-                temp_data = np.sort(data[temp, y])
-                poly = _calc_hist(get_transform(transform)(temp_data), bins, stat)
+            unique_id_indexes = data.groups(levels + [unique_id])
+        for i in unique_groups:
+            if unique_id is not None:
+                uids = np.unique(data[unique_groups == i, unique_id])
                 if agg_func is not None:
-                    temp_list[index] = poly
+                    temp_list = np.zeros((len(uids), nbins))
                 else:
-                    plot_data.append(poly)
+                    temp_list = []
+                for index, j in enumerate(uids):
+                    temp_data = np.sort(data[unique_id_indexes[i + (j,)], y])
+                    poly = _calc_hist(get_transform(transform)(temp_data), bins, stat)
+                    if agg_func is not None:
+                        temp_list[index] = poly
+                    else:
+                        plot_data.append(poly)
+                        colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
+                        edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
+                        axes1.append(ax[facet_dict[i]])
+                        count += 1
+                if agg_func is not None:
+                    plot_data.append(get_transform(agg_func)(temp_list, axis=0))
                     colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
                     edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
                     axes1.append(ax[facet_dict[i]])
                     count += 1
-            if agg_func is not None:
-                plot_data.append(get_transform(agg_func)(temp_list, axis=0))
+            else:
+                temp_data = np.sort(data[groups[i], y])
+                poly = _calc_hist(get_transform(transform)(temp_data), bins, stat)
+                plot_data.append(poly)
                 colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
                 edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
                 axes1.append(ax[facet_dict[i]])
                 count += 1
-        else:
-            temp_data = np.sort(data[unique_groups == i, y])
-            poly = _calc_hist(get_transform(transform)(temp_data), bins, stat)
-            plot_data.append(poly)
-            colors.append([to_rgba(color_dict[i], fillalpha)] * nbins)
-            edgec.append([to_rgba(color_dict[i], linealpha)] * nbins)
-            axes1.append(ax[facet_dict[i]])
-            count += 1
     bottom = [bottom for _ in range(count)]
     bins = [bins[:-1] for _ in range(count)]
     bw = [bw for _ in range(count)]
