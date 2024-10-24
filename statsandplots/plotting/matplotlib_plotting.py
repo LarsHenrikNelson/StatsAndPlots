@@ -111,6 +111,7 @@ def _add_rectangles(
 def _jitter_plot(
     data,
     y,
+    levels,
     unique_groups,
     loc_dict,
     width,
@@ -134,44 +135,48 @@ def _jitter_plot(
     jitter_values *= width
     jitter_values -= width / 2
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        if unique_id is None:
-            x = np.array([loc_dict[i]] * indexes.size)
-            x += jitter_values[indexes]
-            ax.plot(
-                x,
-                transform(data[indexes, y]),
-                marker_dict[i],
-                markerfacecolor=color_dict[i],
-                markeredgecolor=edgecolor_dict[i],
-                alpha=alpha,
-                markersize=markersize,
-            )
-        else:
-            unique_ids_sub = np.unique(data[indexes, unique_id])
-            for index, ui_group in enumerate(unique_ids_sub):
-                sub_indexes = np.where(
-                    np.logical_and(data[unique_id] == ui_group, unique_groups == i)
-                )[0]
-                x = np.array([loc_dict[i]] * sub_indexes.size)
-                x += jitter_values[sub_indexes]
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
+        if unique_id is not None:
+            uid_groups = data.groups(levels + [unique_id])
+        for i in unique_groups:
+            if unique_id is None:
+                indexes = groups[i]
+                x = np.array([loc_dict[i]] * len(indexes))
+                x += jitter_values[indexes]
                 ax.plot(
                     x,
-                    transform(data[sub_indexes, y]),
-                    MARKERS[index],
+                    transform(data[indexes, y]),
+                    marker_dict[i],
                     markerfacecolor=color_dict[i],
                     markeredgecolor=edgecolor_dict[i],
                     alpha=alpha,
                     markersize=markersize,
                 )
+            else:
+                unique_ids_sub = np.unique(data[groups[i], unique_id])
+                for index, ui_group in enumerate(unique_ids_sub):
+                    sub_indexes = uid_groups[i + (ui_group,)]
+                    x = np.array([loc_dict[i]] * len(indexes))
+                    x += jitter_values[sub_indexes]
+                    ax.plot(
+                        x,
+                        transform(data[sub_indexes, y]),
+                        MARKERS[index],
+                        markerfacecolor=color_dict[i],
+                        markeredgecolor=edgecolor_dict[i],
+                        alpha=alpha,
+                        markersize=markersize,
+                    )
     return ax
 
 
 def _jitteru_plot(
     data,
     y,
+    levels,
     unique_groups,
     unique_id,
     loc_dict,
@@ -192,44 +197,49 @@ def _jitteru_plot(
     transform = get_transform(transform)
     temp = width / 2
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        unique_ids_sub = np.unique(data[indexes, unique_id])
-        if len(unique_ids_sub) > 1:
-            dist = np.linspace(-temp, temp, num=len(unique_ids_sub) + 1)
-            dist = np.round((dist[1:] + dist[:-1]) / 2, 10)
-        else:
-            dist = [0]
-        for index, ui_group in enumerate(unique_ids_sub):
-            sub_indexes = np.where(
-                np.logical_and(data[unique_id] == ui_group, unique_groups == i)
-            )[0]
-            x = np.full(sub_indexes.size, loc_dict[i]) + dist[index]
-            if duplicate_offset > 0.0:
-                output = (
-                    process_duplicates(data[sub_indexes, y]) * duplicate_offset * temp
-                )
-                x += output
-            if agg_func is None:
-                x = get_transform(agg_func)(x)
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
+        if unique_id is not None:
+            uid_groups = data.groups(levels + [unique_id])
+        for i in unique_groups:
+            unique_ids_sub = np.unique(data[groups[i], unique_id])
+            if len(unique_ids_sub) > 1:
+                dist = np.linspace(-temp, temp, num=len(unique_ids_sub) + 1)
+                dist = np.round((dist[1:] + dist[:-1]) / 2, 10)
             else:
-                x = x[0]
-            ax.plot(
-                x,
-                get_transform(agg_func)(transform(data[sub_indexes, y])),
-                marker_dict[i],
-                markerfacecolor=color_dict[i],
-                markeredgecolor=edgecolor_dict[i],
-                alpha=alpha,
-                markersize=markersize,
-            )
+                dist = [0]
+            for index, ui_group in enumerate(unique_ids_sub):
+                sub_indexes = uid_groups[i + (ui_group,)]
+                x = np.full(len(sub_indexes), loc_dict[i]) + dist[index]
+                if duplicate_offset > 0.0:
+                    output = (
+                        process_duplicates(data[sub_indexes, y])
+                        * duplicate_offset
+                        * temp
+                    )
+                    x += output
+                if agg_func is None:
+                    x = get_transform(agg_func)(x)
+                else:
+                    x = x[0]
+                ax.plot(
+                    x,
+                    get_transform(agg_func)(transform(data[sub_indexes, y])),
+                    marker_dict[i],
+                    markerfacecolor=color_dict[i],
+                    markeredgecolor=edgecolor_dict[i],
+                    alpha=alpha,
+                    markersize=markersize,
+                )
     return ax
 
 
 def _summary_plot(
     data,
     y,
+    levels,
     unique_groups,
     loc_dict,
     func,
@@ -253,35 +263,38 @@ def _summary_plot(
     x_data = []
     widths = []
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        x_data.append(loc_dict[i])
-        colors.append(color_dict[i])
-        widths.append(barwidth)
-        y_data.append(get_transform(func)(transform(data[indexes, y])))
-        if err_func is not None:
-            errs.append(get_transform(err_func)(transform(data[indexes, y])))
-        else:
-            errs.append(None)
-    ax = _plot_summary(
-        x_data=x_data,
-        y_data=y_data,
-        errs=errs,
-        widths=widths,
-        colors=colors,
-        linewidth=linewidth,
-        alpha=alpha,
-        capstyle=capstyle,
-        capsize=capsize,
-        ax=ax,
-    )
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
+        for i in unique_groups:
+            x_data.append(loc_dict[i])
+            colors.append(color_dict[i])
+            widths.append(barwidth)
+            y_data.append(get_transform(func)(transform(data[groups[i], y])))
+            if err_func is not None:
+                errs.append(get_transform(err_func)(transform(data[groups[i], y])))
+            else:
+                errs.append(None)
+        ax = _plot_summary(
+            x_data=x_data,
+            y_data=y_data,
+            errs=errs,
+            widths=widths,
+            colors=colors,
+            linewidth=linewidth,
+            alpha=alpha,
+            capstyle=capstyle,
+            capsize=capsize,
+            ax=ax,
+        )
     return ax
 
 
 def _summaryu_plot(
     data,
     y,
+    levels,
     unique_groups,
     unique_id,
     loc_dict,
@@ -308,47 +321,45 @@ def _summaryu_plot(
     x_data = []
     widths = []
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        uids = np.unique(data[indexes, unique_id])
-        if agg_func is None:
-            temp = barwidth / 2
-            if len(uids) > 1:
-                dist = np.linspace(-temp, temp, num=len(uids) + 1)
-                centers = np.round((dist[1:] + dist[:-1]) / 2, 10)
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
+        if unique_id is not None:
+            uid_groups = data.groups(levels + [unique_id])
+        for i in unique_groups:
+            uids = np.unique(data[groups[i], unique_id])
+            if agg_func is None:
+                temp = barwidth / 2
+                if len(uids) > 1:
+                    dist = np.linspace(-temp, temp, num=len(uids) + 1)
+                    centers = np.round((dist[1:] + dist[:-1]) / 2, 10)
+                else:
+                    centers = [0]
+                w = agg_width / len(uids)
+                for index, j in enumerate(uids):
+                    widths.append(w)
+                    vals = transform(data[uid_groups[i + (j,)], y])
+                    x_data.append(loc_dict[i] + centers[index])
+                    colors.append(color_dict[i])
+                    y_data.append(get_transform(func)(vals))
+                    if err_func is not None:
+                        errs.append(get_transform(err_func)(vals))
+                    else:
+                        errs.append(None)
             else:
-                centers = [0]
-            w = agg_width / len(uids)
-            for index, j in enumerate(uids):
-                widths.append(w)
-                sub_indexes = np.where(
-                    np.logical_and(data[unique_id] == j, unique_groups == i)
-                )[0]
-                vals = transform(data[sub_indexes, y])
-                x_data.append(loc_dict[i] + centers[index])
+                temp_vals = []
+                for index, j in enumerate(uids):
+                    vals = transform(data[uid_groups[j], y])
+                    temp_vals.append(get_transform(func)(vals))
+                x_data.append(loc_dict[i])
                 colors.append(color_dict[i])
-                y_data.append(get_transform(func)(vals))
+                widths.append(barwidth)
+                y_data.append(get_transform(func)(np.array(temp_vals)))
                 if err_func is not None:
-                    errs.append(get_transform(err_func)(vals))
+                    errs.append(get_transform(err_func)(np.array(temp_vals)))
                 else:
                     errs.append(None)
-        else:
-            temp_vals = []
-            for index, j in enumerate(uids):
-                sub_indexes = np.where(
-                    np.logical_and(data[unique_id] == j, unique_groups == i)
-                )[0]
-                vals = transform(data[sub_indexes, y])
-                temp_vals.append(get_transform(func)(vals))
-            x_data.append(loc_dict[i])
-            colors.append(color_dict[i])
-            widths.append(barwidth)
-            y_data.append(get_transform(func)(np.array(temp_vals)))
-            if err_func is not None:
-                errs.append(get_transform(err_func)(np.array(temp_vals)))
-            else:
-                errs.append(None)
 
     ax = _plot_summary(
         x_data=x_data,
@@ -400,6 +411,7 @@ def _plot_summary(
 def _boxplot(
     data,
     y,
+    levels,
     unique_groups,
     loc_dict,
     color_dict,
@@ -419,33 +431,37 @@ def _boxplot(
 
     transform = get_transform(transform)
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        props = {
-            "boxprops": {
-                "facecolor": to_rgba(color_dict[i], alpha=alpha),
-                "edgecolor": to_rgba(linecolor_dict[i], alpha=line_alpha),
-            },
-            "medianprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
-            "whiskerprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
-            "capprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
-        }
-        if showmeans:
-            props["meanprops"] = {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)}
-        indexes = np.where(unique_groups == i)[0]
-        bplot = ax.boxplot(
-            transform(data[indexes, y]),
-            positions=[loc_dict[i]],
-            sym=fliers,
-            widths=box_width,
-            notch=show_ci,
-            patch_artist=True,
-            showmeans=showmeans,
-            meanline=showmeans,
-            **props,
-        )
-        for i in bplot["boxes"]:
-            i.set_linewidth(linewidth)
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
+        for i in unique_groups:
+            props = {
+                "boxprops": {
+                    "facecolor": to_rgba(color_dict[i], alpha=alpha),
+                    "edgecolor": to_rgba(linecolor_dict[i], alpha=line_alpha),
+                },
+                "medianprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
+                "whiskerprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
+                "capprops": {"color": to_rgba(linecolor_dict[i], alpha=line_alpha)},
+            }
+            if showmeans:
+                props["meanprops"] = {
+                    "color": to_rgba(linecolor_dict[i], alpha=line_alpha)
+                }
+            bplot = ax.boxplot(
+                transform(data[groups[i], y]),
+                positions=[loc_dict[i]],
+                sym=fliers,
+                widths=box_width,
+                notch=show_ci,
+                patch_artist=True,
+                showmeans=showmeans,
+                meanline=showmeans,
+                **props,
+            )
+            for i in bplot["boxes"]:
+                i.set_linewidth(linewidth)
 
     return ax
 
@@ -453,6 +469,7 @@ def _boxplot(
 def _violin_plot(
     data,
     y,
+    levels,
     unique_groups,
     loc_dict,
     color_dict,
@@ -471,31 +488,30 @@ def _violin_plot(
 
     transform = get_transform(transform)
 
-    ugrp = np.unique(unique_groups)
-    for i in ugrp:
-        indexes = np.where(unique_groups == i)[0]
-        indexes = indexes
-
-        parts = ax.violinplot(
-            transform(data[indexes, y]),
-            positions=[loc_dict[i]],
-            widths=width,
-            showmeans=showmeans,
-            showmedians=showmedians,
-            showextrema=showextrema,
-        )
-        for body in parts["bodies"]:
-            body.set_alpha(alpha)
-            body.set_facecolor(color_dict[i])
-            body.set_edgecolor(edge_dict[i])
-            body.set_linewidth(linewidth)
-        if showmeans:
-            parts["cmeans"].set_color(edge_dict[i])
-            parts["cmeans"].set_linewidth(linewidth)
-        if showmedians:
-            parts["cmedians"].set_color(edge_dict[i])
-            parts["cmedians"].set_linewidth(linewidth)
-
+    if len(levels) == 0:
+        pass
+    else:
+        groups = data.groups(levels)
+        for i in unique_groups:
+            parts = ax.violinplot(
+                transform(data[groups[i], y]),
+                positions=[loc_dict[i]],
+                widths=width,
+                showmeans=showmeans,
+                showmedians=showmedians,
+                showextrema=showextrema,
+            )
+            for body in parts["bodies"]:
+                body.set_alpha(alpha)
+                body.set_facecolor(color_dict[i])
+                body.set_edgecolor(edge_dict[i])
+                body.set_linewidth(linewidth)
+            if showmeans:
+                parts["cmeans"].set_color(edge_dict[i])
+                parts["cmeans"].set_linewidth(linewidth)
+            if showmedians:
+                parts["cmedians"].set_color(edge_dict[i])
+                parts["cmedians"].set_linewidth(linewidth)
     return ax
 
 
@@ -878,7 +894,7 @@ def _kde_plot(
         groups = data.groups(levels)
 
         if unique_id is not None:
-            unique_id_indexes = data.groups(levels + [unique_id])
+            uid_groups = data.groups(levels + [unique_id])
         for u in unique_groups:
             if unique_id is None:
                 y_values = data[groups[u], column].to_numpy().flatten()
@@ -918,7 +934,7 @@ def _kde_plot(
                     y_hold = np.zeros((len(subgroups), x.size))
 
                 for hi, s in enumerate(subgroups):
-                    s_indexes = unique_id_indexes[u + (s,)]
+                    s_indexes = uid_groups[u + (s,)]
                     y_values = data[s_indexes, column].to_numpy().flatten()
                     temp_size = y_values.size
                     if agg_func is None:
@@ -1055,7 +1071,7 @@ def _ecdf(
                 y_ecdf = np.arange(ecdf_args["size"]) / ecdf_args["size"]
                 x_hold = np.zeros((len(subgroups), ecdf_args["size"]))
             for hi, s in enumerate(subgroups):
-                y_values = data[uid_groups[s], column].to_numpy().flatten()
+                y_values = data[uid_groups[u + (s,)], column].to_numpy().flatten()
                 if agg_func is None:
                     x_ecdf, y_ecdf = ecdf.ecdf(
                         get_transform(transform)(y_values),
@@ -1220,19 +1236,20 @@ def _line_plot(
     if ax is None:
         ax = plt.gca()
         ax = [ax]
+
+    groups = data.groups(levels)
     if unique_id is not None:
+        uid_groups = data.groups(levels + [unique_id])
         func = get_transform(func)
         if err_func is not None:
             err_func = get_transform(err_func)
-        ugrp = np.unique(unique_groups)
-        for i in ugrp:
-            indexes = np.where(unique_groups == i)[0]
-            temp_data = data[indexes, y]
-            uids = np.unique(temp_data[unique_id])
+        for i in unique_groups:
+            indexes = groups[i]
+            uids = np.unique(data[indexes])
             temp_list_y = None
             temp_list_x = None
             for index, j in enumerate(uids):
-                temp = np.where(data[unique_id] == j)[0]
+                temp = uid_groups[i + (j,)]
                 temp_y = data[temp, y].to_numpy()
                 temp_x = data[temp, x].to_numpy()
                 if temp_list_y is None:
@@ -1266,11 +1283,10 @@ def _line_plot(
                     color=color_dict[i],
                 )
     else:
-        ugrp = np.unique(unique_groups)
-        for i in ugrp:
-            indexes = np.where(unique_groups == i)[0]
-            temp_y = data[temp, y].to_numpy()
-            temp_x = data[temp, x].to_numpy()
+        for i in unique_groups:
+            indexes = groups[i]
+            temp_y = data[indexes, y].to_numpy()
+            temp_x = data[indexes, x].to_numpy()
             if fit_func is not None:
                 temp_y = fit_func(temp_x, temp_y)
             ax[facet_dict[i]].plot(
@@ -1391,6 +1407,7 @@ def biplot(
 def _percent_plot(
     data: DataHolder,
     y,
+    levels,
     unique_groups,
     loc_dict,
     color_dict,
@@ -1425,7 +1442,6 @@ def _percent_plot(
         if include_bins is None:
             include_bins = [True] * len(bins)
 
-    groups = np.unique(unique_groups)
     plot_bins = sum(include_bins)
 
     if hatch is True:
@@ -1442,12 +1458,16 @@ def _percent_plot(
     hatches = []
     bw = []
 
-    for gr in groups:
-        indexes = np.where(unique_groups == gr)[0]
+    groups = data.groups(levels)
+    if unique_id is not None:
+        uid_groups = data.groups(levels + [unique_id])
+    for gr in unique_groups:
         if unique_id is None:
             bw.extend([barwidth] * plot_bins)
             lw.extend([linewidth] * plot_bins)
-            top, bottom = _bin_data(data[indexes, y], bins, axis_type, invert, cutoff)
+            top, bottom = _bin_data(
+                data[groups[gr], y], bins, axis_type, invert, cutoff
+            )
             tops.extend(top[include_bins])
             bottoms.extend(bottom[include_bins])
             fc = [
@@ -1462,7 +1482,7 @@ def _percent_plot(
             x_loc.extend(x_s)
             hatches.extend(hs)
         else:
-            unique_ids_sub = np.unique(data[indexes, unique_id])
+            unique_ids_sub = np.unique(data[data[gr], unique_id])
             temp_width = barwidth / len(unique_ids_sub)
             bw.extend([temp_width] * plot_bins * len(unique_ids_sub))
             lw.extend([linewidth] * plot_bins * len(unique_ids_sub))
@@ -1474,11 +1494,8 @@ def _percent_plot(
             else:
                 dist = [0]
             for index, ui_group in enumerate(unique_ids_sub):
-                sub_indexes = np.where(
-                    np.logical_and(data[unique_id] == ui_group, unique_groups == gr)
-                )[0]
                 top, bottom = _bin_data(
-                    data[sub_indexes, y], bins, axis_type, invert, cutoff
+                    data[uid_groups[ui_group], y], bins, axis_type, invert, cutoff
                 )
 
                 tops.extend(top[include_bins])
@@ -1511,6 +1528,7 @@ def _percent_plot(
 def _count_plot(
     data: DataHolder,
     y: str,
+    levels: list[str],
     unique_groups: dict,
     loc_dict: dict,
     color_dict,
@@ -1528,7 +1546,6 @@ def _count_plot(
     ax=None,
     transform=None,
 ):
-    groups = np.unique(unique_groups)
 
     bw = []
     bottoms = []
@@ -1540,9 +1557,11 @@ def _count_plot(
     lws = []
 
     multiplier = 100 if axis_type == "percent" else 1
-    for gr in groups:
-        indexes = np.where(unique_groups == gr)[0]
-        unique_groups_sub = np.unique(data[indexes, y])
+
+    groups = data.groups(levels)
+    for gr in unique_groups:
+        unique_groups_sub, counts = np.unique(data[groups[gr], y], return_counts=True)
+        size = sum(counts)
         temp_width = barwidth / len(unique_groups_sub)
         if len(unique_groups_sub) > 1:
             dist = np.linspace(
@@ -1552,19 +1571,11 @@ def _count_plot(
         else:
             dist = [0]
         bw.extend([temp_width] * len(unique_groups_sub))
-        for index, ui_group in enumerate(unique_groups_sub):
+        for index, ui_group, count in enumerate(zip(unique_groups_sub, counts)):
             if unique_id is None:
-                sub_indexes = np.where(
-                    np.logical_and(data[y] == ui_group, unique_groups == gr)
-                )[0]
                 bottoms.append(0)
                 tops.append(
-                    (
-                        sub_indexes.size / indexes.size
-                        if axis_type != "count"
-                        else sub_indexes.size
-                    )
-                    * multiplier
+                    (count / size if axis_type != "count" else count) * multiplier
                 )
                 fillcolors.append(to_rgba(color_dict[str(ui_group)], alpha=alpha))
                 edgecolors.append(

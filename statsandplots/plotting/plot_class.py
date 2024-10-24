@@ -21,7 +21,6 @@ from . import plotly_plotting as plp
 from .plot_utils import (
     _decimals,
     _process_colors,
-    _process_groups,
     _process_positions,
     get_ticks,
     process_args,
@@ -1054,24 +1053,29 @@ class CategoricalPlot(BasePlot):
         self._plot_settings_run = False
         self.inplace = inplace
         self.style = "default"
+        self.plots = []
+        self.plot_list = []
 
         data = DataHolder(data)
 
-        if subgroup is not None:
-            if group not in data:
-                raise ValueError(f"{group} must be supplied if subgroup is used")
-            unique_groups = data[group].astype(str) + data[subgroup].astype(str)
+        if group is None:
+            unique_groups = {("",)}
+            group_order = [""]
+            levels = []
+        elif subgroup is None:
+            if group_order is None:
+                group_order = np.unique(data[group])
+            unique_groups = {(g,) for g in group_order}
+            levels = [group]
         else:
-            if group is None:
-                unique_groups = pd.Series([""] * data.shape[0])
-            else:
-                unique_groups = data[group].astype(str) + ""
+            if group_order is None:
+                group_order = np.unique(data[group])
+            if subgroup_order is None:
+                subgroup_order = np.unique(data[subgroup])
+            unique_groups = set(zip(data[group], data[subgroup]))
+            levels = [group, subgroup]
 
         if group is not None:
-            group_order, subgroup_order = _process_groups(
-                data, group, subgroup, group_order, subgroup_order
-            )
-
             loc_dict, width = _process_positions(
                 subgroup=subgroup,
                 group_order=group_order,
@@ -1079,11 +1083,11 @@ class CategoricalPlot(BasePlot):
                 group_spacing=group_spacing,
             )
         else:
-            group_order = [""]
-            subgroup_order = [""]
-            loc_dict = {}
+            group_order = [("",)]
+            subgroup_order = [("",)]
+            loc_dict = {("",): 0.0}
             loc_dict[""] = 0.0
-            width = 1
+            width = 1.0
 
         x_ticks = [index for index, _ in enumerate(group_order)]
         self.plot_dict = {
@@ -1102,9 +1106,8 @@ class CategoricalPlot(BasePlot):
             "ytransform": None,
             "back_transform_ticks": False,
             "projection": "rectilinear",
+            "levels": levels,
         }
-        self.plots = []
-        self.plot_list = []
 
         grid_settings = {
             "ygrid": False,
@@ -1203,7 +1206,7 @@ class CategoricalPlot(BasePlot):
         self,
         color: ColorDict = None,
         marker: Union[str, dict[str, str]] = "o",
-        edgecolor: ColorDict = None,
+        edgecolor: Optional[ColorDict] = "none",
         alpha: AlphaRange = 1.0,
         jitter: Union[float, int] = 1.0,
         seed: int = 42,
@@ -1211,19 +1214,13 @@ class CategoricalPlot(BasePlot):
         unique_id: Union[None] = None,
         legend: bool = False,
     ):
-        marker_dict = process_args(
-            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        marker_dict = create_dict(marker, self.plot_dict["unique_groups"])
+        color = _process_colors(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
-        color_dict = process_args(
-            _process_colors(
-                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
-        )
-        edgecolor_dict = process_args(
-            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
+
+        edgecolor_dict = create_dict(edgecolor, self.plot_dict["unique_groups"])
 
         jitter_plot = {
             "color_dict": color_dict,
@@ -1264,25 +1261,13 @@ class CategoricalPlot(BasePlot):
         agg_func: Optional[AGGREGATE] = None,
         legend: bool = False,
     ):
-        marker_dict = process_args(
-            marker, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
+        marker_dict = create_dict(marker, self.plot_dict["unique_groups"])
+        color = _process_colors(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
-        color_dict = process_args(
-            _process_colors(
-                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
-        )
-        edgecolor_dict = process_args(
-            _process_colors(
-                edgecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
-        )
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
+
+        edgecolor_dict = create_dict(edgecolor, self.plot_dict["unique_groups"])
 
         jitteru_plot = {
             "color_dict": color_dict,
@@ -1326,13 +1311,10 @@ class CategoricalPlot(BasePlot):
         if self.style == "dark_background" and color == "black":
             color = "white"
 
-        color_dict = process_args(
-            _process_colors(
-                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        color = _process_colors(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
 
         summary_plot = {
             "func": func,
@@ -1374,13 +1356,10 @@ class CategoricalPlot(BasePlot):
         if self.style == "dark_background" and color == "black":
             color = "white"
 
-        color_dict = process_args(
-            _process_colors(
-                color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        color = _process_colors(
+            color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
 
         summary_plot = {
             "func": func,
@@ -1420,25 +1399,15 @@ class CategoricalPlot(BasePlot):
         show_ci: bool = False,
         legend: bool = False,
     ):
-        color_dict = process_args(
-            _process_colors(
-                facecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        color = _process_colors(
+            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
 
-        linecolor_dict = process_args(
-            _process_colors(
-                linecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        linecolor = _process_colors(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        linecolor_dict = create_dict(linecolor, self.plot_dict["unique_groups"])
         boxplot = {
             "color_dict": color_dict,
             "linecolor_dict": linecolor_dict,
@@ -1478,24 +1447,14 @@ class CategoricalPlot(BasePlot):
         showmedians: bool = False,
         legend: bool = False,
     ):
-        color_dict = process_args(
-            _process_colors(
-                facecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        color = _process_colors(
+            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
-        edge_dict = process_args(
-            _process_colors(
-                edgecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
-            self.plot_dict["group_order"],
-            self.plot_dict["subgroup_order"],
+        color_dict = create_dict(color, self.plot_dict["unique_groups"])
+        edgecolor = _process_colors(
+            edgecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        edge_dict = create_dict(edgecolor, self.plot_dict["unique_groups"])
         violin = {
             "color_dict": color_dict,
             "edge_dict": edge_dict,
@@ -1608,27 +1567,15 @@ class CategoricalPlot(BasePlot):
         legend: bool = False,
     ):
 
-        groups = pd.unique(self.plot_dict["data"][self.plot_dict["y"]])
-        subgroups = [""] * len(groups)
-        color_dict = process_args(
-            _process_colors(
-                facecolor,
-                groups,
-                subgroups,
-            ),
-            groups,
-            subgroups,
+        facecolor = _process_colors(
+            facecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        color_dict = create_dict(facecolor, self.plot_dict["unique_groups"])
 
-        linecolor_dict = process_args(
-            _process_colors(
-                linecolor,
-                groups,
-                subgroups,
-            ),
-            groups,
-            subgroups,
+        linecolor = _process_colors(
+            linecolor, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
+        linecolor_dict = create_dict(linecolor, self.plot_dict["unique_groups"])
 
         count_plot = {
             "color_dict": color_dict,
@@ -1678,6 +1625,7 @@ class CategoricalPlot(BasePlot):
                 unique_groups=self.plot_dict["unique_groups"],
                 ax=ax,
                 transform=self.plot_dict["ytransform"],
+                levels=self.plot_dict["levels"],
                 **j,
             )
 

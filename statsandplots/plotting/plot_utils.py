@@ -22,7 +22,7 @@ STANDARD_COLORS = [
 
 
 def create_dict(grouping, unique_groups):
-    if isinstance(grouping, (str, int)) or grouping is None:
+    if grouping is None or isinstance(grouping, (str, int)):
         output_dict = {key: grouping for key in unique_groups}
     else:
         if not isinstance(grouping, dict):
@@ -293,19 +293,19 @@ def get_valid_kwargs(args_list, **kwargs):
 
 
 def _process_positions(group_spacing, group_order, subgroup, subgroup_order):
-    group_loc = {key: index for index, key in enumerate(group_order)}
+    group_loc = {key: float(index) for index, key in enumerate(group_order)}
     if subgroup is not None:
         width = group_spacing / len(subgroup_order)
         start = (group_spacing / 2) - (width / 2)
         sub_loc = np.linspace(-start, start, len(subgroup_order))
         subgroup_loc = {key: value for key, value in zip(subgroup_order, sub_loc)}
+        loc_dict = {}
+        for i, i_value in group_loc.items():
+            for j, j_value in subgroup_loc.items():
+                key = i + j
+                loc_dict[key] = i_value + j_value
 
     else:
-        subgroup_loc = {key: 0 for key in subgroup_order}
-        width = float(group_spacing)
-    loc_dict = {}
-    for i, i_value in group_loc.items():
-        for j, j_value in subgroup_loc.items():
-            key = rf"{i}" + rf"{j}"
-            loc_dict[key] = i_value + j_value
+        loc_dict = group_loc
+        width = 0.0
     return loc_dict, width
