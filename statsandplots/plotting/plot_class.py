@@ -1086,7 +1086,7 @@ class CategoricalPlot(BasePlot):
             group_order = [("",)]
             subgroup_order = [("",)]
             loc_dict = {("",): 0.0}
-            loc_dict[""] = 0.0
+            loc_dict[("",)] = 0.0
             width = 1.0
 
         x_ticks = [index for index, _ in enumerate(group_order)]
@@ -1208,7 +1208,7 @@ class CategoricalPlot(BasePlot):
         marker: Union[str, dict[str, str]] = "o",
         edgecolor: Optional[ColorDict] = "none",
         alpha: AlphaRange = 1.0,
-        jitter: Union[float, int] = 1.0,
+        width: Union[float, int] = 1.0,
         seed: int = 42,
         markersize: float = 2.0,
         unique_id: Union[None] = None,
@@ -1227,7 +1227,7 @@ class CategoricalPlot(BasePlot):
             "marker_dict": marker_dict,
             "edgecolor_dict": edgecolor_dict,
             "alpha": alpha,
-            "width": jitter * self.plot_dict["width"],
+            "width": width * self.plot_dict["width"],
             "seed": seed,
             "markersize": markersize,
             "unique_id": unique_id,

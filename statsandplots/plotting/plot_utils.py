@@ -292,7 +292,7 @@ def get_valid_kwargs(args_list, **kwargs):
     return output_args
 
 
-def _process_positions(group_spacing, group_order, subgroup, subgroup_order):
+def _process_positions(group_spacing, group_order, subgroup=None, subgroup_order=None):
     group_loc = {key: float(index) for index, key in enumerate(group_order)}
     if subgroup is not None:
         width = group_spacing / len(subgroup_order)
@@ -302,10 +302,10 @@ def _process_positions(group_spacing, group_order, subgroup, subgroup_order):
         loc_dict = {}
         for i, i_value in group_loc.items():
             for j, j_value in subgroup_loc.items():
-                key = i + j
+                key = (i, j)
                 loc_dict[key] = i_value + j_value
 
     else:
-        loc_dict = group_loc
-        width = 0.0
+        loc_dict = {(key,): value for key, value in group_loc.items()}
+        width = 1.0
     return loc_dict, width

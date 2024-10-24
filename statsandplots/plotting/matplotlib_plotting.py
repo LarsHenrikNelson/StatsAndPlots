@@ -131,7 +131,7 @@ def _jitter_plot(
     transform = get_transform(transform)
 
     rng = default_rng(seed)
-    jitter_values = rng.random(len(unique_groups))
+    jitter_values = rng.random(data[y].size)
     jitter_values *= width
     jitter_values -= width / 2
 
@@ -159,7 +159,7 @@ def _jitter_plot(
                 unique_ids_sub = np.unique(data[groups[i], unique_id])
                 for index, ui_group in enumerate(unique_ids_sub):
                     sub_indexes = uid_groups[i + (ui_group,)]
-                    x = np.array([loc_dict[i]] * len(indexes))
+                    x = np.full(len(sub_indexes), loc_dict[i])
                     x += jitter_values[sub_indexes]
                     ax.plot(
                         x,
