@@ -350,7 +350,7 @@ def _summaryu_plot(
             else:
                 temp_vals = []
                 for index, j in enumerate(uids):
-                    vals = transform(data[uid_groups[j], y])
+                    vals = transform(data[uid_groups[i + (j,)], y])
                     temp_vals.append(get_transform(func)(vals))
                 x_data.append(loc_dict[i])
                 colors.append(color_dict[i])
