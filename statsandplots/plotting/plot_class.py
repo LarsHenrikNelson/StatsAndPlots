@@ -756,9 +756,7 @@ class LinePlot(BasePlot):
             color, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
         )
         color_dict = create_dict(color, self.plot_dict["unique_groups"])
-        linestyle_dict = process_args(
-            linestyle, self.plot_dict["group_order"], self.plot_dict["subgroup_order"]
-        )
+        linestyle_dict = create_dict(linestyle, self.plot_dict["unique_groups"])
 
         ecdf = {
             "color_dict": color_dict,

@@ -33,9 +33,9 @@ def spline_ecdf(
     j_sort = np.sort(x)
     y = np.arange(j_sort.size) / j_sort.size
     cs = interpolate.CubicSpline(y, j_sort, bc_type=bc_type)
-    y_new = np.arange(1, size) / size
+    y_new = np.arange(size) / size
     x_new = cs(y_new)
-    return x_new, y_new
+    return y_new, x_new
 
 
 # Could potentially speed this up with numba however,
