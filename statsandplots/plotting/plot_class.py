@@ -1497,26 +1497,19 @@ class CategoricalPlot(BasePlot):
     ):
         if isinstance(cutoff, (float, int)):
             cutoff = [cutoff]
-
-        color_dict = process_args(
-            _process_colors(
-                facecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
+        facecolor = _process_colors(
+            facecolor,
             self.plot_dict["group_order"],
             self.plot_dict["subgroup_order"],
         )
+        color_dict = create_dict(facecolor, self.plot_dict["unique_groups"])
 
-        linecolor_dict = process_args(
-            _process_colors(
-                linecolor,
-                self.plot_dict["group_order"],
-                self.plot_dict["subgroup_order"],
-            ),
+        linecolor = _process_colors(
+            linecolor,
             self.plot_dict["group_order"],
             self.plot_dict["subgroup_order"],
         )
+        linecolor_dict = create_dict(linecolor, self.plot_dict["unique_groups"])
 
         percent_plot = {
             "color_dict": color_dict,
