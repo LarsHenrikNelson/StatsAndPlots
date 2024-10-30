@@ -104,7 +104,7 @@ class DataHolder:
         temp_groups = pd.DataFrame(self._data).groupby(levels).indices
         new_groups = {}
         for key, value in temp_groups.items():
-            if isinstance(key, str):
+            if not isinstance(key, tuple):
                 new_groups[(key,)] = value
             else:
                 new_groups[key] = value

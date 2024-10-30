@@ -1482,7 +1482,7 @@ def _percent_plot(
             x_loc.extend(x_s)
             hatches.extend(hs)
         else:
-            unique_ids_sub = np.unique(data[data[gr], unique_id])
+            unique_ids_sub = np.unique(data[groups[gr], unique_id])
             temp_width = barwidth / len(unique_ids_sub)
             bw.extend([temp_width] * plot_bins * len(unique_ids_sub))
             lw.extend([linewidth] * plot_bins * len(unique_ids_sub))
@@ -1495,7 +1495,11 @@ def _percent_plot(
                 dist = [0]
             for index, ui_group in enumerate(unique_ids_sub):
                 top, bottom = _bin_data(
-                    data[uid_groups[ui_group], y], bins, axis_type, invert, cutoff
+                    data[uid_groups[gr + (ui_group,)], y],
+                    bins,
+                    axis_type,
+                    invert,
+                    cutoff,
                 )
 
                 tops.extend(top[include_bins])
