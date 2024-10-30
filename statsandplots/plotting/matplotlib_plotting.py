@@ -521,10 +521,10 @@ def paired_plot():
 
 def _calc_hist(data, bins, stat):
     if stat == "probability":
-        data = np.histogram(data, bins)
+        data, _ = np.histogram(data, bins)
         return data / data.sum()
     elif stat == "count":
-        data = np.histogram(data, bins)
+        data, _ = np.histogram(data, bins)
         return data
     elif stat == "density":
         data, _ = np.histogram(data, bins, density=True)
