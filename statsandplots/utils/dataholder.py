@@ -101,7 +101,7 @@ class DataHolder:
         return yy
 
     def groups(self, levels):
-        temp_groups = pd.DataFrame(self._data).groupby(levels).groups
+        temp_groups = pd.DataFrame(self._data).groupby(levels).indices
         new_groups = {}
         for key, value in temp_groups.items():
             if isinstance(key, str):
