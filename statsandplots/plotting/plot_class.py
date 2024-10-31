@@ -490,7 +490,7 @@ class LinePlot(BasePlot):
         linecolor_dict = create_dict(linecolor, self.plot_dict["unique_groups"])
         linestyle_dict = create_dict(linestyle, self.plot_dict["unique_groups"])
         line_plot = {
-            "linecolor_dict": linecolor_dict,
+            "color_dict": linecolor_dict,
             "linestyle_dict": linestyle_dict,
             "linewidth": linewidth,
             "func": func,
