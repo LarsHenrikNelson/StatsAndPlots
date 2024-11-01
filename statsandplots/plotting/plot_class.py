@@ -746,6 +746,7 @@ class LinePlot(BasePlot):
         linestyle: str = "-",
         linewidth: int = 2,
         alpha: AlphaRange = 1.0,
+        fillalpha: AlphaRange = 0.5,
         unique_id: Optional[str] = None,
         agg_func=None,
         err_func=None,
@@ -768,6 +769,7 @@ class LinePlot(BasePlot):
             "ecdf_args": ecdf_args if ecdf_args is not None else {},
             "agg_func": agg_func,
             "err_func": err_func,
+            "fillalpha": fillalpha,
         }
         self.plots.append(ecdf)
         self.plot_list.append("ecdf")

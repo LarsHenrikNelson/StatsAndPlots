@@ -709,6 +709,7 @@ def _plot_agg_line(
             color=linecolor,
             alpha=fillalpha,
             linewidth=0,
+            edgecolor="none",
         )
         ax[value].plot(
             x_data,
@@ -717,6 +718,7 @@ def _plot_agg_line(
             linewidth=linewidth,
             color=linecolor,
             alpha=linealpha,
+            edgecolor="none",
         )
 
 
@@ -989,7 +991,7 @@ def _kde_plot(
                 y + errs[plot_index],
                 color=lc,
                 alpha=fillalpha,
-                linewidth=0,
+                edgecolor="none",
             )
     return ax
 
@@ -1005,6 +1007,7 @@ def _ecdf(
     facet_dict,
     linestyle_dict,
     alpha,
+    fillalpha,
     unique_id=None,
     agg_func=None,
     err_func=None,
@@ -1111,13 +1114,13 @@ def _ecdf(
             linewidth=linewidth,
         )
         if err_func is not None:
-            ax[fax].fill_between(
-                x,
-                y - errs[plot_index],
-                y + errs[plot_index],
+            ax[fax].fill_betweenx(
+                y,
+                x - errs[plot_index],
+                x + errs[plot_index],
                 color=lc,
-                alpha=alpha,
-                linewidth=0,
+                alpha=fillalpha,
+                edgecolor="none",
             )
 
 
@@ -1192,6 +1195,7 @@ def _poly_hist(
                     y2=mean_data + err_func(temp_list, axis=0),
                     alpha=alpha / 2,
                     color=color_dict[i],
+                    edgecolor="none",
                 )
     else:
         ugrp = np.unique(unique_groups)
@@ -1281,6 +1285,7 @@ def _line_plot(
                     y2=mean_y + err,
                     alpha=alpha / 2,
                     color=color_dict[i],
+                    edgecolor="none",
                 )
     else:
         for i in unique_groups:
