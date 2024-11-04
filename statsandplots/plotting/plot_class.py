@@ -1255,6 +1255,7 @@ class CategoricalPlot(BasePlot):
         marker: Union[str, dict[str, str]] = "o",
         edgecolor: ColorDict = None,
         alpha: AlphaRange = 1.0,
+        edge_alpha: AlphaRange = None,
         width: Union[float, int] = 1.0,
         duplicate_offset=0.0,
         markersize: float = 2.0,
@@ -1267,13 +1268,20 @@ class CategoricalPlot(BasePlot):
         )
         color_dict = create_dict(color, self.plot_dict["unique_groups"])
 
-        edgecolor_dict = create_dict(edgecolor, self.plot_dict["unique_groups"])
+        if edgecolor is None:
+            edgecolor_dict = color_dict
+        else:
+            edgecolor_dict = create_dict(edgecolor, self.plot_dict["unique_groups"])
+
+        if edge_alpha is None:
+            edge_alpha = alpha
 
         jitteru_plot = {
             "color_dict": color_dict,
             "marker_dict": marker_dict,
             "edgecolor_dict": edgecolor_dict,
             "alpha": alpha,
+            "edge_alpha": edge_alpha,
             "width": width * self.plot_dict["width"],
             "markersize": markersize,
             "unique_id": unique_id,

@@ -185,6 +185,7 @@ def _jitteru_plot(
     marker_dict,
     edgecolor_dict,
     alpha=1,
+    edge_alpha=1,
     duplicate_offset=0.0,
     markersize=2,
     agg_func=None,
@@ -228,9 +229,8 @@ def _jitteru_plot(
                     x,
                     get_transform(agg_func)(transform(data[sub_indexes, y])),
                     marker_dict[i],
-                    markerfacecolor=color_dict[i],
-                    markeredgecolor=edgecolor_dict[i],
-                    alpha=alpha,
+                    markerfacecolor=to_rgba(color_dict[i], alpha=alpha),
+                    markeredgecolor=to_rgba(edgecolor_dict[i], alpha=edge_alpha),
                     markersize=markersize,
                 )
     return ax
