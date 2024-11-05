@@ -696,6 +696,7 @@ def _plot_agg_line(
             color=linecolor,
             elinewidth=linewidth,
             linewidth=linewidth,
+            linestyle=linestyle,
             markerfacecolor=markerfacecolor,
             markeredgecolor=markeredgecolor,
             markersize=markersize,
@@ -718,7 +719,6 @@ def _plot_agg_line(
             linewidth=linewidth,
             color=linecolor,
             alpha=linealpha,
-            edgecolor="none",
         )
 
 
