@@ -9,9 +9,7 @@ from .aov import TwoWayAnovaData
 __all__ = ["write_to_txt", "save_aov"]
 
 
-def write_to_txt(
-    data: Union[str, TwoWayAnovaData], filename: Union[str, dict[str, str]] = None
-):
+def write_to_txt(data: Union[str, TwoWayAnovaData], filename: Union[str, Path] = None):
     if isinstance(data, str):
         data = {}
         temp = {}
@@ -19,15 +17,21 @@ def write_to_txt(
         data["data"] = temp
     if filename is None:
         filename = Path().cwd() / "stats.txt"
+    else:
+        filename = Path(filename) / "stats.txt"
     with open(filename, mode="w", encoding="utf-8") as txtfile:
         for outerkey, outervalue in data.items():
             txtfile.write(outerkey + ": " + outervalue["text"])
 
 
-def save_aov(data, filename):
+def save_aov(data: Union[str, TwoWayAnovaData], filename: Union[str, Path] = None):
+    if filename is None:
+        filename = Path().cwd() / "stats.xlsx"
+    else:
+        filename = Path(filename) / "stats.xlsx"
     with pd.ExcelWriter(
         filename,
-        engine="xlsxwriter",
+        engine="openpyxl",
     ) as writer:
         for outer_key, d in data.items():
             d["table"].to_excel(writer, sheet_name=f"{outer_key}_aov")
