@@ -3,13 +3,32 @@ from typing import Union
 
 import pandas as pd
 
-from .aov import TwoWayAnovaData
+from .stats_helpers import BaseData
 
 
-__all__ = ["write_to_txt", "save_aov"]
+__all__ = ["write_to_txt", "save_data"]
 
 
-def write_to_txt(data: Union[str, TwoWayAnovaData], filename: Union[str, Path] = None):
+SUBSCRIPT_MAP = {
+    "0": "₀",
+    "1": "₁",
+    "2": "₂",
+    "3": "₃",
+    "4": "₄",
+    "5": "₅",
+    "6": "₆",
+    "7": "₇",
+    "8": "₈",
+    "9": "₉",
+    ".": r"\U+002E",
+}
+
+
+def to_subscript(number):
+    return "".join(SUBSCRIPT_MAP[digit] for digit in str(number))
+
+
+def write_to_txt(data: Union[str, BaseData], filename: Union[str, Path] = None):
     if isinstance(data, str):
         data = {}
         temp = {}
@@ -24,7 +43,7 @@ def write_to_txt(data: Union[str, TwoWayAnovaData], filename: Union[str, Path] =
             txtfile.write(outerkey + ": " + outervalue["text"])
 
 
-def save_aov(data: Union[str, TwoWayAnovaData], filename: Union[str, Path] = None):
+def save_data(data: Union[str, BaseData], filename: Union[str, Path] = None):
     if filename is None:
         filename = Path().cwd() / "stats.xlsx"
     else:

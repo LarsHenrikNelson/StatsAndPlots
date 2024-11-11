@@ -10,14 +10,15 @@ from scipy.stats import norm
 from .stats_helpers import round_sig, BaseData
 
 __all__ = [
-    "bootstrap_test",
-    "bootstrap_two_sample",
-    "unpaired_t_test",
     "BAc_confidence_intervals",
     "boostrap",
-    "permutation_test",
-    "find_counts",
+    "bootstrap_test",
+    "bootstrap_two_sample",
     "BootStrapData",
+    "find_counts",
+    "permutation_test",
+    "run_batch_bootstrap",
+    "unpaired_ttest",
 ]
 
 
@@ -25,12 +26,30 @@ class BootStrapData(BaseData):
     replicates: np.ndarray
 
 
+def run_batch_bootstrap(columns, data, group, iterations, base_stat_func, sig):
+    output = {}
+    for i in columns:
+        output[i] = bootstrap_test(data, group, i, iterations, base_stat_func, sig)
+    return output
+
+
 def serialize_bootstrap(data):
     x = ""
-    p_value = "P_vale"
+    p_value = "P_value"
     cib = "Lower_CI"
     cit = "Upper_CI"
-    x += f"p = {data[p_value].iloc[0]}, CI[{data[cib].iloc[0]}, {data[cit].iloc}]"
+    x += f"p = {data[p_value].iloc[0]}, CI[{data[cib].iloc[0]}, {data[cit].iloc[0]}]\n"
+    return x
+
+
+def serialize_ttest(data):
+    x = ""
+    dof = data["Degrees of Freedom"].iloc[0]
+    test_stat = data["Test Statistic"].iloc[0]
+    p_value = data["P_value"].iloc[0]
+    low = data["Lower_CI"].iloc[0]
+    upper = data["Upper_CI"].iloc[0]
+    x += f"t{dof} = {test_stat}, p = {p_value}, CI[{low}, {upper}]\n"
     return x
 
 
@@ -394,7 +413,12 @@ def boostrap(
     return bs_replicates
 
 
-def unpaired_t_test(df, column_for_group, column_for_data):
+def unpaired_ttest(
+    df,
+    column_for_group,
+    column_for_data,
+    sig: int = 3,
+):
     """Runs a Welch's t-test since most sample sizes will be unequal
     or have unequal variance. The Welch's t-test converges to a Student's
     t-test when the sample sizes are equal.
@@ -421,16 +445,21 @@ def unpaired_t_test(df, column_for_group, column_for_data):
     x1 = x1[~np.isnan(x1)]
     x2 = np.array(df.loc[(df[column_for_group] == groups[1]), column_for_data])
     x2 = x2[~np.isnan(x2)]
-    dof = (x1.var() / x1.size + x2.var() / x2.size) ** 2 / (
-        (x1.var() / x1.size) ** 2 / (x1.size - 1)
-        + (x2.var() / x2.size) ** 2 / (x2.size - 1)
-    )
-    test_stat, p_value = stats.ttest_ind(x1, x2, equal_var=False)
+    # dof = (x1.var() / x1.size + x2.var() / x2.size) ** 2 / (
+    #     (x1.var() / x1.size) ** 2 / (x1.size - 1)
+    #     + (x2.var() / x2.size) ** 2 / (x2.size - 1)
+    # )
+    result = stats.ttest_ind(x1, x2, equal_var=False)
+    ci = result.confidence_interval()
     stat_table = pd.DataFrame(
         {
-            "Degrees of Freedom": [dof],
-            "Test Statistic": [test_stat],
-            "P_value": [p_value],
+            "Degrees of Freedom": [round_sig(result.df, sig)],
+            "Test Statistic": [round_sig(result.statistic, sig)],
+            "P_value": [round_sig(result.pvalue, sig)],
+            "Lower_CI": round_sig(ci.low, sig),
+            "Upper_CI": round_sig(ci.high, sig),
         }
     )
-    return descriptive_stats, stat_table
+    txt = serialize_ttest(stat_table)
+    output = BaseData(data=stat_table, descriptive_stats=descriptive_stats, text=txt)
+    return output
