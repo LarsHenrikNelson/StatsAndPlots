@@ -7,6 +7,7 @@ from scipy.stats import t
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from statsmodels.stats.multicomp import MultiComparison
+from statsmodels.stats.outliers_influence import OLSInfluence
 
 from .stats_helpers import round_sig, BaseData
 
@@ -18,6 +19,7 @@ class TwoWayAnovaData(BaseData):
     table: pd.DataFrame
     text: str
     posthoc: pd.DataFrame
+    residuals: np.ndarray
 
 
 def run_batch_aov(columns, data, group, subgroup):
@@ -150,6 +152,7 @@ def two_way_anova(
     model = ols(formula, data=df_copy).fit()
     # pw = model.t_test_pairwise(x1, method)
     aov_table = anova_lm(model, typ=3)
+    resid = OLSInfluence(model).resid_studentized_external
     aov_table.drop("Intercept", axis=0, inplace=True)
     eta_squared(aov_table)
     omega_squared(aov_table)
@@ -171,6 +174,7 @@ def two_way_anova(
         table=aov_table.map(lambda x: round_sig(x, sig)),
         text=text,
         post_hoc=post_hoc_df,
+        residuals=resid,
     )
 
 
