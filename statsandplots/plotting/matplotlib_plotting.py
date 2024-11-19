@@ -393,19 +393,26 @@ def _plot_summary(
             x=xd,
             y=yd,
             yerr=e,
-            xerr=w / 2,
             c=to_rgba(c, alpha=alpha),
             fmt="none",
             linewidth=linewidth,
             capsize=capsize,
         )
-        for cap in caplines[2:]:
+        for cap in caplines:
             cap.set_solid_capstyle(capstyle)
             cap.set_markeredgewidth(linewidth)
             cap._marker._capstyle = CapStyle(capstyle)
-        for cap in caplines[:2]:
-            cap.set_linewidth(0)
-            cap.set_markeredgewidth(0)
+        for b in bars:
+            b.set_capstyle(capstyle)
+        _, caplines, bars = ax.errorbar(
+            y=yd,
+            x=xd,
+            xerr=w / 2,
+            c=to_rgba(c, alpha=alpha),
+            fmt="none",
+            linewidth=linewidth,
+            capsize=0,
+        )
         for b in bars:
             b.set_capstyle(capstyle)
     return ax
