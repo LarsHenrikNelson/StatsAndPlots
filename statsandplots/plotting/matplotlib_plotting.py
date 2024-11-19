@@ -400,7 +400,6 @@ def _plot_summary(
             capsize=capsize,
         )
         for cap in caplines[2:]:
-            print(dir(cap))
             cap.set_solid_capstyle(capstyle)
             cap.set_markeredgewidth(linewidth)
             cap._marker._capstyle = CapStyle(capstyle)
