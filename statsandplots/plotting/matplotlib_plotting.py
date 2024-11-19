@@ -399,10 +399,14 @@ def _plot_summary(
             linewidth=linewidth,
             capsize=capsize,
         )
-        for cap in caplines:
+        for cap in caplines[2:]:
+            print(dir(cap))
             cap.set_solid_capstyle(capstyle)
             cap.set_markeredgewidth(linewidth)
             cap._marker._capstyle = CapStyle(capstyle)
+        for cap in caplines[:2]:
+            cap.set_linewidth(0)
+            cap.set_markeredgewidth(0)
         for b in bars:
             b.set_capstyle(capstyle)
     return ax
