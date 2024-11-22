@@ -72,6 +72,21 @@ PLOTLY_SAVE_TYPES = {"html"}
 
 class BasePlot:
 
+    def __init__(self):
+        self.plot_dict = {}
+
+        label_props = {
+            "labelsize": 20,
+            "titlesize": 20,
+            "ticklabel_size": 12,
+            "font": "DejaVu Sans",
+            "title_fontweight": "regular",
+            "label_fontweight": "regular",
+            "tick_fontweight": "regular",
+        }
+
+        self.plot_dict["label_props"] = label_props
+
     def grid_settings(
         self,
         ygrid: bool = True,
@@ -285,6 +300,73 @@ class BasePlot:
         if not self.inplace:
             return self
 
+    def plot_settings(
+        self,
+        style: str = "default",
+        ylim: Optional[list] = None,
+        xlim: Optional[list] = None,
+        yscale: Literal["linear", "log", "symlog"] = "linear",
+        xscale: Literal["linear", "log", "symlog"] = "linear",
+        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
+        linewidth: float = 2,
+        tickwidth: float = 2,
+        ticklength: float = 5.0,
+        yminorticks: bool = False,
+        xminorticks: bool = False,
+        minor_tickwidth: float = 1.5,
+        minor_ticklength: float = 2.5,
+        ysteps: int = 7,
+        xsteps: int = 7,
+        tickstyle: Literal["all", "middle"] = "all",
+        ydecimals: int = None,
+        xdecimals: int = None,
+        xunits: Optional[Literal["degree", "radian" "wradian"]] = None,
+    ):
+        self._plot_settings_run = True
+        if ylim is None:
+            ylim = [None, None]
+        if xlim is None:
+            xlim = [None, None]
+
+        plot_settings = {
+            "yscale": yscale,
+            "xscale": xscale,
+            "xlabel_rotation": xlabel_rotation,
+            "tickwidth": tickwidth,
+            "ticklength": ticklength,
+            "linewidth": linewidth,
+            "ylim": ylim,
+            "xlim": xlim,
+            "ydecimals": ydecimals,
+            "xdecimals": xdecimals,
+            "xsteps": xsteps,
+            "ysteps": ysteps,
+            "tickstyle": tickstyle,
+            "xunits": xunits,
+            "yminorticks": yminorticks,
+            "xminorticks": xminorticks,
+            "minor_tickwidth": minor_tickwidth,
+            "minor_ticklength": minor_ticklength,
+        }
+        self.plot_dict.update(plot_settings)
+
+        plt.style.use(style)
+        self.style = style
+
+        # Quick check just for dark and default backgrounds
+        # for index, val in enumerate(self.plot_list):
+        #     if val in ["line", "summary"]:
+        #         if (
+        #             self.style == "dark_background"
+        #             and self.plots[index]["color"] == "black"
+        #         ):
+        #             self.plots[index]["color"] = "white"
+        #         elif self.style == "default" and self.plots[index]["color"] == "white":
+        #             self.plots[index]["color"] = "black"
+
+        if not self.inplace:
+            return self
+
     def plot(
         self,
         savefig: bool = False,
@@ -364,6 +446,8 @@ class LinePlot(BasePlot):
         projection: Literal["rectilinear", "polar"] = "rectilinear",
         inplace: bool = False,
     ):
+        super().__init__()
+
         self.inplace = inplace
         self.plots = []
         self.plot_list = []
@@ -425,71 +509,6 @@ class LinePlot(BasePlot):
             "ylinewidth": 1,
         }
         self.plot_dict["grid_settings"] = grid_settings
-
-    def plot_settings(
-        self,
-        style: str = "default",
-        ylim: Optional[list] = None,
-        xlim: Optional[list] = None,
-        yscale: Literal["linear", "log", "symlog"] = "linear",
-        xscale: Literal["linear", "log", "symlog"] = "linear",
-        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
-        linewidth: float = 2,
-        tickwidth: float = 2,
-        ticklength: float = 5.0,
-        yminorticks: bool = False,
-        xminorticks: bool = False,
-        minor_tickwidth: float = 1.5,
-        minor_ticklength: float = 2.5,
-        steps: int = 7,
-        tickstyle: Literal["all", "middle"] = "all",
-        ydecimals: int = None,
-        xdecimals: int = None,
-        xunits: Optional[Literal["degree", "radian" "wradian"]] = None,
-    ):
-        self._plot_settings_run = True
-        if ylim is None:
-            ylim = [None, None]
-        if xlim is None:
-            xlim = [None, None]
-
-        plot_settings = {
-            "yscale": yscale,
-            "xscale": xscale,
-            "xlabel_rotation": xlabel_rotation,
-            "tickwidth": tickwidth,
-            "ticklength": ticklength,
-            "linewidth": linewidth,
-            "ylim": ylim,
-            "xlim": xlim,
-            "ydecimals": ydecimals,
-            "xdecimals": xdecimals,
-            "steps": steps,
-            "tickstyle": tickstyle,
-            "xunits": xunits,
-            "yminorticks": yminorticks,
-            "xminorticks": xminorticks,
-            "minor_tickwidth": minor_tickwidth,
-            "minor_ticklength": minor_ticklength,
-        }
-        self.plot_dict.update(plot_settings)
-
-        plt.style.use(style)
-        self.style = style
-
-        # Quick check just for dark and default backgrounds
-        for index, val in enumerate(self.plot_list):
-            if val == "line":
-                if (
-                    self.style == "dark_background"
-                    and self.plots[index]["color"] == "black"
-                ):
-                    self.plots[index]["color"] = "white"
-                elif self.style == "default" and self.plots[index]["color"] == "white":
-                    self.plots[index]["color"] = "black"
-
-        if not self.inplace:
-            return self
 
     def transform(
         self,
@@ -1113,6 +1132,7 @@ class CategoricalPlot(BasePlot):
         title: str = "",
         inplace: bool = False,
     ):
+        super().__init__()
 
         self._plot_settings_run = False
         self.inplace = inplace
@@ -1181,71 +1201,6 @@ class CategoricalPlot(BasePlot):
             "ylinewidth": 1,
         }
         self.plot_dict["grid_settings"] = grid_settings
-
-    def plot_settings(
-        self,
-        style: str = "default",
-        legend_loc: tuple = "upper left",
-        legend_anchor: tuple = (1, 1),
-        ylim: Optional[list] = None,
-        yscale: Literal["linear", "log", "symlog"] = "linear",
-        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
-        steps: int = 5,
-        linewidth: int = 2,
-        tickwidth: int = 2,
-        ticklength: float = 5.0,
-        ticklabel: int = 20,
-        tickstyle: Literal["all", "middle"] = "all",
-        decimals: int = None,
-        minorticks: bool = False,
-        minor_tickwidth: float = 1.5,
-        minor_ticklength: float = 2.5,
-    ):
-        self._plot_settings_run = True
-        if "ylim" in self.plot_dict:
-            ylim = self.plot_dict["ylim"]
-        elif ylim is None:
-            ylim = [None, None]
-
-        plot_settings = {
-            "ylim": ylim,
-            "yscale": yscale,
-            "steps": steps,
-            "tickwidth": tickwidth,
-            "ticklength": ticklength,
-            "ticklabel": ticklabel,
-            "xlabel_rotation": xlabel_rotation,
-            "decimals": decimals,
-            "linewidth": linewidth,
-            "legend_loc": legend_loc,
-            "legend_anchor": legend_anchor,
-            "integer_axis": False,
-            "minorticks": minorticks,
-            "minor_tickwidth": minor_tickwidth,
-            "minor_ticklength": minor_ticklength,
-            "tickstyle": tickstyle,
-        }
-        self.plot_dict.update(plot_settings)
-
-        plt.style.use(style)
-        self.style = style
-
-        # Quick check just for dark and default backgrounds
-        for index, val in enumerate(self.plot_list):
-            if val == "summary":
-                if (
-                    self.style == "dark_background"
-                    and self.plots[index]["color_dict"] == "black"
-                ):
-                    self.plots[index]["color_dict"] = "white"
-                elif (
-                    self.style == "default"
-                    and self.plots[index]["color_dict"] == "white"
-                ):
-                    self.plots[index]["color_dict"] = "black"
-
-        if not self.inplace:
-            return self
 
     def transform(
         self,
@@ -1711,7 +1666,7 @@ class CategoricalPlot(BasePlot):
 
         self._set_lims(ax, decimals, axis="y")
 
-        if self.plot_dict["minorticks"]:
+        if self.plot_dict["yminorticks"]:
             self._set_minorticks(ax, self.plot_dict["ytransform"], ticks="y")
 
         ax.set_ylabel(
