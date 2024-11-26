@@ -73,49 +73,76 @@ PLOTLY_SAVE_TYPES = {"html"}
 class BasePlot:
 
     def __init__(self):
-        self.plot_dict = {}
+        self._plot_format = {}
 
         label_props = {
             "labelsize": 20,
-            "titlesize": 20,
+            "titlesize": 22,
             "ticklabel_size": 12,
             "font": "DejaVu Sans",
             "title_fontweight": "regular",
             "label_fontweight": "regular",
             "tick_fontweight": "regular",
+            "xlabel_rotation": "horizontal",
         }
 
-        self.plot_dict["label_props"] = label_props
+        self._plot_format["labels"] = label_props
 
-    def grid_settings(
-        self,
-        ygrid: bool = True,
-        xgrid: bool = True,
-        linestyle: Union[str, tuple] = "solid",
-        ylinewidth: Union[float, int] = 1,
-        xlinewidth: Union[float, int] = 1,
-    ):
-
-        grid_settings = {
-            "ygrid": ygrid,
-            "xgrid": xgrid,
-            "linestyle": linestyle,
-            "xlinewidth": xlinewidth,
-            "ylinewidth": ylinewidth,
+        axis = {
+            "style": "default",
+            "yscale": "linear",
+            "xscale": "linear",
+            "tickwidth": 2,
+            "ticklength": 5.0,
+            "linewidth": 2.0,
+            "ylim": [None, None],
+            "xlim": [None, None],
+            "ydecimals": None,
+            "xdecimals": None,
+            "xsteps": 5,
+            "ysteps": 5,
+            "tickstyle": "all",
+            "xunits": None,
+            "yminorticks": False,
+            "xminorticks": False,
+            "minor_tickwidth": 1.5,
+            "minor_ticklength": 1.5,
         }
-        self.plot_dict["grid_settings"] = grid_settings
+        self._plot_format["axis"] = axis
+
+        figure = {
+            "gridspec_kw": None,
+            "margins": 0.05,
+            "aspect": 1,
+            "figsize": None,
+            "nrows": None,
+            "ncols": None,
+            "projection": "rectilinear",
+        }
+
+        self._plot_format["figure"] = figure
+
+        grid = {
+            "ygrid": False,
+            "xgrid": False,
+            "linestyle": "solid",
+            "ylinewidth": 1,
+            "xlinewidth": 1,
+        }
+
+        self._plot_format["grid"] = grid
 
     def _set_grid(self, sub_ax):
-        if self.plot_dict["grid_settings"]["ygrid"]:
+        if self.plot_dict["grid"]["ygrid"]:
             sub_ax.yaxis.grid(
-                linewidth=self.plot_dict["grid_settings"]["ylinewidth"],
-                linestyle=self.plot_dict["grid_settings"]["linestyle"],
+                linewidth=self.plot_dict["grid"]["ylinewidth"],
+                linestyle=self.plot_dict["grid"]["linestyle"],
             )
 
-        if self.plot_dict["grid_settings"]["xgrid"]:
+        if self.plot_dict["grid"]["xgrid"]:
             sub_ax.xaxis.grid(
-                linewidth=self.plot_dict["grid_settings"]["xlinewidth"],
-                linestyle=self.plot_dict["grid_settings"]["linestyle"],
+                linewidth=self.plot_dict["grid"]["xlinewidth"],
+                linestyle=self.plot_dict["grid"]["linestyle"],
             )
 
     def add_axline(
@@ -160,13 +187,13 @@ class BasePlot:
 
     def _set_lims(self, ax, decimals, axis="x"):
         if axis == "y":
-            if self.plot_dict["yscale"] not in ["log", "symlog"]:
+            if self._plot_format["axis"]["yscale"] not in ["log", "symlog"]:
                 ticks = ax.get_yticks()
                 lim, ticks = get_ticks(
-                    self.plot_dict["ylim"],
+                    self._plot_format["axis"]["ylim"],
                     ticks,
-                    self.plot_dict["steps"],
-                    tickstyle=self.plot_dict["tickstyle"],
+                    self._plot_format["axis"]["steps"],
+                    tickstyle=self._plot_format["axis"]["tickstyle"],
                 )
                 ax.set_ylim(bottom=lim[0], top=lim[1])
                 if (
@@ -184,25 +211,28 @@ class BasePlot:
                 ax.set_yticks(
                     ticks,
                     labels=tick_labels,
-                    fontfamily=self.plot_dict["label_props"]["font"],
-                    fontweight=self.plot_dict["label_props"]["tick_fontweight"],
-                    fontsize=self.plot_dict["label_props"]["ticklabel_size"],
+                    fontfamily=self._plot_format["labels"]["font"],
+                    fontweight=self._plot_format["labels"]["tick_fontweight"],
+                    fontsize=self._plot_format["labels"]["ticklabel_size"],
                 )
             else:
-                ax.set_yscale(self.plot_dict["yscale"])
+                ax.set_yscale(self._plot_format["axis"]["yscale"])
                 ticks = ax.get_yticks()
                 lim, _ = get_ticks(
-                    self.plot_dict["ylim"], ticks, self.plot_dict["steps"], decimals
+                    self._plot_format["axis"]["ylim"],
+                    ticks,
+                    self._plot_format["axis"]["steps"],
+                    decimals,
                 )
                 ax.set_ylim(bottom=lim[0], top=lim[1])
         else:
-            if self.plot_dict["xscale"] not in ["log", "symlog"]:
+            if self._plot_format["axis"]["xscale"] not in ["log", "symlog"]:
                 ticks = ax.get_xticks()
                 lim, ticks = get_ticks(
-                    self.plot_dict["xlim"],
+                    self._plot_format["axis"]["xlim"],
                     ticks,
-                    self.plot_dict["steps"],
-                    tickstyle=self.plot_dict["tickstyle"],
+                    self._plot_format["axis"]["steps"],
+                    tickstyle=self._plot_format["axis"]["tickstyle"],
                 )
                 ax.set_xlim(left=lim[0], right=lim[1])
                 if (
@@ -220,16 +250,19 @@ class BasePlot:
                 ax.set_xticks(
                     ticks,
                     labels=tick_labels,
-                    fontfamily=self.plot_dict["label_props"]["font"],
-                    fontweight=self.plot_dict["label_props"]["tick_fontweight"],
-                    fontsize=self.plot_dict["label_props"]["ticklabel_size"],
+                    fontfamily=self._plot_format["labels"]["font"],
+                    fontweight=self._plot_format["labels"]["tick_fontweight"],
+                    fontsize=self._plot_format["labels"]["ticklabel_size"],
                 )
 
             else:
-                ax.set_xscale(self.plot_dict["xscale"])
+                ax.set_xscale(self._plot_format["axis"]["xscale"])
                 ticks = ax.get_xticks()
                 lim, _ = get_ticks(
-                    self.plot_dict["xlim"], ticks, self.plot_dict["steps"], decimals
+                    self._plot_format["axis"]["xlim"],
+                    ticks,
+                    self._plot_format["axis"]["steps"],
+                    decimals,
                 )
                 ax.set_xlim(left=lim[0], right=lim[1])
 
@@ -253,9 +286,9 @@ class BasePlot:
             ax.tick_params(
                 axis="y",
                 which="minor",
-                width=self.plot_dict["minor_tickwidth"],
-                length=self.plot_dict["minor_ticklength"],
-                labelfontfamily=self.plot_dict["label_props"]["font"],
+                width=self._plot_format["axis"]["minor_tickwidth"],
+                length=self._plot_format["axis"]["minor_ticklength"],
+                labelfontfamily=self._plot_format["labels"]["font"],
             )
 
         else:
@@ -266,21 +299,22 @@ class BasePlot:
             ax.tick_params(
                 axis="x",
                 which="minor",
-                width=self.plot_dict["minor_tickwidth"],
-                length=self.plot_dict["minor_ticklength"],
-                labelfontfamily=self.plot_dict["label_props"]["font"],
+                width=self._plot_format["axis"]["minor_tickwidth"],
+                length=self._plot_format["axis"]["minor_ticklength"],
+                labelfontfamily=self._plot_format["labels"]["font"],
             )
 
     def labels(
         self,
         labelsize: float = 20,
-        titlesize: float = 20,
+        titlesize: float = 22,
         ticklabel_size: int = 12,
         font: str = "DejaVu Sans",
         fontweight: None | str | float = None,
         title_fontweight: str | float = "regular",
         label_fontweight: str | float = "regular",
         tick_fontweight: str | float = "regular",
+        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
     ):
         if fontweight is not None:
             title_fontweight = fontweight
@@ -295,19 +329,19 @@ class BasePlot:
             "title_fontweight": title_fontweight,
             "label_fontweight": label_fontweight,
             "tick_fontweight": tick_fontweight,
+            "xlabel_rotation": xlabel_rotation,
         }
-        self.plot_dict["label_props"] = label_props
+        self._plot_format["labels"] = label_props
         if not self.inplace:
             return self
 
-    def plot_settings(
+    def axis(
         self,
         style: str = "default",
         ylim: Optional[list] = None,
         xlim: Optional[list] = None,
         yscale: Literal["linear", "log", "symlog"] = "linear",
         xscale: Literal["linear", "log", "symlog"] = "linear",
-        xlabel_rotation: Union[Literal["horizontal", "vertical"], float] = "horizontal",
         linewidth: float = 2,
         tickwidth: float = 2,
         ticklength: float = 5.0,
@@ -315,14 +349,13 @@ class BasePlot:
         xminorticks: bool = False,
         minor_tickwidth: float = 1.5,
         minor_ticklength: float = 2.5,
-        ysteps: int = 7,
-        xsteps: int = 7,
+        ysteps: int = 5,
+        xsteps: int = 5,
         tickstyle: Literal["all", "middle"] = "all",
         ydecimals: int = None,
         xdecimals: int = None,
         xunits: Optional[Literal["degree", "radian" "wradian"]] = None,
     ):
-        self._plot_settings_run = True
         if ylim is None:
             ylim = [None, None]
         if xlim is None:
@@ -331,7 +364,6 @@ class BasePlot:
         plot_settings = {
             "yscale": yscale,
             "xscale": xscale,
-            "xlabel_rotation": xlabel_rotation,
             "tickwidth": tickwidth,
             "ticklength": ticklength,
             "linewidth": linewidth,
@@ -348,10 +380,9 @@ class BasePlot:
             "minor_tickwidth": minor_tickwidth,
             "minor_ticklength": minor_ticklength,
         }
-        self.plot_dict.update(plot_settings)
+        self._plot_format["axis"] = plot_settings
 
         plt.style.use(style)
-        self.style = style
 
         # Quick check just for dark and default backgrounds
         # for index, val in enumerate(self.plot_list):
@@ -367,6 +398,52 @@ class BasePlot:
         if not self.inplace:
             return self
 
+    def figure(
+        self,
+        margins=0.05,
+        aspect: Union[int, float] = 1,
+        figsize: Union[None, tuple[int, int]] = None,
+        gridspec_kw: dict[str, Union[str, int, float]] = None,
+        nrows: int = None,
+        ncols: int = None,
+        projection: Literal["rectilinear", "polar"] = "rectilinear",
+    ):
+
+        figure = {
+            "gridspec_kw": gridspec_kw,
+            "margins": margins,
+            "aspect": (aspect if projection == "rectilinear" else None),
+            "figsize": figsize,
+            "nrows": nrows,
+            "ncols": ncols,
+        }
+
+        self._plot_format["figure"] = figure
+
+        if not self.inplace:
+            return self
+
+    def grid_settings(
+        self,
+        ygrid: bool = False,
+        xgrid: bool = False,
+        linestyle: Union[str, tuple] = "solid",
+        ylinewidth: Union[float, int] = 1,
+        xlinewidth: Union[float, int] = 1,
+    ):
+
+        grid_settings = {
+            "ygrid": ygrid,
+            "xgrid": xgrid,
+            "linestyle": linestyle,
+            "xlinewidth": xlinewidth,
+            "ylinewidth": ylinewidth,
+        }
+        self._plot_format["grid"] = grid_settings
+
+        if not self.inplace:
+            return self
+
     def plot(
         self,
         savefig: bool = False,
@@ -374,24 +451,7 @@ class BasePlot:
         filename="",
         filetype="svg",
         backend="matplotlib",
-        margins=0.05,
-        aspect: Union[int, float] = 1,
-        figsize: Union[None, tuple[int, int]] = None,
-        gridspec_kw: dict[str, Union[str, int, float]] = None,
     ):
-        self.plot_dict["gridspec_kw"] = gridspec_kw
-        self.plot_dict["margins"] = margins
-        self.plot_dict["aspect"] = (
-            aspect if self.plot_dict["projection"] == "rectilinear" else None
-        )
-        self.plot_dict["figsize"] = figsize
-        if not self._plot_settings_run:
-            if self.inplace:
-                self.plot_settings()
-            else:
-                self.inplace = True
-                self.plot_settings()
-                self.inplace = False
 
         if backend == "matplotlib":
             output = self._matplotlib_backend(
@@ -420,6 +480,9 @@ class BasePlot:
         ax.legend(handles=handles, frameon=False)
         return fig, ax
 
+    def get_format(self):
+        return self._plot_format
+
 
 class LinePlot(BasePlot):
     ecdf_args = {
@@ -441,9 +504,6 @@ class LinePlot(BasePlot):
         title: str = "",
         facet: bool = False,
         facet_title: bool = False,
-        nrows: int = None,
-        ncols: int = None,
-        projection: Literal["rectilinear", "polar"] = "rectilinear",
         inplace: bool = False,
     ):
         super().__init__()
@@ -491,24 +551,12 @@ class LinePlot(BasePlot):
             "title": title,
             "facet": facet,
             "facet_dict": facet_dict,
-            "nrows": nrows,
-            "ncols": ncols,
             "facet_title": facet_title,
             "xtransform": None,
             "ytransform": None,
             "levels": levels,
-            "projection": projection,
         }
         self.lines = {}
-
-        grid_settings = {
-            "ygrid": False if projection == "rectilinear" else True,
-            "xgrid": False if projection == "rectilinear" else True,
-            "linestyle": "solid",
-            "xlinewidth": 1,
-            "ylinewidth": 1,
-        }
-        self.plot_dict["grid_settings"] = grid_settings
 
     def transform(
         self,
@@ -790,8 +838,9 @@ class LinePlot(BasePlot):
         self.plots.append(hist)
         self.plot_list.append("hist")
 
-        if self.plot_dict["projection"] == "polar":
-            self.grid_settings()
+        if self._plot_format["figure"]["projection"] == "polar":
+            self._plot_format["grid"]["ygrid"] = True
+            self._plot_format["grid"]["xgrid"] = True
 
         if not self.inplace:
             return self
@@ -920,26 +969,29 @@ class LinePlot(BasePlot):
         filename: str = "",
         transparent=False,
     ):
-        if self.plot_dict["nrows"] is None and self.plot_dict["ncols"] is None:
+        if (
+            self._plot_format["figure"]["nrows"] is None
+            and self._plot_format["figure"]["ncols"] is None
+        ):
             nrows = len(self.plot_dict["group_order"])
             ncols = 1
-        elif self.plot_dict["nrows"] is None:
+        elif self._plot_format["figure"]["nrows"] is None:
             nrows = 1
-            ncols = self.plot_dict["ncols"]
-        elif self.plot_dict["ncols"] is None:
-            nrows = self.plot_dict["nrows"]
+            ncols = self._plot_format["figure"]["ncols"]
+        elif self._plot_format["figure"]["ncols"] is None:
+            nrows = self._plot_format["figure"]["nrows"]
             ncols = 1
         else:
-            nrows = self.plot_dict["nrows"]
-            ncols = self.plot_dict["ncols"]
+            nrows = self._plot_format["figure"]["nrows"]
+            ncols = self._plot_format["figure"]["ncols"]
         if self.plot_dict["facet"]:
             fig, ax = plt.subplots(
                 subplot_kw=dict(
-                    box_aspect=self.plot_dict["aspect"],
-                    projection=self.plot_dict["projection"],
+                    box_aspect=self._plot_format["axis"]["aspect"],
+                    projection=self._plot_format["figure"]["projection"],
                 ),
-                figsize=self.plot_dict["figsize"],
-                gridspec_kw=self.plot_dict["gridspec_kw"],
+                figsize=self._plot_format["figure"]["figsize"],
+                gridspec_kw=self._plot_format["figure"]["gridspec_kw"],
                 ncols=ncols,
                 nrows=nrows,
             )
@@ -947,10 +999,10 @@ class LinePlot(BasePlot):
         else:
             fig, ax = plt.subplots(
                 subplot_kw=dict(
-                    box_aspect=self.plot_dict["aspect"],
-                    projection=self.plot_dict["projection"],
+                    box_aspect=self._plot_format["figure"]["aspect"],
+                    projection=self._plot_format["figure"]["projection"],
                 ),
-                figsize=self.plot_dict["figsize"],
+                figsize=self._plot_format["figure"]["figsize"],
             )
             ax = [ax]
         for i, j in zip(self.plot_list, self.plots):
@@ -969,89 +1021,93 @@ class LinePlot(BasePlot):
             )
             if i == "kde" or i == "hist":
                 if self.plot_dict["x"] is not None:
-                    if self.plot_dict["ylim"] is None:
-                        self.plot_dict["ylim"] = [0, None]
+                    if self._plot_format["axis"]["ylim"] is None:
+                        self._plot_format["axis"]["ylim"] = [0, None]
                 else:
-                    if self.plot_dict["xlim"] is None:
-                        self.plot_dict["xlim"] = [0, None]
+                    if self._plot_format["axis"]["xlim"] is None:
+                        self._plot_format["axis"]["xlim"] = [0, None]
             if i == "ecdf":
-                self.plot_dict["ylim"] = [0.0, 1.0]
+                self._plot_format["axis"]["ylim"] = [0.0, 1.0]
 
         if (
-            self.plot_dict["ydecimals"] is None
+            self._plot_format["axis"]["ydecimals"] is None
             and self.plot_dict["data"][self.plot_dict["y"]] is not None
         ):
             ydecimals = _decimals(self.plot_dict["data"][self.plot_dict["y"]])
         else:
-            ydecimals = self.plot_dict["ydecimals"]
+            ydecimals = self._plot_format["axis"]["ydecimals"]
         if (
-            self.plot_dict["xdecimals"] is None
+            self._plot_format["axis"]["xdecimals"] is None
             and self.plot_dict["data"][self.plot_dict["x"]] is not None
         ):
             xdecimals = _decimals(self.plot_dict["data"][self.plot_dict["x"]])
         else:
-            xdecimals = self.plot_dict["xdecimals"]
+            xdecimals = self._plot_format["axis"]["xdecimals"]
         # num_plots = len(self.plot_dict["group_order"])
         for index, sub_ax in enumerate(ax[: len(self.plot_dict["group_order"])]):
-            if self.plot_dict["projection"] == "rectilinear":
+            if self._plot_format["figure"]["projection"] == "rectilinear":
                 sub_ax.autoscale()
                 sub_ax.spines["right"].set_visible(False)
                 sub_ax.spines["top"].set_visible(False)
-                sub_ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
-                sub_ax.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
+                sub_ax.spines["left"].set_linewidth(
+                    self._plot_format["axis"]["linewidth"]
+                )
+                sub_ax.spines["bottom"].set_linewidth(
+                    self._plot_format["axis"]["linewidth"]
+                )
 
                 self._set_lims(sub_ax, ydecimals, axis="y")
                 self._set_lims(sub_ax, xdecimals, axis="x")
 
-                if self.plot_dict["yminorticks"]:
+                if self._plot_format["axis"]["yminorticks"]:
                     self._set_minorticks(
                         sub_ax, self.plot_dict["ytransform"], ticks="y"
                     )
 
-                if self.plot_dict["xminorticks"]:
+                if self._plot_format["axis"]["xminorticks"]:
                     self._set_minorticks(
                         sub_ax, self.plot_dict["xtransform"], ticks="x"
                     )
 
-                sub_ax.margins(self.plot_dict["margins"])
+                sub_ax.margins(self._plot_format["figure"]["margins"])
                 sub_ax.set_xlabel(
                     self.plot_dict["xlabel"],
-                    fontsize=self.plot_dict["label_props"]["labelsize"],
-                    fontweight=self.plot_dict["label_props"]["label_fontweight"],
-                    fontfamily=self.plot_dict["label_props"]["font"],
+                    fontsize=self._plot_format["labels"]["labelsize"],
+                    fontweight=self._plot_format["labels"]["label_fontweight"],
+                    fontfamily=self._plot_format["labels"]["font"],
                 )
             else:
                 if (
-                    self.plot_dict["xunits"] == "radian"
-                    or self.plot_dict["xunits"] == "wradian"
+                    self._plot_format["axis"]["xunits"] == "radian"
+                    or self._plot_format["axis"]["xunits"] == "wradian"
                 ):
                     xticks = sub_ax.get_xticks()
                     labels = (
                         radian_ticks(xticks, rotate=False)
-                        if self.plot_dict["xunits"] == "radian"
+                        if self._plot_format["axis"]["xunits"] == "radian"
                         else radian_ticks(xticks, rotate=True)
                     )
                     sub_ax.set_xticks(
                         xticks,
                         labels,
-                        fontfamily=self.plot_dict["label_props"]["font"],
-                        fontweight=self.plot_dict["label_props"]["tick_fontweight"],
-                        fontsize=self.plot_dict["label_props"]["ticklabel_size"],
+                        fontfamily=self._plot_format["labels"]["font"],
+                        fontweight=self._plot_format["labels"]["tick_fontweight"],
+                        fontsize=self._plot_format["labels"]["ticklabel_size"],
                     )
                 sub_ax.spines["polar"].set_visible(False)
                 sub_ax.set_xlabel(
                     self.plot_dict["xlabel"],
-                    fontsize=self.plot_dict["label_props"]["labelsize"],
-                    fontweight=self.plot_dict["label_props"]["label_fontweight"],
-                    fontfamily=self.plot_dict["label_props"]["font"],
+                    fontsize=self._plot_format["labels"]["labelsize"],
+                    fontweight=self._plot_format["labels"]["label_fontweight"],
+                    fontfamily=self._plot_format["labels"]["font"],
                 )
                 sub_ax.set_rmax(sub_ax.dataLim.ymax)
                 ticks = sub_ax.get_yticks()
                 sub_ax.set_yticks(
                     ticks,
-                    fontfamily=self.plot_dict["label_props"]["font"],
-                    fontweight=self.plot_dict["label_props"]["tick_fontweight"],
-                    fontsize=self.plot_dict["label_props"]["ticklabel_size"],
+                    fontfamily=self._plot_format["labels"]["font"],
+                    fontweight=self._plot_format["labels"]["tick_fontweight"],
+                    fontsize=self._plot_format["labels"]["ticklabel_size"],
                 )
             if "hline" in self.plot_dict:
                 self._plot_axlines(self.plot_dict["hline"], sub_ax)
@@ -1062,10 +1118,10 @@ class LinePlot(BasePlot):
             sub_ax.tick_params(
                 axis="both",
                 which="major",
-                labelsize=self.plot_dict["label_props"]["ticklabel_size"],
-                width=self.plot_dict["tickwidth"],
-                length=self.plot_dict["ticklength"],
-                labelfontfamily=self.plot_dict["label_props"]["font"],
+                labelsize=self._plot_format["labels"]["ticklabel_size"],
+                width=self._plot_format["axis"]["tickwidth"],
+                length=self._plot_format["axis"]["ticklength"],
+                labelfontfamily=self._plot_format["labels"]["font"],
             )
 
             self._set_grid(sub_ax)
@@ -1075,31 +1131,31 @@ class LinePlot(BasePlot):
 
             sub_ax.set_ylabel(
                 self.plot_dict["ylabel"],
-                fontsize=self.plot_dict["label_props"]["labelsize"],
-                fontfamily=self.plot_dict["label_props"]["font"],
-                fontweight=self.plot_dict["label_props"]["label_fontweight"],
+                fontsize=self._plot_format["labels"]["labelsize"],
+                fontfamily=self._plot_format["labels"]["font"],
+                fontweight=self._plot_format["labels"]["label_fontweight"],
             )
             if self.plot_dict["facet_title"]:
                 sub_ax.set_title(
                     self.plot_dict["group_order"][index],
-                    fontsize=self.plot_dict["label_props"]["labelsize"],
-                    fontfamily=self.plot_dict["label_props"]["font"],
+                    fontsize=self._plot_format["labels"]["labelsize"],
+                    fontfamily=self._plot_format["labels"]["font"],
                 )
             else:
                 sub_ax.set_title(
                     self.plot_dict["title"],
-                    fontsize=self.plot_dict["label_props"]["labelsize"],
-                    fontfamily=self.plot_dict["label_props"]["font"],
+                    fontsize=self._plot_format["labels"]["labelsize"],
+                    fontfamily=self._plot_format["labels"]["font"],
                 )
 
         if self.plot_dict["title"] is not None:
             fig.suptitle(
                 self.plot_dict["title"],
-                fontsize=self.plot_dict["label_props"]["titlesize"],
+                fontsize=self._plot_format["labels"]["titlesize"],
             )
 
-        if self.plot_dict["projection"] == "rectilinear":
-            if self.plot_dict["gridspec_kw"] is None:
+        if self._plot_format["figure"]["projection"] == "rectilinear":
+            if self._plot_format["figure"]["gridspec_kw"] is None:
                 fig.tight_layout()
 
         if savefig:
@@ -1189,18 +1245,8 @@ class CategoricalPlot(BasePlot):
             "title": title,
             "ytransform": None,
             "back_transform_ticks": False,
-            "projection": "rectilinear",
             "levels": levels,
         }
-
-        grid_settings = {
-            "ygrid": False,
-            "xgrid": False,
-            "linestyle": "solid",
-            "xlinewidth": 1,
-            "ylinewidth": 1,
-        }
-        self.plot_dict["grid_settings"] = grid_settings
 
     def transform(
         self,
@@ -1553,9 +1599,9 @@ class CategoricalPlot(BasePlot):
         self.plots.append(percent_plot)
         self.plot_list.append("percent")
         if axis_type == "density":
-            self.plot_dict["ylim"] = [0.0, 1.0]
+            self._plot_format["axis"]["ylim"] = [0.0, 1.0]
         else:
-            self.plot_dict["ylim"] = [0, 100]
+            self._plot_format["axis"]["ylim"] = [0, 100]
 
         if legend:
             if facecolor is not None or linecolor == "black":
@@ -1628,8 +1674,8 @@ class CategoricalPlot(BasePlot):
         transparent=False,
     ):
         fig, ax = plt.subplots(
-            subplot_kw=dict(box_aspect=self.plot_dict["aspect"]),
-            figsize=self.plot_dict["figsize"],
+            subplot_kw=dict(box_aspect=self._plot_format["figure"]["aspect"]),
+            figsize=self._plot_format["figure"]["figsize"],
         )
 
         for i, j in zip(self.plot_list, self.plots):
@@ -1645,20 +1691,20 @@ class CategoricalPlot(BasePlot):
                 **j,
             )
 
-        decimals = self.plot_dict["decimals"]
+        decimals = self._plot_format["axis"]["ydecimals"]
 
         ax.set_xticks(
             ticks=self.plot_dict["x_ticks"],
             labels=self.plot_dict["group_order"],
-            rotation=self.plot_dict["xlabel_rotation"],
-            fontfamily=self.plot_dict["label_props"]["font"],
-            fontweight=self.plot_dict["label_props"]["tick_fontweight"],
-            fontsize=self.plot_dict["label_props"]["ticklabel_size"],
+            rotation=self._plot_format["labels"]["xlabel_rotation"],
+            fontfamily=self._plot_format["labels"]["font"],
+            fontweight=self._plot_format["labels"]["tick_fontweight"],
+            fontsize=self._plot_format["labels"]["ticklabel_size"],
         )
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
-        ax.spines["left"].set_linewidth(self.plot_dict["linewidth"])
-        ax.spines["bottom"].set_linewidth(self.plot_dict["linewidth"])
+        ax.spines["left"].set_linewidth(self._plot_format["axis"]["linewidth"])
+        ax.spines["bottom"].set_linewidth(self._plot_format["axis"]["linewidth"])
         if "/" in self.plot_dict["y"]:
             self.plot_dict["y"] = self.plot_dict["y"].replace("/", "_")
 
@@ -1666,30 +1712,30 @@ class CategoricalPlot(BasePlot):
 
         self._set_lims(ax, decimals, axis="y")
 
-        if self.plot_dict["yminorticks"]:
+        if self._plot_format["axis"]["yminorticks"]:
             self._set_minorticks(ax, self.plot_dict["ytransform"], ticks="y")
 
         ax.set_ylabel(
             self.plot_dict["ylabel"],
-            fontsize=self.plot_dict["label_props"]["labelsize"],
-            fontfamily=self.plot_dict["label_props"]["font"],
-            fontweight=self.plot_dict["label_props"]["label_fontweight"],
+            fontsize=self._plot_format["labels"]["labelsize"],
+            fontfamily=self._plot_format["labels"]["font"],
+            fontweight=self._plot_format["labels"]["label_fontweight"],
         )
         ax.set_title(
             self.plot_dict["title"],
-            fontsize=self.plot_dict["label_props"]["titlesize"],
-            fontfamily=self.plot_dict["label_props"]["font"],
-            fontweight=self.plot_dict["label_props"]["label_fontweight"],
+            fontsize=self._plot_format["labels"]["titlesize"],
+            fontfamily=self._plot_format["labels"]["font"],
+            fontweight=self._plot_format["labels"]["label_fontweight"],
         )
         ax.tick_params(
             axis="both",
             which="major",
-            labelsize=self.plot_dict["label_props"]["ticklabel_size"],
-            width=self.plot_dict["tickwidth"],
-            length=self.plot_dict["ticklength"],
-            labelfontfamily=self.plot_dict["label_props"]["font"],
+            labelsize=self._plot_format["labels"]["ticklabel_size"],
+            width=self._plot_format["axis"]["tickwidth"],
+            length=self._plot_format["axis"]["ticklength"],
+            labelfontfamily=self._plot_format["labels"]["font"],
         )
-        ax.margins(x=self.plot_dict["margins"])
+        ax.margins(x=self._plot_format["figure"]["margins"])
 
         if "legend_dict" in self.plot_dict:
             handles = mp._make_legend_patches(
@@ -1777,12 +1823,12 @@ class CategoricalPlot(BasePlot):
                 ticks="outside",
                 color="black",
                 tickfont=dict(size=self.plot_dict["ticklabel_size"]),
-                tickwidth=self.plot_dict["tickwidth"],
-                linewidth=self.plot_dict["linewidth"],
+                tickwidth=self._plot_format["axis"]["tickwidth"],
+                linewidth=self._plot_format["axis"]["linewidth"],
                 automargin=True,
             ),
             yaxis=dict(
-                titlefont=dict(size=self.plot_dict["label_props"]["labelsize"]),
+                titlefont=dict(size=self._plot_format["labels"]["labelsize"]),
                 title=dict(text=self.plot_dict["ylabel"]),
                 nticks=self.plot_dict["steps"],
                 showline=True,
@@ -1793,8 +1839,8 @@ class CategoricalPlot(BasePlot):
                 ticks="outside",
                 color="black",
                 tickfont=dict(size=self.plot_dict["ticklabel_size"]),
-                tickwidth=self.plot_dict["tickwidth"],
-                linewidth=self.plot_dict["linewidth"],
+                tickwidth=self._plot_format["axis"]["tickwidth"],
+                linewidth=self._plot_format["axis"]["linewidth"],
                 automargin=True,
                 range=[ticks[0], ticks[-1]],
                 constrain="range",
