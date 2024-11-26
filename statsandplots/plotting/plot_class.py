@@ -73,6 +73,8 @@ PLOTLY_SAVE_TYPES = {"html"}
 class BasePlot:
 
     def __init__(self):
+        plt.rcParams["svg.fonttype"] = "none"
+
         self._plot_format = {}
 
         label_props = {
@@ -133,16 +135,16 @@ class BasePlot:
         self._plot_format["grid"] = grid
 
     def _set_grid(self, sub_ax):
-        if self.plot_dict["grid"]["ygrid"]:
+        if self._plot_format["grid"]["ygrid"]:
             sub_ax.yaxis.grid(
-                linewidth=self.plot_dict["grid"]["ylinewidth"],
-                linestyle=self.plot_dict["grid"]["linestyle"],
+                linewidth=self._plot_format["grid"]["ylinewidth"],
+                linestyle=self._plot_format["grid"]["linestyle"],
             )
 
-        if self.plot_dict["grid"]["xgrid"]:
+        if self._plot_format["grid"]["xgrid"]:
             sub_ax.xaxis.grid(
-                linewidth=self.plot_dict["grid"]["xlinewidth"],
-                linestyle=self.plot_dict["grid"]["linestyle"],
+                linewidth=self._plot_format["grid"]["xlinewidth"],
+                linestyle=self._plot_format["grid"]["linestyle"],
             )
 
     def add_axline(
@@ -192,7 +194,7 @@ class BasePlot:
                 lim, ticks = get_ticks(
                     self._plot_format["axis"]["ylim"],
                     ticks,
-                    self._plot_format["axis"]["steps"],
+                    self._plot_format["axis"]["ysteps"],
                     tickstyle=self._plot_format["axis"]["tickstyle"],
                 )
                 ax.set_ylim(bottom=lim[0], top=lim[1])
@@ -221,7 +223,7 @@ class BasePlot:
                 lim, _ = get_ticks(
                     self._plot_format["axis"]["ylim"],
                     ticks,
-                    self._plot_format["axis"]["steps"],
+                    self._plot_format["axis"]["ysteps"],
                     decimals,
                 )
                 ax.set_ylim(bottom=lim[0], top=lim[1])
@@ -231,7 +233,7 @@ class BasePlot:
                 lim, ticks = get_ticks(
                     self._plot_format["axis"]["xlim"],
                     ticks,
-                    self._plot_format["axis"]["steps"],
+                    self._plot_format["axis"]["xsteps"],
                     tickstyle=self._plot_format["axis"]["tickstyle"],
                 )
                 ax.set_xlim(left=lim[0], right=lim[1])
@@ -261,7 +263,7 @@ class BasePlot:
                 lim, _ = get_ticks(
                     self._plot_format["axis"]["xlim"],
                     ticks,
-                    self._plot_format["axis"]["steps"],
+                    self._plot_format["axis"]["xsteps"],
                     decimals,
                 )
                 ax.set_xlim(left=lim[0], right=lim[1])
@@ -1808,7 +1810,7 @@ class CategoricalPlot(BasePlot):
             np.linspace(
                 self.plot_dict["ylim"][0],
                 self.plot_dict["ylim"][1],
-                self.plot_dict["steps"],
+                self.plot_dict["ysteps"],
             ),
             decimals=decimals,
         )
@@ -1830,7 +1832,7 @@ class CategoricalPlot(BasePlot):
             yaxis=dict(
                 titlefont=dict(size=self._plot_format["labels"]["labelsize"]),
                 title=dict(text=self.plot_dict["ylabel"]),
-                nticks=self.plot_dict["steps"],
+                nticks=self.plot_dict["ysteps"],
                 showline=True,
                 tickmode="array",
                 linecolor="black",
