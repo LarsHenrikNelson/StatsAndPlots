@@ -760,24 +760,28 @@ def _agg_line(
 ):
     err_data = None
     new_levels = (levels + [x]) if unique_id is None else (levels + [x, unique_id])
-    new_data = data.groupby(y, new_levels).agg(get_transform(func)).reset_index()
+    new_data = (
+        data.groupby(y, new_levels, sort=sort).agg(get_transform(func)).reset_index()
+    )
     if unique_id is None:
         if err_func is not None:
             err_data = DataHolder(
-                data.groupby(y, new_levels).agg(get_transform(err_func)).reset_index()
+                data.groupby(y, new_levels, sort=sort)
+                .agg(get_transform(err_func))
+                .reset_index()
             )
     else:
         if agg_func is not None:
             if err_func is not None:
                 err_data = DataHolder(
                     new_data[levels + [x, y]]
-                    .groupby(levels + [x])
+                    .groupby(levels + [x], sort=sort)
                     .agg(get_transform(err_func))
                     .reset_index()
                 )
         new_data = (
             new_data[levels + [x, y]]
-            .groupby(levels + [x])
+            .groupby(levels + [x], sort=sort)
             .agg(get_transform(func))
             .reset_index()
         )

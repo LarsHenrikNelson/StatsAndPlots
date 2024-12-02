@@ -96,8 +96,10 @@ class DataHolder:
             bool_array = bool_array & (self[i] == j)
         return bool_array
 
-    def groupby(self, y, columns):
-        yy = pd.DataFrame(self._data)[columns + [y]].groupby(columns)
+    def groupby(self, y, columns, sort=True):
+        if not isinstance(y, list):
+            y = [y]
+        yy = pd.DataFrame(self._data)[columns + y].groupby(columns, sort=sort)
         return yy
 
     def groups(self, levels):

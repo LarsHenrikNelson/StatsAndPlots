@@ -414,10 +414,11 @@ class BasePlot:
         figure = {
             "gridspec_kw": gridspec_kw,
             "margins": margins,
-            "aspect": (aspect if projection == "rectilinear" else None),
+            "aspect": aspect if projection == "rectilinear" else None,
             "figsize": figsize,
             "nrows": nrows,
             "ncols": ncols,
+            "projection": projection,
         }
 
         self._plot_format["figure"] = figure
@@ -835,7 +836,7 @@ class LinePlot(BasePlot):
             "unique_id": unique_id,
             "fillalpha": fillalpha,
             "linealpha": linealpha,
-            "projection": self.plot_dict["projection"],
+            "projection": self._plot_format["figure"]["projection"],
         }
         self.plots.append(hist)
         self.plot_list.append("hist")
@@ -989,7 +990,7 @@ class LinePlot(BasePlot):
         if self.plot_dict["facet"]:
             fig, ax = plt.subplots(
                 subplot_kw=dict(
-                    box_aspect=self._plot_format["axis"]["aspect"],
+                    box_aspect=self._plot_format["figure"]["aspect"],
                     projection=self._plot_format["figure"]["projection"],
                 ),
                 figsize=self._plot_format["figure"]["figsize"],
